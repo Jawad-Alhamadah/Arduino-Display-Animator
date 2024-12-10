@@ -1,188 +1,236 @@
 import React from 'react';
 import './App.css';
 import Max7219IC from './components/Max7219IC';
-import { RiArrowDropLeftFill } from "react-icons/ri";
-import { RiArrowRightSFill,RiArrowLeftSFill  } from "react-icons/ri";
+import { RiArrowLeftSFill, RiArrowRightSFill } from "react-icons/ri";
 import { MdAddCircle } from "react-icons/md";
-const { DragDropContext, Draggable, Droppable } = window.ReactBeautifulDnd;
-// import { ReactSortable } from "react-sortablejs";
-// import {Sortable, MultiDrag, Swap} from "sortablejs";
-// Sortable.mount(new MultiDrag(), new Swap);
-function App() {
+import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd';
+import PinSelector from './components/PinSelector';
 
-  const newMatrix = {key:0,dotmatrix:
-    [
-      [false, false, false, false, false, false, false, false],
-      [false, false, false, false, false, false, false, false],
-      [false, false, false, false, false, false, false, false],
-      [false, false, false, false, false, false, false, false],
-      [false, false, false, false, false, false, false, false],
-      [false, false, false, false, false, false, false, false],
-      [false, false, false, false, false, false, false, false],
-      [false, false, false, false, false, false, false, false],
-    ]
-  
-  } 
+function App() {
   const [pinCS, setPinCS] = React.useState(false);
   const [pinCLK, setPinCLK] = React.useState(false);
   const [pinDIN, setPinDIN] = React.useState(false);
+  let [test, setTest] = React.useState(0);
 
   let pinCSRef = React.useRef(null)
   let pinCLKRef = React.useRef(null)
   let pinDINRef = React.useRef(null)
-
   const [isMouseDown, setIsMouseDown] = React.useState(false);
   const [downKey, setDownKey] = React.useState(false);
-  const [currentMatrix, setCurrentMatrix] = React.useState(1);
+  const newMatrix = {
+    key: 0, dotmatrix:
+      [
+        [false, false, false, false, false, false, false, false],
+        [false, false, false, false, false, false, false, false],
+        [false, false, false, false, false, false, false, false],
+        [false, false, false, false, false, false, false, false],
+        [false, false, false, false, false, false, false, false],
+        [false, false, false, false, false, false, false, false],
+        [false, false, false, false, false, false, false, false],
+        [false, false, false, false, false, false, false, false],
+      ]
+
+  }
   const [dotMatrixDivs, setDotMatrixDivs] = React.useState(
     [
-    {key:1,dotmatrix:[
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-      ]},
+      {
+        key: 1, dotmatrix: [
+          [false, false, false, false, false, false, false, false],
+          [false, false, false, false, false, false, false, false],
+          [false, false, false, false, false, false, false, false],
+          [false, false, false, false, false, false, false, false],
+          [false, false, false, false, false, false, false, false],
+          [false, false, false, false, false, false, false, false],
+          [false, false, false, false, false, false, false, false],
+          [false, false, false, false, false, false, false, false],
+        ]
+      },
 
-      {key:2,dotmatrix:[
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-      ]}
+      {
+        key: 2, dotmatrix: [
+          [false, false, false, false, false, false, false, false],
+          [false, false, false, false, false, false, false, false],
+          [false, false, false, false, false, false, false, false],
+          [false, false, false, false, false, false, false, false],
+          [false, false, false, false, false, false, false, false],
+          [false, false, false, false, false, false, false, false],
+          [false, false, false, false, false, false, false, false],
+          [false, false, false, false, false, false, false, false],
+        ]
+      }
     ]
 
   )
+  const framesRef = React.useRef([]);
+  const timelineRef = React.useRef(null);
+  const [currentMatrix, setCurrentMatrix] = React.useState(1);
 
-  const handleDrag = (event) => {
-    event.preventDefault();
+  const onDragEnd = (result) => {
+    const { source, destination } = result;
+    if (!destination) return;
+
+    const reorderedDivs = Array.from(dotMatrixDivs);
+    const [removed] = reorderedDivs.splice(source.index, 1);
+    reorderedDivs.splice(destination.index, 0, removed);
+    setDotMatrixDivs(reorderedDivs);
   };
+
+
   React.useEffect(() => {
-    const handleKeyPress = (event) => {
 
-      console.log(event.key);
-      setDownKey(event.key)
+
+    if (!timelineRef.current) return;
+
+    const observerCallback = (entries) => {
+      entries.forEach((entry) => {
+        console.log("checking...")
+        console.log(framesRef)
+        console.log(timelineRef.current)
+        if (entry.isIntersecting) {
+
+          // When intersecting, update the active frame state
+          // setActiveFrame(entry.target.getAttribute('data-frame'));
+          // console.log("jh")
+          // Check if the intersecting frame also intersects with timelineRef
+          const frameRect = entry.target.getBoundingClientRect();
+          const timelineRect = timelineRef.current.getBoundingClientRect();
+
+          if (
+            frameRect.left < timelineRect.right &&
+            frameRect.right > timelineRect.left &&
+            frameRect.top < timelineRect.bottom &&
+            frameRect.bottom > timelineRect.top
+          ) {
+            console.log("Timeline is touching frame:", entry.target.getAttribute('data-frame'));
+          }
+        }
+      });
     };
 
-    const handleKeyUnpress = (event) => {
+    const observer = new IntersectionObserver(observerCallback, {
+      root: null,
+      threshold: 0.01,
+    });
 
-      console.log(event.key);
-      setDownKey("")
-    };
-    window.addEventListener('keydown', handleKeyPress);
-    window.addEventListener('keyup', handleKeyUnpress);
+    // Observe each frame element
+    framesRef.current.forEach((frame) => observer.observe(frame));
 
-    // Clean up event listener on component unmount
-    return () => {
-      window.removeEventListener('keydown', handleKeyPress);
-      window.addEventListener('keyup', handleKeyUnpress);
-    };
-  }, [])
+    return () => observer.disconnect(); // Cleanup on component unmount
+  }, [test]);
 
   return (
-    <div className='w-screen  text-center flex justify-center flex-col items-center '
-      onMouseDown={() => setIsMouseDown(true)}
-      onMouseUp={() => setIsMouseDown(false)}
-
-      onDragStart={handleDrag}
-      onDrag={handleDrag}
-      onDragOver={handleDrag}
-      draggable="false"
-    >
-      <div className='    bg-gray-900 flex gap-2  m-5 p-3 max-w-[50%] overflow-x-auto  scroll-content shadow-lg'
-        onMouseDown={() => setIsMouseDown(true)}
-        onMouseUp={() => setIsMouseDown(false)}
-
-        onDragStart={handleDrag}
-        onDrag={handleDrag}
-        onDragOver={handleDrag}
-        draggable="false"
-      >
-        {
-          dotMatrixDivs.map((matrix, matrixIndex) => (
-            <div key={matrix.key}  className=' outline-slate-700 hover:outline-2 hover:outline-dashed relative p-2'
-            onClick={()=>setCurrentMatrix(matrix.key)}
+    <div className="w-screen text-center flex justify-center flex-col items-center">
+      {<button onClick={() => setTest((prev) => prev + 100)}>cvbcv</button>}
+      {<h1>{test}</h1>}
+      <DragDropContext onDragEnd={onDragEnd}>
+        <Droppable direction="horizontal" droppableId="dotMatrixDivs" type="MATRIX">
+          {(provided) => (
+            <div
+              className="bg-gray-900 flex gap-2 m-5 p-3 max-w-[50%] overflow-x-auto scroll-content shadow-lg relative"
+              ref={provided.innerRef}
+              {...provided.droppableProps}
             >
-              <div className='flex justify-between'>
-              <RiArrowLeftSFill className={`text-slate-600 text-[1.2rem]` }
-              onClick={()=>{
-                 if(matrixIndex==0) return
-                [dotMatrixDivs[matrixIndex], dotMatrixDivs[matrixIndex-1]] = [dotMatrixDivs[matrixIndex-1], dotMatrixDivs[matrixIndex]]
-              }}
-              />
-              <RiArrowRightSFill className="text-slate-600 text-[1.2rem]" 
-                onClick={()=>{
-                 if(matrixIndex===dotMatrixDivs.length-1) return
-                  [dotMatrixDivs[matrixIndex], dotMatrixDivs[matrixIndex+1]] = [dotMatrixDivs[matrixIndex+1], dotMatrixDivs[matrixIndex]]
-                }}
-              />
-              </div>
+              <div className={`w-[6em] h-4 bg-green-600  absolute  top-0`}
+                style={{ left: test + "px" }}
+                ref={timelineRef}
+              ></div>
+              {dotMatrixDivs.map((matrix, index) => (
+                <Draggable key={matrix.key} draggableId={String(matrix.key)} index={index}>
+                  {(provided) => (<>
 
-              {
-                matrix.dotmatrix.map((row, rowIndex) => (
-                  <div key={rowIndex} className="flex gap-1 mt-[0.2rem]"
-                    onDragStart={handleDrag}
-                    onDrag={handleDrag}
-                    onDragOver={handleDrag}
-                    draggable="false"
-                  >
-                    {row.map((e, colIndex) => (
-                      <div
-                        key={colIndex}
-                        className={` rounded-full size-[0.3em] ${e ? 'bg-[#ff0000] shadow-ld shadow-[#ff0000]' : 'bg-gray-500'}`}
+                    <div
+                      data-frame={matrix.key}
+                      ref={(el) => {
+                        provided.innerRef(el); // Attach the draggable's ref
+                        framesRef.current[index] = el; // Also add it to frameRefs
 
-                      >
+                      }}
+                      // ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      {...provided.dragHandleProps}
+                      className={currentMatrix === matrix.key ?
+                        "outline-red-700 outline-2 outline-dashed relative p-2" :
+                        "outline-slate-700 hover:outline-2 hover:outline-dashed relative p-2"
+                      }
+                      onClick={() => setCurrentMatrix(matrix.key)}
+                    >
 
+                      {/* <div className="flex justify-between">
+                        <RiArrowLeftSFill
+                          className="text-slate-600 text-[1.2rem]"
+                          onClick={() => {
+                            if (index === 0) return;
+                            const newOrder = [...dotMatrixDivs];
+                            [newOrder[index], newOrder[index - 1]] = [newOrder[index - 1], newOrder[index]];
+                            setDotMatrixDivs(newOrder);
+                          }}
+                        />
+                        <RiArrowRightSFill
+                          className="text-slate-600 text-[1.2rem]"
+                          onClick={() => {
+                            if (index === dotMatrixDivs.length - 1) return;
+                            const newOrder = [...dotMatrixDivs];
+                            [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+                            setDotMatrixDivs(newOrder);
+                          }}
+                        />
+                      </div> */}
+                      {matrix.dotmatrix.map((row, rowIndex) => (
+                        <div key={rowIndex} className="flex gap-1 mt-[0.2rem]">
+                          {row.map((e, colIndex) => (
+                            <div
+                              key={colIndex}
+                              className={`rounded-full size-[0.3em] ${e ? 'bg-[#ff0000] shadow-ld shadow-[#ff0000]' : 'bg-gray-500'
+                                }`}
+                            ></div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                  )
 
-                      </div>
-                    ))}
-                  </div>
-                ))
-              }
+                  }
+                </Draggable>
+              ))}
+              {provided.placeholder}
             </div>
-
-          ))
-        }
-      </div>
+          )}
+        </Droppable>
+      </DragDropContext>
+      {/* Other parts of your app */}
       <div className='flex'>
-        
+
         <div className=' relative
       shadow-sm max-sm:w-[85%] w-[13em] max-h-[40em] bg-[#093710] flex flex-col justify-center items-center pt-5'
           onMouseDown={() => setIsMouseDown(true)}
           onMouseUp={() => setIsMouseDown(false)}
 
-          onDragStart={handleDrag}
-          onDrag={handleDrag}
-          onDragOver={handleDrag}
-          draggable="false"
+        // onDragStart={handleDrag}
+        // onDrag={handleDrag}
+        // onDragOver={handleDrag}
+        // draggable="false"
 
         >
 
-        
+
           <div className=' w-[11em]  bg-gray-900 p-3'
             onMouseDown={() => setIsMouseDown(true)}
             onMouseUp={() => setIsMouseDown(false)}
 
-            onDragStart={handleDrag}
-            onDrag={handleDrag}
-            onDragOver={handleDrag}
-            draggable="false"
+          // onDragStart={handleDrag}
+          // onDrag={handleDrag}
+          // onDragOver={handleDrag}
+          // draggable="false"
           >
-          
+
             {dotMatrixDivs.find(obj => obj.key === currentMatrix).dotmatrix.map((row, rowIndex) => (
-            
+
               <div key={rowIndex} className="flex gap-1 mt-1"
-                onDragStart={handleDrag}
-                onDrag={handleDrag}
-                onDragOver={handleDrag}
-                draggable="false"
+              // onDragStart={handleDrag}
+              // onDrag={handleDrag}
+              // onDragOver={handleDrag}
+              // draggable="false"
               >
                 {row.map((e, colIndex) => (
                   <div
@@ -191,6 +239,9 @@ function App() {
                     onClick={() => {
                       console.log("f")
                       let old_state = structuredClone(dotMatrixDivs)
+
+                      // old_state.find(obj => obj.key === currentMatrix).dotmatrix[rowIndex][colIndex]=true
+
                       old_state.find(obj => obj.key === currentMatrix).dotmatrix[rowIndex][colIndex] = !old_state.find(obj => obj.key === currentMatrix).dotmatrix[rowIndex][colIndex]
                       setDotMatrixDivs(old_state)
                     }}
@@ -215,7 +266,7 @@ function App() {
                   </div>
                 ))}
               </div>
-             
+
             ))}
           </div>
 
@@ -233,18 +284,21 @@ function App() {
         </div>
         <div className='flex flex-col'>
           <form class="max-w-sm mx-auto  bg-[#093710] p-4 relative">
-          <div className='cursor-pointer bg-green-400 size-5 rounded-full text-lg absolute top-3 right-3 flex justify-center items-center'>
-          <MdAddCircle onClick={()=> {
-              const newMat = {
-                key:dotMatrixDivs.length+1,
-                dotmatrix: newMatrix.dotmatrix.map(row => [...row])
-              };
-          
-              
-              setDotMatrixDivs(prev =>[...prev,newMat])
-          }} />
-            </div>            
-            <label for="small" class="block mb-2 text-start text-sm font-medium text-gray-900 dark:text-white">Selection Arduino Pin For DIN:</label>
+            <div className='cursor-pointer bg-green-400 size-5 rounded-full text-lg absolute top-3 right-3 flex justify-center items-center'>
+              <MdAddCircle onClick={() => {
+                const newMat = {
+                  key: dotMatrixDivs.length + 1,
+                  dotmatrix: newMatrix.dotmatrix.map(row => [...row])
+                };
+
+
+                setDotMatrixDivs(prev => [...prev, newMat])
+              }} />
+            </div>
+            <PinSelector label="Selection Arduino Pin For DIN:" pinSetter={setPinDIN}></PinSelector>
+            <PinSelector label="Selection Arduino Pin For CS:" pinSetter={setPinCS}></PinSelector>
+            <PinSelector label="Selection Arduino Pin For CLK:" pinSetter={setPinCLK}></PinSelector>
+            {/* <label for="small" class="block mb-2 text-start text-sm font-medium text-gray-900 dark:text-white">Selection Arduino Pin For DIN:</label>
             <select
 
               onFocus={() => {
@@ -332,11 +386,10 @@ function App() {
               <option value="D11">D11 Pin</option>
               <option value="D12">D12 Pin</option>
               <option value="D13">D13 Pin</option>
-            </select>
+            </select> */}
           </form>
         </div>
       </div>
-
     </div>
   );
 }
