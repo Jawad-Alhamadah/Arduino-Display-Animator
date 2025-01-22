@@ -5,7 +5,9 @@ import { RiArrowLeftSFill, RiArrowRightSFill } from "react-icons/ri";
 import { MdAddCircle } from "react-icons/md";
 import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd';
 import PinSelector from './components/PinSelector';
-
+import { PiArrowFatRightDuotone } from "react-icons/pi";
+import { PiArrowFatLeftDuotone } from "react-icons/pi";
+import { BsPlayFill } from "react-icons/bs";
 function App() {
   const [pinCS, setPinCS] = React.useState(false);
   const [pinCLK, setPinCLK] = React.useState(false);
@@ -17,6 +19,24 @@ function App() {
   let pinDINRef = React.useRef(null)
   const [isMouseDown, setIsMouseDown] = React.useState(false);
   const [downKey, setDownKey] = React.useState(false);
+
+  function repeatFunction(func, delay, repeat) {
+    func(dotMatrixDivs[0].key);
+    let counter = 1;
+    
+    let interval = setInterval(() => {
+  
+      if (repeat !== counter) {
+        func(dotMatrixDivs[counter].key);
+        //console.log(dotMatrixDivs[counter].key)
+        counter++;
+      } else {
+        clearInterval(interval)
+      }
+    }, delay);
+  
+  }
+  
   const newMatrix = {
     key: 0, dotmatrix:
       [
@@ -123,39 +143,75 @@ function App() {
       {<button onClick={() => setTest((prev) => prev + 100)}>cvbcv</button>}
       {<h1>{test}</h1>}
       <DragDropContext onDragEnd={onDragEnd}>
+
         <Droppable direction="horizontal" droppableId="dotMatrixDivs" type="MATRIX">
+
           {(provided) => (
+
             <div
-              className="bg-gray-900 flex gap-2 m-5 p-3 max-w-[50%] overflow-x-auto scroll-content shadow-lg relative"
+              className="bg-gray-900 max-h-[130px] overflow-y-hidden gap-2 m-5 p-3 max-w-[50%] overflow-x-auto scroll-content shadow-lg relative"
               ref={provided.innerRef}
               {...provided.droppableProps}
             >
-              <div className={`w-[6em] h-4 bg-green-600  absolute  top-0`}
+              <div className='flex justify-between'>
+
+                {/* <PiArrowFatLeftDuotone className='text-green-400'
+                  onClick={() => {
+                    if (currentMatrix === 1) return
+                      setCurrentMatrix(prev=>prev-1)
+                  }
+                  }
+                ></PiArrowFatLeftDuotone> */}
+                {/* <PiArrowFatRightDuotone className='text-green-400'
+                  onClick={() => {
+                    if (currentMatrix ===dotMatrixDivs.length) return
+                      setCurrentMatrix(prev=>prev+1)
+                  }
+                  }
+                ></PiArrowFatRightDuotone> */}
+                  <div className='cursor-pointer bg-green-400 size-5 rounded-full text-lg  flex justify-center items-center'>
+              <MdAddCircle onClick={() => {
+                const newMat = {
+                  key: dotMatrixDivs.length + 1,
+                  dotmatrix: newMatrix.dotmatrix.map(row => [...row])
+                };
+
+
+                setDotMatrixDivs(prev => [...prev, newMat])
+              }} />
+            </div>
+                <BsPlayFill className='text-green-400' 
+                onClick={()=>repeatFunction(setCurrentMatrix,400,dotMatrixDivs.length)}
+                />
+              </div>
+              {/* <div className={`w-[6em] h-4 bg-green-600  absolute  top-0`}
                 style={{ left: test + "px" }}
                 ref={timelineRef}
-              ></div>
-              {dotMatrixDivs.map((matrix, index) => (
-                <Draggable key={matrix.key} draggableId={String(matrix.key)} index={index}>
-                  {(provided) => (<>
+              ></div> */}
+              <div className='flex mt-3'>
+                {dotMatrixDivs.map((matrix, index) => (
+                  <Draggable key={matrix.key} draggableId={String(matrix.key)} index={index}>
+                    {(provided) => (<>
 
-                    <div
-                      data-frame={matrix.key}
-                      ref={(el) => {
-                        provided.innerRef(el); // Attach the draggable's ref
-                        framesRef.current[index] = el; // Also add it to frameRefs
+                      <div
+                        data-frame={matrix.key}
+                        ref={(el) => {
+                          provided.innerRef(el); // Attach the draggable's ref
+                          framesRef.current[index] = el; // Also add it to frameRefs
 
-                      }}
-                      // ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      {...provided.dragHandleProps}
-                      className={currentMatrix === matrix.key ?
-                        "outline-red-700 outline-2 outline-dashed relative p-2" :
-                        "outline-slate-700 hover:outline-2 hover:outline-dashed relative p-2"
-                      }
-                      onClick={() => setCurrentMatrix(matrix.key)}
-                    >
+                        }}
+                        // ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        {...provided.dragHandleProps}
+                        className={currentMatrix === matrix.key ?
+                          "outline-red-700 outline-2 outline-dashed relative p-2" :
+                          "outline-slate-700 hover:outline-2 hover:outline-dashed relative p-2"
+                        }
+                        onClick={() => setCurrentMatrix(matrix.key)}
 
-                      {/* <div className="flex justify-between">
+                      >
+
+                        {/* <div className="flex justify-between">
                         <RiArrowLeftSFill
                           className="text-slate-600 text-[1.2rem]"
                           onClick={() => {
@@ -175,24 +231,26 @@ function App() {
                           }}
                         />
                       </div> */}
-                      {matrix.dotmatrix.map((row, rowIndex) => (
-                        <div key={rowIndex} className="flex gap-1 mt-[0.2rem]">
-                          {row.map((e, colIndex) => (
-                            <div
-                              key={colIndex}
-                              className={`rounded-full size-[0.3em] ${e ? 'bg-[#ff0000] shadow-ld shadow-[#ff0000]' : 'bg-gray-500'
-                                }`}
-                            ></div>
-                          ))}
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                  )
+                        {matrix.dotmatrix.map((row, rowIndex) => (
+                          <div key={rowIndex} className="flex gap-1 mt-[0.2rem]">
+                            {row.map((e, colIndex) => (
+                              <div
+                                key={colIndex}
+                                className={`rounded-full size-[0.3em] ${e ? 'bg-[#ff0000] shadow-ld shadow-[#ff0000]' : 'bg-gray-500'
+                                  }`}
+                              ></div>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                    )
 
-                  }
-                </Draggable>
-              ))}
+                    }
+                  </Draggable>
+                ))}
+              </div>
+
               {provided.placeholder}
             </div>
           )}
@@ -284,17 +342,7 @@ function App() {
         </div>
         <div className='flex flex-col'>
           <form class="max-w-sm mx-auto  bg-[#093710] p-4 relative">
-            <div className='cursor-pointer bg-green-400 size-5 rounded-full text-lg absolute top-3 right-3 flex justify-center items-center'>
-              <MdAddCircle onClick={() => {
-                const newMat = {
-                  key: dotMatrixDivs.length + 1,
-                  dotmatrix: newMatrix.dotmatrix.map(row => [...row])
-                };
-
-
-                setDotMatrixDivs(prev => [...prev, newMat])
-              }} />
-            </div>
+          
             <PinSelector label="Selection Arduino Pin For DIN:" pinSetter={setPinDIN}></PinSelector>
             <PinSelector label="Selection Arduino Pin For CS:" pinSetter={setPinCS}></PinSelector>
             <PinSelector label="Selection Arduino Pin For CLK:" pinSetter={setPinCLK}></PinSelector>
