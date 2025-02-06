@@ -8,7 +8,104 @@ import PinSelector from './components/PinSelector';
 import { PiArrowFatRightDuotone } from "react-icons/pi";
 import { PiArrowFatLeftDuotone } from "react-icons/pi";
 import { BsPlayFill } from "react-icons/bs";
+import { LuClipboardCopy } from "react-icons/lu";
 function App() {
+
+ 
+ /*
+ 
+// Define control pins for MAX7219
+const int DIN = 12;
+const int CLK = 11;
+const int CS = 10;
+
+// Define the frame data (matrix list)
+const int numFrames = 3; // Number of frames in the list
+const bool frames[numFrames][8][8] = {
+  {
+    {false, false, false, false, false, false, false, false},
+    {false, false, false, false, true,  true,  false, false},
+    {false, false, false, true,  true,  true,  false, false},
+    {false, false, true,  true,  true,  true,  true,  false},
+    {false, true,  true,  true,  true,  true,  true,  true},
+    {false, false, false, false, false, false, false, false},
+    {false, false, false, false, false, false, false, false},
+    {false, false, false, false, false, false, false, false},
+  },
+  {
+    {false, false, false, false, false, false, false, false},
+    {false, false, false, true,  true,  true,  false, false},
+    {false, false, true,  true,  true,  true,  true,  false},
+    {false, true,  true,  true,  true,  true,  true,  true},
+    {true,  true,  true,  true,  true,  true,  true,  true},
+    {false, true,  true,  true,  true,  true,  true,  false},
+    {false, false, true,  true,  true,  true,  true,  false},
+    {false, false, false, true,  true,  true,  false, false},
+  },
+  {
+    {true,  true,  true,  true,  true,  true,  true,  true},
+    {true,  false, false, false, false, false, false, true},
+    {true,  false, true,  true,  true,  true,  false, true},
+    {true,  false, true,  false, false, true,  false, true},
+    {true,  false, true,  false, false, true,  false, true},
+    {true,  false, true,  true,  true,  true,  false, true},
+    {true,  false, false, false, false, false, false, true},
+    {true,  true,  true,  true,  true,  true,  true,  true},
+  }
+};
+
+void setup() {
+  // Set pin modes
+  pinMode(DIN, OUTPUT);
+  pinMode(CLK, OUTPUT);
+  pinMode(CS, OUTPUT);
+
+  // Initialize MAX7219
+  digitalWrite(CS, HIGH);
+  sendCommand(0x0F, 0x00); // Display test off
+  sendCommand(0x09, 0x00); // Decode mode off
+  sendCommand(0x0B, 0x07); // Scan limit = 8 LEDs
+  sendCommand(0x0A, 0x08); // Brightness = medium
+  sendCommand(0x0C, 0x01); // Shutdown register = normal operation
+  clearDisplay();
+}
+
+void loop() {
+  for (int frame = 0; frame < numFrames; frame++) {
+    displayFrame(frames[frame]);
+    delay(500); // Delay between frames (adjust as needed)
+  }
+}
+
+void sendCommand(byte command, byte data) {
+  digitalWrite(CS, LOW);
+  shiftOut(DIN, CLK, MSBFIRST, command);
+  shiftOut(DIN, CLK, MSBFIRST, data);
+  digitalWrite(CS, HIGH);
+}
+
+void clearDisplay() {
+  for (int i = 0; i < 8; i++) {
+    sendCommand(i + 1, 0);
+  }
+}
+
+void displayFrame(const bool matrix[8][8]) {
+  for (int row = 0; row < 8; row++) {
+    byte rowData = 0;
+    for (int col = 0; col < 8; col++) {
+      if (matrix[row][col]) {
+        rowData |= (1 << col);
+      }
+    }
+    sendCommand(row + 1, rowData);
+  }
+}
+
+ 
+ */
+
+
   const [pinCS, setPinCS] = React.useState(false);
   const [pinCLK, setPinCLK] = React.useState(false);
   const [pinDIN, setPinDIN] = React.useState(false);
@@ -66,18 +163,18 @@ function App() {
         ]
       },
 
-      {
-        key: 2, dotmatrix: [
-          [false, false, false, false, false, false, false, false],
-          [false, false, false, false, false, false, false, false],
-          [false, false, false, false, false, false, false, false],
-          [false, false, false, false, false, false, false, false],
-          [false, false, false, false, false, false, false, false],
-          [false, false, false, false, false, false, false, false],
-          [false, false, false, false, false, false, false, false],
-          [false, false, false, false, false, false, false, false],
-        ]
-      }
+      // {
+      //   key: 2, dotmatrix: [
+      //     [false, false, false, false, false, false, false, false],
+      //     [false, false, false, false, false, false, false, false],
+      //     [false, false, false, false, false, false, false, false],
+      //     [false, false, false, false, false, false, false, false],
+      //     [false, false, false, false, false, false, false, false],
+      //     [false, false, false, false, false, false, false, false],
+      //     [false, false, false, false, false, false, false, false],
+      //     [false, false, false, false, false, false, false, false],
+      //   ]
+      // }
     ]
 
   )
@@ -139,9 +236,8 @@ function App() {
   }, [test]);
 
   return (
-    <div className="w-screen text-center flex justify-center flex-col items-center">
-      {<button onClick={() => setTest((prev) => prev + 100)}>cvbcv</button>}
-      {<h1>{test}</h1>}
+    <div className="w-screen text-center flex justify-center flex-col items-center ">
+    
       <DragDropContext onDragEnd={onDragEnd}>
 
         <Droppable direction="horizontal" droppableId="dotMatrixDivs" type="MATRIX">
@@ -149,11 +245,11 @@ function App() {
           {(provided) => (
 
             <div
-              className="bg-gray-900 max-h-[130px] overflow-y-hidden gap-2 m-5 p-3 max-w-[50%] overflow-x-auto scroll-content shadow-lg relative"
+              className="md:min-w-[30em]  lg:min-w-[30em]  outline-green-800 rounded-md outline-2 outline bg-gray-900 max-h-[150px] overflow-y-hidden gap-2 m-5 p-3 max-w-[50%] overflow-x-auto scroll-content shadow-lg relative"
               ref={provided.innerRef}
               {...provided.droppableProps}
             >
-              <div className='flex justify-between'>
+              <div className='flex justify-between '>
 
                 {/* <PiArrowFatLeftDuotone className='text-green-400'
                   onClick={() => {
@@ -188,7 +284,7 @@ function App() {
                 style={{ left: test + "px" }}
                 ref={timelineRef}
               ></div> */}
-              <div className='flex mt-3'>
+              <div className='flex mt-3 '>
                 {dotMatrixDivs.map((matrix, index) => (
                   <Draggable key={matrix.key} draggableId={String(matrix.key)} index={index}>
                     {(provided) => (<>
@@ -257,9 +353,9 @@ function App() {
         </Droppable>
       </DragDropContext>
       {/* Other parts of your app */}
-      <div className='flex'>
+      <div className='flex shadow-xl shadow-[#282828]'>
 
-        <div className=' relative
+        <div className=' relative 
       shadow-sm max-sm:w-[85%] w-[13em] max-h-[40em] bg-[#093710] flex flex-col justify-center items-center pt-5'
           onMouseDown={() => setIsMouseDown(true)}
           onMouseUp={() => setIsMouseDown(false)}
@@ -438,7 +534,117 @@ function App() {
           </form>
         </div>
       </div>
+      <pre
+      style={{
+        backgroundColor: "#282c34",
+        color: "#f8f8f2",
+        padding: "1rem",
+        borderRadius: "0.5rem",
+        overflowX: "auto",
+        fontFamily: "monospace",
+        fontSize: "0.9rem",
+        whiteSpace: "pre-wrap",
+        wordBreak: "break-word",
+        textAlign: "left",
+      }}
+      class="mt-10 w-[95%]  rounded-lg outline outline-2 outline-green-700 shadow-2xl shadow-black"
+    >
+    <button className='ml-auto flex justify-between items-center hover:scale-110 font-semibold  outline outline-2 outline-green-600 rounded-md m-3 p-2 text-green-300 shadow-lg shadow-[#191919]'>
+      <span >Cody Code</span>
+      <LuClipboardCopy class="m-1 size-5"></LuClipboardCopy>      
+      </button>
+      <code>{`
+    
+const int DIN = 12;
+const int CLK = 11;
+const int CS = 10;
+
+// Define the frame data (matrix list)
+const int numFrames = 3; // Number of frames in the list
+const bool frames[numFrames][8][8] = {
+  {
+    {false, false, false, false, false, false, false, false},
+    {false, false, false, false, true,  true,  false, false},
+    {false, false, false, true,  true,  true,  false, false},
+    {false, false, true,  true,  true,  true,  true,  false},
+    {false, true,  true,  true,  true,  true,  true,  true},
+    {false, false, false, false, false, false, false, false},
+    {false, false, false, false, false, false, false, false},
+    {false, false, false, false, false, false, false, false},
+  },
+  {
+    {false, false, false, false, false, false, false, false},
+    {false, false, false, true,  true,  true,  false, false},
+    {false, false, true,  true,  true,  true,  true,  false},
+    {false, true,  true,  true,  true,  true,  true,  true},
+    {true,  true,  true,  true,  true,  true,  true,  true},
+    {false, true,  true,  true,  true,  true,  true,  false},
+    {false, false, true,  true,  true,  true,  true,  false},
+    {false, false, false, true,  true,  true,  false, false},
+  },
+  {
+    {true,  true,  true,  true,  true,  true,  true,  true},
+    {true,  false, false, false, false, false, false, true},
+    {true,  false, true,  true,  true,  true,  false, true},
+    {true,  false, true,  false, false, true,  false, true},
+    {true,  false, true,  false, false, true,  false, true},
+    {true,  false, true,  true,  true,  true,  false, true},
+    {true,  false, false, false, false, false, false, true},
+    {true,  true,  true,  true,  true,  true,  true,  true},
+  }
+};
+
+void setup() {
+  // Set pin modes
+  pinMode(DIN, OUTPUT);
+  pinMode(CLK, OUTPUT);
+  pinMode(CS, OUTPUT);
+
+  // Initialize MAX7219
+  digitalWrite(CS, HIGH);
+  sendCommand(0x0F, 0x00); // Display test off
+  sendCommand(0x09, 0x00); // Decode mode off
+  sendCommand(0x0B, 0x07); // Scan limit = 8 LEDs
+  sendCommand(0x0A, 0x08); // Brightness = medium
+  sendCommand(0x0C, 0x01); // Shutdown register = normal operation
+  clearDisplay();
+}
+
+void loop() {
+  for (int frame = 0; frame < numFrames; frame++) {
+    displayFrame(frames[frame]);
+    delay(500); // Delay between frames (adjust as needed)
+  }
+}
+
+void sendCommand(byte command, byte data) {
+  digitalWrite(CS, LOW);
+  shiftOut(DIN, CLK, MSBFIRST, command);
+  shiftOut(DIN, CLK, MSBFIRST, data);
+  digitalWrite(CS, HIGH);
+}
+
+void clearDisplay() {
+  for (int i = 0; i < 8; i++) {
+    sendCommand(i + 1, 0);
+  }
+}
+
+void displayFrame(const bool matrix[8][8]) {
+  for (int row = 0; row < 8; row++) {
+    byte rowData = 0;
+    for (int col = 0; col < 8; col++) {
+      if (matrix[row][col]) {
+        rowData |= (1 << col);
+      }
+    }
+    sendCommand(row + 1, rowData);
+  }
+}`}</code>
+    </pre>
+  
     </div>
+    
   );
 }
 
