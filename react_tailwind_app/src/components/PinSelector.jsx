@@ -8,33 +8,37 @@ function PinSelector(props) {
 
                 onFocus={() => {
 
-                    pinDINRef.current.style.backgroundColor = "red";
-                    pinDINRef.current.style.transform = "scale(1.3)";
-                    props.pinSetter(true)
+                    props.pinRef.current.style.backgroundColor = "red";
+                    props.pinRef.current.style.transform = "scale(1.3)";
+                    props.pinhighlightSetter(true)
 
 
                 }}
                 onBlur={() => {
-                    pinDINRef.current.style.backgroundColor = "#9ca3af";
-                    pinDINRef.current.style.transform = "scale(1)"
-                    props.pinSetter(false)
+                    props.pinRef.current.style.backgroundColor = "#9ca3af";
+                    props.pinRef.current.style.transform = "scale(1)"
+                    props.pinhighlightSetter(false)
 
                 }}
+                onChange={(e) => {
+                    console.log(e.target.value); // Logs the selected value
+                    props.pinSetter(e.target.value)
+                  }}
 
                 id="small" class=" block w-full p-2 mb-6 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
-                <option selected>Pick Arduino Pin:</option>
-                <option value="D2">D2 Pin</option>
-                <option value="D3">D3 Pin</option>
-                <option value="D4">D4 Pin</option>
-                <option value="D5">D5 Pin</option>
-                <option value="D6">D6 Pin</option>
-                <option value="D7">D7 Pin</option>
-                <option value="D8">D8 Pin</option>
-                <option value="D9">D9 Pin</option>
-                <option value="D10">D10 Pin</option>
-                <option value="D11">D11 Pin</option>
-                <option value="D12">D12 Pin</option>
-                <option value="D13">D13 Pin</option>
+                <option selected value="none">Pin</option>
+                <option value="2">D2 Pin</option>
+                <option value="3">D3 Pin</option>
+                <option value="4">D4 Pin</option>
+                <option value="5">D5 Pin</option>
+                <option value="6">D6 Pin</option>
+                <option value="7">D7 Pin</option>
+                <option value="8">D8 Pin</option>
+                <option value="9">D9 Pin</option>
+                <option value="10">D10 Pin</option>
+                <option value="11">D11 Pin</option>
+                <option value="12">D12 Pin</option>
+                <option value="13">D13 Pin</option>
             </select>
         </>
 
