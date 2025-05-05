@@ -1,5 +1,6 @@
 import React from 'react';
 import './App.css';
+import Router from './Router/Router'
 import Max7219IC from './components/Max7219IC';
 import { RiArrowLeftSFill, RiArrowRightSFill } from "react-icons/ri";
 import { MdAddCircle } from "react-icons/md";
@@ -205,6 +206,27 @@ const HEIGHT = 64;
     );
   }
 
+  function Duplicate(){
+    let currMatrixIndex = oledMatrix.findIndex((matrix) => matrix.key == currentMatrix)
+    if (currMatrixIndex === -1) {
+      console.error("Matrix not found!");
+      return;
+    }
+
+    console.log(currMatrixIndex)
+    let newMatrix = {
+      key: oledMatrix.length + 1,
+      oledmatrix: oledMatrix[currMatrixIndex].oledmatrix.map(row => [...row])
+    }
+    setOledMatrix(prev => {
+      let newState = [...prev];
+      newState.splice(currMatrixIndex+1, 0, newMatrix)
+      console.log(newState)
+      return newState
+    })
+    setCurrentMatrix(newMatrix.key)
+
+  }
 
   function repeatFunction(func, delay, repeat) {
     func(oledMatrix[0].key); //dotMatrixDivs
@@ -221,7 +243,7 @@ const HEIGHT = 64;
     }, delay);
 
   }
-
+  
   function stopRepeat() {
     if (repeatInterval.current) {
       clearInterval(repeatInterval.current);
@@ -580,26 +602,7 @@ void displayFrame(const bool matrix[8][8]) {
                     onClick={() => repeatFunction(setCurrentMatrix, frameDuration, oledMatrix.length)}
                   />
                   <LuCopy
-                    onClick={() => {
-                      let currMatrixIndex = oledMatrix.findIndex((matrix) => matrix.key == currentMatrix)
-                      if (currMatrixIndex === -1) {
-                        console.error("Matrix not found!");
-                        return;
-                      }
-
-                      console.log(currMatrixIndex)
-                      let newMatrix = {
-                        key: oledMatrix.length + 1,
-                        oledmatrix: oledMatrix[currMatrixIndex].oledmatrix.map(row => [...row])
-                      }
-                      setOledMatrix(prev => {
-                        let newState = [...prev];
-                        newState.splice(currMatrixIndex, 0, newMatrix)
-                        console.log(newState)
-                        return newState
-                      })
-
-                    }}
+                    onClick={() => Duplicate()}
                     className='bg-slate-900  hover:bg-green-600 hover:text-green-200 cursor-pointer  size-5 rounded-full outline outline-offset-2 outline-2 outline-green-500 text-green-500' />
                 </div>
 
@@ -803,6 +806,8 @@ void displayFrame(const bool matrix[8][8]) {
     </div>
 
   );
+
+  //return (<Router/>)
 }
 
 export default App;

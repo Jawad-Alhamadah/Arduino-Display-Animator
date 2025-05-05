@@ -152,6 +152,9 @@ export default function Oled128x64(props) {
   //            ]
   // );
 
+  useEffect(()=>{
+    drawCanvas()
+  },[])
   useEffect(() => {
    
     drawCanvas();
