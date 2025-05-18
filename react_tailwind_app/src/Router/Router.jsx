@@ -1,9 +1,7 @@
 import React from 'react'
 import * as ReactDOM from "react-dom/client";
-import About from '../Pages/About';
-import Home from '../Pages/Home';
 
-import Max7219ICPage from '../components/Max7219ICPage.jsx';
+import Max7219ICPage from '../components/Max7219Page.jsx';
 import OledPage from "../components/OledPage.jsx"
 import {
     createBrowserRouter,
@@ -17,7 +15,7 @@ const router = createBrowserRouter([
         element: <Max7219ICPage/>
     },
     {
-        path:"/Oled128x64",
+        path:"/oled",
         element: <OledPage/>
 
     },
