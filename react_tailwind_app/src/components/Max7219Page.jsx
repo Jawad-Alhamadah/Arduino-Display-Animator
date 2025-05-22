@@ -1,5 +1,7 @@
 import React from 'react'
 
+import { useSelector, useDispatch } from 'react-redux'
+import { setToFrame } from '../reducers/currentMatrixSlice'
 import Max7219IC from './Max7219IC';
 // import { RiArrowLeftSFill, RiArrowRightSFill } from "react-icons/ri";
 // import { MdAddCircle } from "react-icons/md";
@@ -50,7 +52,10 @@ function Max7219Page() {
   const [isAnimating, setIsAnimating] = React.useState(false);
   const WIDTH = 128;
   const HEIGHT = 64;
-  const [currentMatrix, setCurrentMatrix] = React.useState(1);
+  // const [currentMatrix, setCurrentMatrix] = React.useState(1);
+
+  const currentMatrix = useSelector((state) => state.currentMatrix.value)
+  const dispatch = useDispatch()
   const newMatrix = {
     key: 0, dotmatrix:
       [
@@ -247,8 +252,8 @@ function Max7219Page() {
       console.log(newState)
       return newState
     })
-    setCurrentMatrix(newMatrix.key)
-
+    //setCurrentMatrix(newMatrix.key)
+    dispatch(setToFrame(newMatrix.key))
   }
 
 
@@ -269,7 +274,7 @@ function Max7219Page() {
 
   // }
 
-  function repeatFunction(func, delay, repeat) {
+  function repeatFunction(func, delay, repeat,) {
     setIsAnimating(true);
     func(dotMatrixDivs[0].key); //dotMatrixDivs
     let counter = 1;
@@ -291,7 +296,8 @@ function Max7219Page() {
     if (repeatInterval.current) {
       clearInterval(repeatInterval.current);
       repeatInterval.current = null;
-      setCurrentMatrix(dotMatrixDivs[0].key)
+      // setCurrentMatrix(dotMatrixDivs[0].key)
+      dispatch(setToFrame(dotMatrixDivs[0].key))
       setIsAnimating(false);
     }
   }
@@ -629,7 +635,9 @@ void displayFrame(const bool matrix[8][8]) {
                         dotmatrix: newMatrix.dotmatrix.map(row => [...row])
                       };
                       setDotMatrixDivs(prev => [...prev, newMat])
-                      setCurrentMatrix(newMat.key)
+
+                      // setCurrentMatrix(newMat.key)
+                      dispatch(setToFrame(newMat.key))
                     }}
                   // onClick={() => {
                   //   const newMat = {
@@ -648,7 +656,9 @@ void displayFrame(const bool matrix[8][8]) {
                       <TiMediaStop className=' scale-110   hover:bg-red-600 hover:text-red-200 cursor-pointer  size-6 rounded-full outline outline-offset-2 outline-2 outline-[#ff0000] text-[#ff0000]' onClick={() => stopRepeat()}>stop</TiMediaStop >
                       :
                       <BsPlayFill className='hover:scale-125   hover:text-green-200 cursor-pointer   size-6 rounded-full  text-green-500'
-                        onClick={() => repeatFunction(setCurrentMatrix, frameDuration, dotMatrixDivs.length)}
+                        // onClick={() => repeatFunction(setCurrentMatrix, frameDuration, dotMatrixDivs.length)}
+                        onClick={() => repeatFunction((key) => dispatch(setToFrame(key)), frameDuration, dotMatrixDivs.length)}
+
                       />
                   }
 
@@ -708,8 +718,8 @@ void displayFrame(const bool matrix[8][8]) {
                             matrix={matrix}
                             provided={provided}
                             framesRef={framesRef}
-                            currentMatrix={currentMatrix}
-                            setCurrentMatrix={setCurrentMatrix}
+                            // currentMatrix={currentMatrix}
+                            //setCurrentMatrix={setCurrentMatrix}
                             index={index}
 
                           ></EightByEightFrame>
@@ -771,7 +781,7 @@ void displayFrame(const bool matrix[8][8]) {
               </div>
 
               <div id="tooltip-flipVertical" role="tooltip" className="capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[1400ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
-                  Flip vertically
+                Flip vertically
                 <div className="tooltip-arrow" data-popper-arrow></div>
               </div>
 
@@ -801,7 +811,7 @@ void displayFrame(const bool matrix[8][8]) {
             <EightByEightMain
 
               dotMatrixDivs={dotMatrixDivs}
-              currentMatrix={currentMatrix}
+              // currentMatrix={currentMatrix}
               isDragging={isDragging}
               setDotMatrixDivs={setDotMatrixDivs}
             ></EightByEightMain>

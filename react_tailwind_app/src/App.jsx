@@ -1,7 +1,8 @@
-import React from 'react';
+
 import './App.css';
 import Router from './Router/Router'
-
+import store from "./app/store"
+import { Provider } from 'react-redux'
 // function App() {
 
 //   let pinCSRef = React.useRef(null)
@@ -220,7 +221,7 @@ import Router from './Router/Router'
 //     }, delay);
 
 //   }
-  
+
 //   function stopRepeat() {
 //     if (repeatInterval.current) {
 //       clearInterval(repeatInterval.current);
@@ -229,7 +230,7 @@ import Router from './Router/Router'
 //     }
 //   }
 
-  
+
 //   const onDragEnd = (result) => {
 //     const { source, destination } = result;
 //     if (!destination) return;
@@ -293,7 +294,7 @@ import Router from './Router/Router'
 //     console.log(`const bool frames[numFrames][8][8] = ${dotMatrixFormatted}`)
 
 //     setGeneratedCode(`
-    
+
 // const int DIN = ${pinDIN};
 // const int CS = ${pinCS};
 // const int CLK = ${pinCLK};
@@ -364,7 +365,7 @@ import Router from './Router/Router'
 //     console.log(`const bool frame[8][8] = ${dotMatrixFormatted}`)
 
 //     setGeneratedCode(`
-    
+
 // const int DIN = ${pinDIN};
 // const int CS = ${pinCS};
 // const int CLK = ${pinCLK};
@@ -392,7 +393,7 @@ import Router from './Router/Router'
 // }
 
 // void loop() {
-   
+
 // }
 
 // void sendCommand(byte command, byte data) {
@@ -423,7 +424,7 @@ import Router from './Router/Router'
 //   }
 //   return (
 //     <div className="w-screen text-center flex justify-center flex-col items-center  ">
-    
+
 //       {/* <DragDropContext onDragEnd={onDragEnd}>
 //         <Droppable direction="horizontal" droppableId="dotMatrixDivs" type="MATRIX">
 //           {(provided) => (
@@ -445,8 +446,8 @@ import Router from './Router/Router'
 //                       setCurrentMatrix(newMat.key)
 //                     }} 
 
-                    
-                    
+
+
 //                     />
 
 //                   <TiMediaStop className='bg-slate-900  hover:bg-green-600 hover:text-green-200 cursor-pointer  size-5 rounded-full outline outline-offset-2 outline-2 outline-green-500 text-green-500' onClick={() => stopRepeat()}>stop</TiMediaStop >
@@ -501,13 +502,13 @@ import Router from './Router/Router'
 
 
 //               <div className=' mt-3  bg-gray-900 rounded-md'>
-             
+
 
 //                 <div className='flex'
 //                   onMouseDown={e => e.preventDefault()}
 //                   draggable="false"
 //                 >
-                 
+
 //                   {
 //                   //8x8 frames
 //                   dotMatrixDivs.map((matrix, index) => (
@@ -617,7 +618,7 @@ import Router from './Router/Router'
 //                   onMouseDown={e => e.preventDefault()}
 //                   draggable="false"
 //                 >
-                 
+
 //                   {
 //                   //8x8 frames
 //                   oledMatrix.map((matrix, index) => (
@@ -684,11 +685,11 @@ import Router from './Router/Router'
 //           >
 
 
-            
+
 //             <Oled128x64 currentMatrix={currentMatrix}
 //             oledMatrix={oledMatrix}
 //             setOledMatrix={setOledMatrix}
-            
+
 //             ></Oled128x64>
 //            {/* <ExampleMatrix></ExampleMatrix> */}
 //             {/* <EightByEightMain
@@ -789,7 +790,15 @@ import Router from './Router/Router'
 
 
 function App() {
-  return (<Router/>)
+
+  return (
+    <Provider store={store}>
+      <Router />
+    </Provider>
+
+
+
+  )
 }
 export default App;
 
