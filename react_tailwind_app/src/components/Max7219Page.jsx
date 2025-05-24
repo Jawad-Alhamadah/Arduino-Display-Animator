@@ -25,6 +25,7 @@ import EightByEightMain from './EightByEightMain';
 import { GrRotateLeft } from "react-icons/gr";
 import { GrRotateRight } from "react-icons/gr";
 import { LuCopyPlus } from "react-icons/lu";
+import { MdDeleteForever } from "react-icons/md";
 // import ExampleMatrix from './components/ExampleMatrix';
 
 function Max7219Page() {
@@ -78,7 +79,7 @@ function Max7219Page() {
 
     ]
   )
-
+  console.log(dotMatrixDivs)
 
   const [oledMatrix, setOledMatrix] = React.useState(
     [
@@ -256,6 +257,27 @@ function Max7219Page() {
     dispatch(setToFrame(newMatrix.key))
   }
 
+  function addFrame() {
+
+    const newMat = {
+      key: dotMatrixDivs.length + 1,
+      dotmatrix: newMatrix.dotmatrix.map(row => [...row])
+    };
+    setDotMatrixDivs(prev => [...prev, newMat])
+
+    // setCurrentMatrix(newMat.key)
+    dispatch(setToFrame(newMat.key))
+
+  }
+
+  function deleteFrame(){
+    let filteredMatrix = dotMatrixDivs.filter(matrix => matrix.key!==currentMatrix)
+
+    setDotMatrixDivs(filteredMatrix)
+    
+    dispatch(setToFrame(filteredMatrix[filteredMatrix.length-1].key))
+    
+  }
 
 
   // function repeatFunction(func, delay, repeat) {
@@ -626,19 +648,29 @@ void displayFrame(const bool matrix[8][8]) {
               {...provided.droppableProps}
             >
               <div className='flex flex-wrap justify-between'>
-                <div className='flex '>
-                  <MdAdd
-                    className='hover:scale-125 cursor-pointer  hover:text-green-200 size-6 rounded-full  text-green-500'
-                    onClick={() => {
-                      const newMat = {
-                        key: dotMatrixDivs.length + 1,
-                        dotmatrix: newMatrix.dotmatrix.map(row => [...row])
-                      };
-                      setDotMatrixDivs(prev => [...prev, newMat])
+                <div className='flex space-x-2'>
 
-                      // setCurrentMatrix(newMat.key)
-                      dispatch(setToFrame(newMat.key))
-                    }}
+              <div id="tooltip-duplicate" role="tooltip" className="capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[1400ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
+               Duplicate Frame
+                <div className="tooltip-arrow" data-popper-arrow></div>
+              </div>
+
+              <div id="tooltip-play" role="tooltip" className="capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[1400ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
+                Play
+                <div className="tooltip-arrow" data-popper-arrow></div>
+              </div>
+
+              <div id="tooltip-add" role="tooltip" className="capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[1400ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
+                Add Frame
+                <div className="tooltip-arrow" data-popper-arrow></div>
+              </div>
+
+           
+
+                  <MdAdd
+                  data-tooltip-target="tooltip-add"
+                    className='hover:scale-125 cursor-pointer  hover:text-green-200 size-6 rounded-full  text-green-500'
+                    onClick={addFrame}
                   // onClick={() => {
                   //   const newMat = {
                   //     key: oledMatrix.length + 1,
@@ -655,7 +687,9 @@ void displayFrame(const bool matrix[8][8]) {
 
                       <TiMediaStop className=' scale-110   hover:bg-red-600 hover:text-red-200 cursor-pointer  size-6 rounded-full outline outline-offset-2 outline-2 outline-[#ff0000] text-[#ff0000]' onClick={() => stopRepeat()}>stop</TiMediaStop >
                       :
-                      <BsPlayFill className='hover:scale-125   hover:text-green-200 cursor-pointer   size-6 rounded-full  text-green-500'
+                      <BsPlayFill 
+                      data-tooltip-target="tooltip-play"
+                      className='hover:scale-125   hover:text-green-200 cursor-pointer   size-6 rounded-full  text-green-500'
                         // onClick={() => repeatFunction(setCurrentMatrix, frameDuration, dotMatrixDivs.length)}
                         onClick={() => repeatFunction((key) => dispatch(setToFrame(key)), frameDuration, dotMatrixDivs.length)}
 
@@ -666,9 +700,12 @@ void displayFrame(const bool matrix[8][8]) {
                     onClick={() => repeatFunction(setCurrentMatrix, frameDuration, oledMatrix.length)}
                   /> */}
 
-
+                    {/* <MdDeleteForever className='hover:scale-125 cursor-pointer  hover:text-green-200 size-6 rounded-full  text-green-500' 
+                    onClick={deleteFrame}
+                    ></MdDeleteForever> */}
                   <LuCopyPlus
                     onClick={() => Duplicate()}
+                    data-tooltip-target="tooltip-duplicate"
                     className='hover:scale-125  hover:text-green-200 cursor-pointer  size-6  text-green-500' />
                 </div>
 
