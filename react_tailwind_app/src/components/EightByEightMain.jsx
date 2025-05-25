@@ -1,15 +1,20 @@
 import React from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { setToFrame } from '../reducers/currentMatrixSlice'
+import { setToKey } from '../reducers/currentKey'
 
 function EightByEightMain(props) {
 
-    const currentMatrix = useSelector((state) => state.currentMatrix.value)
- 
 
-    const [downKey, setDownKey] = React.useState("l");
+
+
+
+    const currentMatrix = useSelector((state) => state.currentMatrix.value)
+    let currentKey = useSelector((state) => state.currentKey.value)
+
+    //const [downKey, setDownKey] = React.useState("l");
     return (
         // props.dotMatrixDivs.find(obj => obj.key === props.currentMatrix).dotmatrix.map((row, rowIndex) => (
+
         props.dotMatrixDivs.find(obj => obj.key === currentMatrix).dotmatrix.map((row, rowIndex) => (
             <div key={rowIndex} className="flex gap-1 mt-1"
                 onMouseDown={e => e.preventDefault()}
@@ -26,7 +31,7 @@ function EightByEightMain(props) {
                             // old_state.find(obj => obj.key === currentMatrix).dotmatrix[rowIndex][colIndex]=true
 
                             //old_state.find(obj => obj.key === props.currentMatrix).dotmatrix[rowIndex][colIndex] = !old_state.find(obj => obj.key === props.currentMatrix).dotmatrix[rowIndex][colIndex]
-                             old_state.find(obj => obj.key === currentMatrix).dotmatrix[rowIndex][colIndex] = !old_state.find(obj => obj.key === currentMatrix).dotmatrix[rowIndex][colIndex]
+                            old_state.find(obj => obj.key === currentMatrix).dotmatrix[rowIndex][colIndex] = !old_state.find(obj => obj.key === currentMatrix).dotmatrix[rowIndex][colIndex]
                             props.setDotMatrixDivs(old_state)
                         }}
 
@@ -38,11 +43,12 @@ function EightByEightMain(props) {
                         //     setIsMouseDown(true)}}
                         // onMouseUp={() => setIsMouseDown(false)}
                         onMouseEnter={(e) => {
-                            console.log(props.isDragging)
+
+                           
                             if (props.isDragging) {
                                 let old_state = structuredClone(props.dotMatrixDivs)
                                 //old_state.find(obj => obj.key === props.currentMatrix).dotmatrix[rowIndex][colIndex] = downKey === "d" ? false : true
-                                old_state.find(obj => obj.key === currentMatrix).dotmatrix[rowIndex][colIndex] = downKey === "d" ? false : true
+                                old_state.find(obj => obj.key === currentMatrix).dotmatrix[rowIndex][colIndex] = currentKey === "KeyD" ? false : true
                                 props.setDotMatrixDivs(old_state)
                             }
 
@@ -51,8 +57,8 @@ function EightByEightMain(props) {
                         onMouseDown={(e) => {
 
                             let old_state = structuredClone(props.dotMatrixDivs)
-                            old_state.find(obj => obj.key === props.currentMatrix).dotmatrix[rowIndex][colIndex] = downKey === "d" ? false : true
-                              old_state.find(obj => obj.key === currentMatrix).dotmatrix[rowIndex][colIndex] = downKey === "d" ? false : true
+                            old_state.find(obj => obj.key === props.currentMatrix).dotmatrix[rowIndex][colIndex] = currentKey === "KeyD" ? false : true
+                            old_state.find(obj => obj.key === currentMatrix).dotmatrix[rowIndex][colIndex] = currentKey === "KeyD" ? false : true
                             props.setDotMatrixDivs(old_state)
 
                         }}

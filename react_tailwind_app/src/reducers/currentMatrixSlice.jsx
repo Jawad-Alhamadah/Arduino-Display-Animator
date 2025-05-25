@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit'
 
-const initialState = { value: 1 }
+const initialState = { value: Math.random().toString(36).substr(2, 9) }
 
 const currentMatrixSlice = createSlice({
     name: 'currentMatrix',

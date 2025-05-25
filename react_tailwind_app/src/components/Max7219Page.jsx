@@ -2,32 +2,24 @@ import React from 'react'
 
 import { useSelector, useDispatch } from 'react-redux'
 import { setToFrame } from '../reducers/currentMatrixSlice'
+import { setToKey } from '../reducers/currentKey'
 import Max7219IC from './Max7219IC';
-// import { RiArrowLeftSFill, RiArrowRightSFill } from "react-icons/ri";
-// import { MdAddCircle } from "react-icons/md";
 import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd';
 import PinSelector from './PinSelector';
-// import { PiArrowFatRightDuotone } from "react-icons/pi";
-// import { PiArrowFatLeftDuotone } from "react-icons/pi";
 import { BsPlayFill } from "react-icons/bs";
 import { LuClipboardCopy } from "react-icons/lu";
-// import { PiArrowsLeftRightBold } from "react-icons/pi";
 import { PiFlipHorizontalFill } from "react-icons/pi";
 import { PiFlipVerticalFill } from "react-icons/pi";
-// import { TbFlipHorizontal } from "react-icons/tb";
-import { RxRotateCounterClockwise } from "react-icons/rx";
 import { TiMediaStop } from "react-icons/ti";
-// import { AiOutlineAppstoreAdd } from "react-icons/ai";
 import { MdAdd } from "react-icons/md";
-import { LuCopy } from "react-icons/lu";
 import EightByEightFrame from './EightByEightFrame';
 import EightByEightMain from './EightByEightMain';
 import { GrRotateLeft } from "react-icons/gr";
 import { GrRotateRight } from "react-icons/gr";
 import { LuCopyPlus } from "react-icons/lu";
 import { MdDeleteForever } from "react-icons/md";
-// import ExampleMatrix from './components/ExampleMatrix';
-
+import { MdOutlineResetTv } from "react-icons/md";
+import { BsFillEraserFill } from "react-icons/bs";
 function Max7219Page() {
 
   let pinCSRef = React.useRef(null)
@@ -56,6 +48,7 @@ function Max7219Page() {
   // const [currentMatrix, setCurrentMatrix] = React.useState(1);
 
   const currentMatrix = useSelector((state) => state.currentMatrix.value)
+  let currentKey = useSelector((state) => state.currentKey.value)
   const dispatch = useDispatch()
   const newMatrix = {
     key: 0, dotmatrix:
@@ -74,7 +67,7 @@ function Max7219Page() {
   const [dotMatrixDivs, setDotMatrixDivs] = React.useState(
     [
       {
-        key: 1, dotmatrix: Array.from({ length: 8 }, () => Array(8).fill(false))
+        key: currentMatrix, dotmatrix: Array.from({ length: 8 }, () => Array(8).fill(false))
       },
 
     ]
@@ -103,11 +96,33 @@ function Max7219Page() {
     document.addEventListener("mouseup", handleMouseUp);
     document.addEventListener("mousedown", handleMouseDown);
 
+    const handleKeyDown = (event) => {
+
+      dispatch(setToKey(event.code))
+
+    };
+
+    const handleKeyUp = (event) => {
+
+      dispatch(setToKey("KeyNone"))
+
+
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
     return () => {
+      // Cleanup listener on unmount
+      window.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener("mouseup", handleMouseUp);
       document.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("mousedown", handleKeyUp);
     };
+
+
+
   }, []);
+
 
 
   let [test, setTest] = React.useState(0);
@@ -200,6 +215,33 @@ function Max7219Page() {
     );
   }
 
+
+  function clearFrame() {
+
+    let newDotmatrix =
+      [
+        [false, false, false, false, false, false, false, false],
+        [false, false, false, false, false, false, false, false],
+        [false, false, false, false, false, false, false, false],
+        [false, false, false, false, false, false, false, false],
+        [false, false, false, false, false, false, false, false],
+        [false, false, false, false, false, false, false, false],
+        [false, false, false, false, false, false, false, false],
+        [false, false, false, false, false, false, false, false],
+      ]
+
+    let editedStates = dotMatrixDivs.map(matrix => {
+
+      if (matrix.key === currentMatrix) return { key: matrix.key, dotmatrix: newDotmatrix }
+      return matrix
+    })
+
+    setDotMatrixDivs(editedStates)
+
+  }
+
+
+
   function flipHorizontal(key) {
     setDotMatrixDivs((prevDivs) =>
       prevDivs.map((div) =>
@@ -260,7 +302,8 @@ function Max7219Page() {
   function addFrame() {
 
     const newMat = {
-      key: dotMatrixDivs.length + 1,
+      // key: dotMatrixDivs.length + 1,
+      key: generateId(),
       dotmatrix: newMatrix.dotmatrix.map(row => [...row])
     };
     setDotMatrixDivs(prev => [...prev, newMat])
@@ -270,13 +313,18 @@ function Max7219Page() {
 
   }
 
-  function deleteFrame(){
-    let filteredMatrix = dotMatrixDivs.filter(matrix => matrix.key!==currentMatrix)
+  function generateId() {
+    return Math.random().toString(36).substr(2, 9)
+  }
+  function deleteFrame() {
+    if (dotMatrixDivs.length <= 1) return
+
+    let filteredMatrix = dotMatrixDivs.filter(matrix => matrix.key !== currentMatrix)
 
     setDotMatrixDivs(filteredMatrix)
-    
-    dispatch(setToFrame(filteredMatrix[filteredMatrix.length-1].key))
-    
+
+    dispatch(setToFrame(filteredMatrix[filteredMatrix.length - 1].key))
+
   }
 
 
@@ -648,27 +696,35 @@ void displayFrame(const bool matrix[8][8]) {
               {...provided.droppableProps}
             >
               <div className='flex flex-wrap justify-between'>
-                <div className='flex space-x-2'>
+                <div className='flex space-x-4'>
 
-              <div id="tooltip-duplicate" role="tooltip" className="capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[1400ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
-               Duplicate Frame
-                <div className="tooltip-arrow" data-popper-arrow></div>
-              </div>
+                  <div id="tooltip-duplicate" role="tooltip" className="capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[300ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
+                    Duplicate Frame
+                    <div className="tooltip-arrow" data-popper-arrow></div>
+                  </div>
 
-              <div id="tooltip-play" role="tooltip" className="capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[1400ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
-                Play
-                <div className="tooltip-arrow" data-popper-arrow></div>
-              </div>
+                  <div id="tooltip-play" role="tooltip" className="capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[300ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
+                    Play
+                    <div className="tooltip-arrow" data-popper-arrow></div>
+                  </div>
 
-              <div id="tooltip-add" role="tooltip" className="capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[1400ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
-                Add Frame
-                <div className="tooltip-arrow" data-popper-arrow></div>
-              </div>
+                  <div id="tooltip-add" role="tooltip" className="capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[300ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
+                    Add Frame
+                    <div className="tooltip-arrow" data-popper-arrow></div>
+                  </div>
 
-           
+                  <div id="tooltip-delete" role="tooltip" className="capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[300ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
+                    Delete Frame
+                    <div className="tooltip-arrow" data-popper-arrow></div>
+                  </div>
+                  <div id="tooltip-clear" role="tooltip" className="capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[300ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
+                    Clear Frame
+                    <div className="tooltip-arrow" data-popper-arrow></div>
+                  </div>
+
 
                   <MdAdd
-                  data-tooltip-target="tooltip-add"
+                    data-tooltip-target="tooltip-add"
                     className='hover:scale-125 cursor-pointer  hover:text-green-200 size-6 rounded-full  text-green-500'
                     onClick={addFrame}
                   // onClick={() => {
@@ -687,9 +743,9 @@ void displayFrame(const bool matrix[8][8]) {
 
                       <TiMediaStop className=' scale-110   hover:bg-red-600 hover:text-red-200 cursor-pointer  size-6 rounded-full outline outline-offset-2 outline-2 outline-[#ff0000] text-[#ff0000]' onClick={() => stopRepeat()}>stop</TiMediaStop >
                       :
-                      <BsPlayFill 
-                      data-tooltip-target="tooltip-play"
-                      className='hover:scale-125   hover:text-green-200 cursor-pointer   size-6 rounded-full  text-green-500'
+                      <BsPlayFill
+                        data-tooltip-target="tooltip-play"
+                        className='hover:scale-125   hover:text-green-200 cursor-pointer   size-6 rounded-full  text-green-500'
                         // onClick={() => repeatFunction(setCurrentMatrix, frameDuration, dotMatrixDivs.length)}
                         onClick={() => repeatFunction((key) => dispatch(setToFrame(key)), frameDuration, dotMatrixDivs.length)}
 
@@ -700,14 +756,23 @@ void displayFrame(const bool matrix[8][8]) {
                     onClick={() => repeatFunction(setCurrentMatrix, frameDuration, oledMatrix.length)}
                   /> */}
 
-                    {/* <MdDeleteForever className='hover:scale-125 cursor-pointer  hover:text-green-200 size-6 rounded-full  text-green-500' 
-                    onClick={deleteFrame}
-                    ></MdDeleteForever> */}
+
                   <LuCopyPlus
-                    onClick={() => Duplicate()}
+                    onClick={Duplicate}
                     data-tooltip-target="tooltip-duplicate"
                     className='hover:scale-125  hover:text-green-200 cursor-pointer  size-6  text-green-500' />
+
+                  <MdOutlineResetTv
+                    onClick={clearFrame}
+                    data-tooltip-target="tooltip-clear"
+                    className='hover:scale-125  hover:text-green-200 cursor-pointer  size-6  text-green-500'
+                  ></MdOutlineResetTv>
+                  <MdDeleteForever className=' cursor-pointer  hover:text-red-200 size-6 rounded-full  text-red-600'
+                    data-tooltip-target="tooltip-delete"
+                    onClick={deleteFrame}
+                  ></MdDeleteForever>
                 </div>
+
 
                 <div className='flex flex-wrap'>
                   {/* <RxRotateCounterClockwise className='hover:text-teal-200 hover:cursor-pointer mx-2 size-5 rounded-full  text-green-500' onClick={() => flipOneLeft(currentMatrix)}>Flip left</RxRotateCounterClockwise>
@@ -723,7 +788,7 @@ void displayFrame(const bool matrix[8][8]) {
                       }}
                       maxLength={8}
                       value={frameDuration}
-                      className="rounded-md  outline outline-1 outline-green-700 w-[35%] bg-slate-900  "></input>
+                      className="pl-2 text-blue-400 rounded-md  outline outline-1 outline-green-700 w-[35%] bg-slate-900  "></input>
 
                     <span className='text-[0.8em] px-1'>ms </span>
 
@@ -810,30 +875,42 @@ void displayFrame(const bool matrix[8][8]) {
           >
 
 
-            <div className='flex justify-between'>
+            <div className='flex justify-between mb-2'>
 
-              <div id="tooltip-rotateLeft" role="tooltip" className="capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[1400ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
+              <div id="tooltip-rotateLeft" role="tooltip" className="capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[300ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
                 rotate left
                 <div className="tooltip-arrow" data-popper-arrow></div>
               </div>
 
-              <div id="tooltip-flipVertical" role="tooltip" className="capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[1400ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
+              <div id="tooltip-flipVertical" role="tooltip" className="capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[300ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
                 Flip vertically
                 <div className="tooltip-arrow" data-popper-arrow></div>
               </div>
 
-              <div id="tooltip-flipHorizontal" role="tooltip" className="capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[1400ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
+              <div id="tooltip-flipHorizontal" role="tooltip" className="capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[300ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
                 Flip horizontally
                 <div className="tooltip-arrow" data-popper-arrow></div>
               </div>
 
-              <div id="tooltip-rotateRight" role="tooltip" className="capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[1400ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
+              <div id="tooltip-rotateRight" role="tooltip" className="capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[300ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
                 Rotate right
                 <div className="tooltip-arrow" data-popper-arrow></div>
               </div>
+
+              <div id="tooltip-erase" role="tooltip" className="capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[300ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
+                Erase
+                <div className="tooltip-arrow" data-popper-arrow></div>
+              </div>
+
               <GrRotateLeft data-tooltip-target="tooltip-rotateLeft" className='hover:scale-125 hover:text-teal-200 rounded-full  text-green-600 hover:cursor-pointer' onClick={() => flipOneLeft(currentMatrix)} />
-              <PiFlipHorizontalFill data-tooltip-target="tooltip-flipVertical" className='hover:scale-125 hover:text-teal-200 hover:cursor-pointer  outline-green-300 outline-solid outline-1 mx-2 text-green-600' onClick={() => flipHorizontal(currentMatrix)}>Flip vert</PiFlipHorizontalFill>
-              <PiFlipVerticalFill data-tooltip-target="tooltip-flipHorizontal" className='hover:scale-125 hover:text-teal-200 hover:cursor-pointer  outline-green-300 outline-solid outline-1  mx-2 text-green-600' onClick={() => flipVertical(currentMatrix)}>Flip horx</PiFlipVerticalFill   >
+              <PiFlipHorizontalFill data-tooltip-target="tooltip-flipVertical" className='hover:scale-125 hover:text-teal-200 hover:cursor-pointer  outline-green-300 outline-solid outline-1 mx-2 text-green-600' onClick={() => flipHorizontal(currentMatrix)}/>
+              <PiFlipVerticalFill data-tooltip-target="tooltip-flipHorizontal" className='hover:scale-125 hover:text-teal-200 hover:cursor-pointer  outline-green-300 outline-solid outline-1  mx-2 text-green-600' onClick={() => flipVertical(currentMatrix)}/>
+              {
+                currentKey === "KeyD" ?
+                  <BsFillEraserFill data-tooltip-target="tooltip-erase" className='scale-150 text-teal-300 hover:cursor-pointer  outline-green-300 outline-solid outline-1  mx-2 ' onClick={() => dispatch(setToKey("KeyNone"))}/>
+                  :
+                  <BsFillEraserFill data-tooltip-target="tooltip-erase" className='hover:scale-125 hover:text-teal-200 hover:cursor-pointer  outline-green-300 outline-solid outline-1  mx-2 text-green-600' onClick={() => dispatch(setToKey("KeyD"))}/>
+              }
               <GrRotateRight data-tooltip-target="tooltip-rotateRight" className='hover:scale-125 hover:text-teal-200  text-green-600 hover:cursor-pointer' onClick={() => flipOneRight(currentMatrix)} />
 
 
@@ -851,6 +928,7 @@ void displayFrame(const bool matrix[8][8]) {
               // currentMatrix={currentMatrix}
               isDragging={isDragging}
               setDotMatrixDivs={setDotMatrixDivs}
+              
             ></EightByEightMain>
 
 
