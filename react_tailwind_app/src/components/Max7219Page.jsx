@@ -907,8 +907,8 @@ void displayFrame(const bool matrix[8][8]) {
               </div>
 
               <GrRotateLeft data-tooltip-target="tooltip-rotateLeft" className='hover:scale-125 hover:text-teal-200 rounded-full  text-green-600 hover:cursor-pointer' onClick={() => flipOneLeft(currentMatrix)} />
-              <PiFlipHorizontalFill data-tooltip-target="tooltip-flipVertical" className='hover:scale-125 hover:text-teal-200 hover:cursor-pointer  outline-green-300 outline-solid outline-1 mx-2 text-green-600' onClick={() => flipHorizontal(currentMatrix)} />
-              <PiFlipVerticalFill data-tooltip-target="tooltip-flipHorizontal" className='hover:scale-125 hover:text-teal-200 hover:cursor-pointer  outline-green-300 outline-solid outline-1  mx-2 text-green-600' onClick={() => flipVertical(currentMatrix)} />
+              <PiFlipHorizontalFill data-tooltip-target="tooltip-flipHorizontal" className='hover:scale-125 hover:text-teal-200 hover:cursor-pointer  outline-green-300 outline-solid outline-1 mx-2 text-green-600' onClick={() => flipHorizontal(currentMatrix)} />
+              <PiFlipVerticalFill data-tooltip-target="tooltip-flipVertical" className='hover:scale-125 hover:text-teal-200 hover:cursor-pointer  outline-green-300 outline-solid outline-1  mx-2 text-green-600' onClick={() => flipVertical(currentMatrix)} />
               {
                 currentKey === "KeyD" ?
                   <BsFillEraserFill data-tooltip-target="tooltip-erase" className='scale-150 text-teal-300 hover:cursor-pointer  outline-green-300 outline-solid outline-1  mx-2 ' onClick={() => dispatch(setToKey("KeyNone"))} />
