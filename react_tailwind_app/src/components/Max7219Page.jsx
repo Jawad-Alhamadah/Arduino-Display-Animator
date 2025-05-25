@@ -20,6 +20,7 @@ import { LuCopyPlus } from "react-icons/lu";
 import { MdDeleteForever } from "react-icons/md";
 import { MdOutlineResetTv } from "react-icons/md";
 import { BsFillEraserFill } from "react-icons/bs";
+import { FaClipboardCheck } from "react-icons/fa6";
 function Max7219Page() {
 
   let pinCSRef = React.useRef(null)
@@ -43,6 +44,7 @@ function Max7219Page() {
   const [isCodeGenerated, setIsCodeGenerated] = React.useState(false);
   const [isDragging, setIsDragging] = React.useState(false);
   const [isAnimating, setIsAnimating] = React.useState(false);
+  const [codeCopied, setCodeCopied] = React.useState(false)
   const WIDTH = 128;
   const HEIGHT = 64;
   // const [currentMatrix, setCurrentMatrix] = React.useState(1);
@@ -427,14 +429,14 @@ function Max7219Page() {
   }, [test]);
 
   function generateCode() {
-
+    
     let rMatrices = flipAll(dotMatrixDivs);
     //console.log(rMatrices.map(matrix=>matrix.dotmatrix))
     // let stringMatrices = JSON.stringify(rMatrices.map(matrix=>matrix.dotmatrix))
     let dotMatrixString = JSON.stringify(rMatrices.map(matrix => matrix.dotmatrix))
     let dotMatrixFormatted = dotMatrixString.replace(/[\[\]]/g, match => match === "[" ? "{" : "}")
     console.log(`const bool frames[numFrames][8][8] = ${dotMatrixFormatted}`)
-
+    setCodeCopied(false)
     setGeneratedCode(`
     
 const int DIN = ${pinDIN};
@@ -505,7 +507,7 @@ void displayFrame(const bool matrix[8][8]) {
     let dotMatrixString = JSON.stringify(frame)
     let dotMatrixFormatted = dotMatrixString.replace(/[\[\]]/g, match => match === "[" ? "{" : "}")
     console.log(`const bool frame[8][8] = ${dotMatrixFormatted}`)
-
+    setCodeCopied(false)
     setGeneratedCode(`
     
 const int DIN = ${pinDIN};
@@ -897,19 +899,21 @@ void displayFrame(const bool matrix[8][8]) {
                 <div className="tooltip-arrow" data-popper-arrow></div>
               </div>
 
-              <div id="tooltip-erase" role="tooltip" className="capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[300ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
-                Erase
+              <div id="tooltip-erase" role="tooltip" className="grid capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[300ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
+                <span>Erase</span>
+                <span> Shortcut: "d"</span>
+
                 <div className="tooltip-arrow" data-popper-arrow></div>
               </div>
 
               <GrRotateLeft data-tooltip-target="tooltip-rotateLeft" className='hover:scale-125 hover:text-teal-200 rounded-full  text-green-600 hover:cursor-pointer' onClick={() => flipOneLeft(currentMatrix)} />
-              <PiFlipHorizontalFill data-tooltip-target="tooltip-flipVertical" className='hover:scale-125 hover:text-teal-200 hover:cursor-pointer  outline-green-300 outline-solid outline-1 mx-2 text-green-600' onClick={() => flipHorizontal(currentMatrix)}/>
-              <PiFlipVerticalFill data-tooltip-target="tooltip-flipHorizontal" className='hover:scale-125 hover:text-teal-200 hover:cursor-pointer  outline-green-300 outline-solid outline-1  mx-2 text-green-600' onClick={() => flipVertical(currentMatrix)}/>
+              <PiFlipHorizontalFill data-tooltip-target="tooltip-flipVertical" className='hover:scale-125 hover:text-teal-200 hover:cursor-pointer  outline-green-300 outline-solid outline-1 mx-2 text-green-600' onClick={() => flipHorizontal(currentMatrix)} />
+              <PiFlipVerticalFill data-tooltip-target="tooltip-flipHorizontal" className='hover:scale-125 hover:text-teal-200 hover:cursor-pointer  outline-green-300 outline-solid outline-1  mx-2 text-green-600' onClick={() => flipVertical(currentMatrix)} />
               {
                 currentKey === "KeyD" ?
-                  <BsFillEraserFill data-tooltip-target="tooltip-erase" className='scale-150 text-teal-300 hover:cursor-pointer  outline-green-300 outline-solid outline-1  mx-2 ' onClick={() => dispatch(setToKey("KeyNone"))}/>
+                  <BsFillEraserFill data-tooltip-target="tooltip-erase" className='scale-150 text-teal-300 hover:cursor-pointer  outline-green-300 outline-solid outline-1  mx-2 ' onClick={() => dispatch(setToKey("KeyNone"))} />
                   :
-                  <BsFillEraserFill data-tooltip-target="tooltip-erase" className='hover:scale-125 hover:text-teal-200 hover:cursor-pointer  outline-green-300 outline-solid outline-1  mx-2 text-green-600' onClick={() => dispatch(setToKey("KeyD"))}/>
+                  <BsFillEraserFill data-tooltip-target="tooltip-erase" className='hover:scale-125 hover:text-teal-200 hover:cursor-pointer  outline-green-300 outline-solid outline-1  mx-2 text-green-600' onClick={() => dispatch(setToKey("KeyD"))} />
               }
               <GrRotateRight data-tooltip-target="tooltip-rotateRight" className='hover:scale-125 hover:text-teal-200  text-green-600 hover:cursor-pointer' onClick={() => flipOneRight(currentMatrix)} />
 
@@ -928,7 +932,7 @@ void displayFrame(const bool matrix[8][8]) {
               // currentMatrix={currentMatrix}
               isDragging={isDragging}
               setDotMatrixDivs={setDotMatrixDivs}
-              
+
             ></EightByEightMain>
 
 
@@ -1006,16 +1010,23 @@ void displayFrame(const bool matrix[8][8]) {
           wordBreak: "break-word",
           textAlign: "left",
         }}
-        class="mt-10 w-[95%]  rounded-lg outline outline-2 outline-green-700 shadow-2xl shadow-black"
+        className="mt-10 w-[95%]  rounded-lg outline outline-2 outline-green-700 shadow-2xl shadow-black"
       >
         <button
           onClick={() => {
             navigator.clipboard.writeText(generatedCode)
+            setCodeCopied(true)
           }}
-          className='ml-auto flex justify-between items-center hover:scale-110 font-semibold  outline outline-2 outline-green-600 rounded-md m-3 p-2 text-green-300 shadow-lg shadow-[#191919]'>
+          className='transition-transform duration-200 glow-on-hover relative ml-auto flex justify-between items-center hover:scale-125 font-semibold  outline outline-2 outline-green-600 rounded-md m-3 p-2 text-green-300 shadow-lg shadow-[#191919]'>
 
-          <span >Cody Code</span>
-          <LuClipboardCopy class="m-1 size-5"></LuClipboardCopy>
+          {
+            codeCopied ?
+            <><span>Copied! </span><FaClipboardCheck class="m-1 size-5" /></>
+            
+              :
+              <><span>Copy Code</span><LuClipboardCopy class="m-1 size-5"></LuClipboardCopy></>
+          }
+
         </button>
         <code>{generatedCode}</code>
       </pre> : <></>}
