@@ -21,6 +21,7 @@ import { MdDeleteForever } from "react-icons/md";
 import { MdOutlineResetTv } from "react-icons/md";
 import { BsFillEraserFill } from "react-icons/bs";
 import { FaClipboardCheck } from "react-icons/fa6";
+import { ToastContainer, toast, Flip } from 'react-toastify';
 function Max7219Page() {
 
   let pinCSRef = React.useRef(null)
@@ -39,7 +40,7 @@ function Max7219Page() {
   const [pinCS, setPinCS] = React.useState('none');
   const [pinCLK, setPinCLK] = React.useState('none');
   const [pinDIN, setPinDIN] = React.useState('none');
-  const [frameDuration, setFrameDuration] = React.useState(200);
+  const [frameDuration, setFrameDuration] = React.useState('200');
   const [isGenerateDisabled, setIsGenerateDisabled] = React.useState(true);
   const [isCodeGenerated, setIsCodeGenerated] = React.useState(false);
   const [isDragging, setIsDragging] = React.useState(false);
@@ -74,7 +75,7 @@ function Max7219Page() {
 
     ]
   )
-  console.log(dotMatrixDivs)
+
 
   const [oledMatrix, setOledMatrix] = React.useState(
     [
@@ -85,6 +86,47 @@ function Max7219Page() {
     ]
   )
 
+
+   function notifyUser(message,notificationFunction) {
+    notificationFunction(message, {
+      position: "top-right",
+      autoClose: 5000,
+      hideProgressBar: false,
+      closeOnClick: false,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: "dark",
+      transition: Flip,
+    });
+  }
+  // function notifyWarning(message) {
+  //   toast.warn(message, {
+  //     position: "top-right",
+  //     autoClose: 5000,
+  //     hideProgressBar: false,
+  //     closeOnClick: false,
+  //     pauseOnHover: true,
+  //     draggable: true,
+  //     progress: undefined,
+  //     theme: "dark",
+  //     transition: Flip,
+  //   });
+  // }
+
+  // function sucess(message) {
+  //   toast.success('🦄 Wow so easy!', {
+  //     position: "top-right",
+  //     autoClose: 5000,
+  //     hideProgressBar: false,
+  //     closeOnClick: false,
+  //     pauseOnHover: true,
+  //     draggable: true,
+  //     progress: undefined,
+  //     theme: "dark",
+  //     transition: Flip,
+  //   });
+  // }
   React.useEffect(() => {
     // Global mouseup listener to reset dragging state
     const handleMouseUp = () => {
@@ -131,12 +173,8 @@ function Max7219Page() {
 
 
   React.useEffect(() => {
-    console.log("re")
-    console.log(pinCS)
-    console.log(pinCLK)
-    console.log(pinDIN)
+
     if (pinCS != "none" && pinCLK != "none" && pinDIN != "none") {
-      console.log("inside")
       setIsGenerateDisabled(false)
     }
     else {
@@ -145,6 +183,24 @@ function Max7219Page() {
   }, [pinDIN, pinCLK, pinCS])
 
 
+  function frameDurationBlurHandle() {
+
+    const num = Number(frameDuration);
+    if (num < 10) {
+      notifyUser("Duration can't be lower than 10",toast.warning)
+      setFrameDuration(10)
+    }
+
+  }
+  function frameDurationChangeHandle(e) {
+    let val = e.target.value
+    if (/^\d*$/.test(val)) {
+      setFrameDuration(val);
+
+    }
+
+
+  }
   function flipAll() {
     let reversedMatrix = [[], [], [], [], [], [], [], []];
     let rMatrices = [];
@@ -153,7 +209,6 @@ function Max7219Page() {
         for (let k = 0; k < dotMatrixDivs[i].dotmatrix[j].length; k++) {
           // console.log(dotMatrixDivs[i].dotmatrix[j])
           reversedMatrix[k].push(dotMatrixDivs[i].dotmatrix[j][k]);
-          console.log(dotMatrixDivs[i].dotmatrix[j].length);
         }
 
       }
@@ -206,13 +261,13 @@ function Max7219Page() {
 
   function flipVertical(key) {
     setDotMatrixDivs((prevDivs) =>
-      prevDivs.map((div) =>
-        div.key === key
+      prevDivs.map((matrix) =>
+        matrix.key === key
           ? {
-            ...div,
-            dotmatrix: [...div.dotmatrix].reverse(), // Reverse row order (top ↔ bottom)
+            ...matrix,
+            dotmatrix: [...matrix.dotmatrix].reverse(), // Reverse row order (top ↔ bottom)
           }
-          : div
+          : matrix
       )
     );
   }
@@ -246,13 +301,13 @@ function Max7219Page() {
 
   function flipHorizontal(key) {
     setDotMatrixDivs((prevDivs) =>
-      prevDivs.map((div) =>
-        div.key === key
+      prevDivs.map((matrix) =>
+        matrix.key === key
           ? {
-            ...div,
-            dotmatrix: div.dotmatrix.map((row) => [...row].reverse()), // Reverse each row (left ↔ right)
+            ...matrix,
+            dotmatrix: matrix.dotmatrix.map((row) => [...row].reverse()), // Reverse each row (left ↔ right)
           }
-          : div
+          : matrix
       )
     );
   }
@@ -282,11 +337,9 @@ function Max7219Page() {
   function Duplicate() {
     let currMatrixIndex = dotMatrixDivs.findIndex((matrix) => matrix.key == currentMatrix) //dotMatrixDivs
     if (currMatrixIndex === -1) {
-      console.error("Matrix not found!");
       return;
     }
 
-    console.log(currMatrixIndex)
     let newMatrix = {
       key: dotMatrixDivs.length + 1,
       dotmatrix: dotMatrixDivs[currMatrixIndex].dotmatrix.map(row => [...row])
@@ -294,7 +347,6 @@ function Max7219Page() {
     setDotMatrixDivs(prev => {
       let newState = [...prev];
       newState.splice(currMatrixIndex + 1, 0, newMatrix)
-      console.log(newState)
       return newState
     })
     //setCurrentMatrix(newMatrix.key)
@@ -393,9 +445,6 @@ function Max7219Page() {
 
     const observerCallback = (entries) => {
       entries.forEach((entry) => {
-        console.log("checking...")
-        console.log(framesRef)
-        console.log(timelineRef.current)
         if (entry.isIntersecting) {
 
           // When intersecting, update the active frame state
@@ -411,7 +460,7 @@ function Max7219Page() {
             frameRect.top < timelineRect.bottom &&
             frameRect.bottom > timelineRect.top
           ) {
-            console.log("Timeline is touching frame:", entry.target.getAttribute('data-frame'));
+            // console.log("Timeline is touching frame:", entry.target.getAttribute('data-frame'));
           }
         }
       });
@@ -429,13 +478,13 @@ function Max7219Page() {
   }, [test]);
 
   function generateCode() {
-    
+
     let rMatrices = flipAll(dotMatrixDivs);
     //console.log(rMatrices.map(matrix=>matrix.dotmatrix))
     // let stringMatrices = JSON.stringify(rMatrices.map(matrix=>matrix.dotmatrix))
     let dotMatrixString = JSON.stringify(rMatrices.map(matrix => matrix.dotmatrix))
     let dotMatrixFormatted = dotMatrixString.replace(/[\[\]]/g, match => match === "[" ? "{" : "}")
-    console.log(`const bool frames[numFrames][8][8] = ${dotMatrixFormatted}`)
+
     setCodeCopied(false)
     setGeneratedCode(`
     
@@ -496,17 +545,17 @@ void displayFrame(const bool matrix[8][8]) {
   }
 }`)
     setIsCodeGenerated(true)
+    notifyUser("Code Generation Sucessful!",toast.success)
   }
 
   function generateCodeOneFrame() {
 
     let rMatrices = flipAll(dotMatrixDivs);
-    //console.log(rMatrices.map(matrix=>matrix.dotmatrix))
     // let stringMatrices = JSON.stringify(rMatrices.map(matrix=>matrix.dotmatrix))
     let frame = rMatrices[rMatrices.findIndex(matrix => matrix.key === currentMatrix)].dotmatrix
     let dotMatrixString = JSON.stringify(frame)
     let dotMatrixFormatted = dotMatrixString.replace(/[\[\]]/g, match => match === "[" ? "{" : "}")
-    console.log(`const bool frame[8][8] = ${dotMatrixFormatted}`)
+
     setCodeCopied(false)
     setGeneratedCode(`
     
@@ -567,8 +616,8 @@ void displayFrame(const bool matrix[8][8]) {
     setIsCodeGenerated(true)
   }
   return (
-    <div className="w-screen text-center flex justify-center flex-col items-center  ">
-
+    <div className="w-screen text-center flex justify-center flex-col items-center">
+      <ToastContainer />
       {/* <DragDropContext onDragEnd={onDragEnd}>
         <Droppable direction="horizontal" droppableId="dotMatrixDivs" type="MATRIX">
           {(provided) => (
@@ -785,12 +834,16 @@ void displayFrame(const bool matrix[8][8]) {
 
                     <span className='text-[0.8em] px-1'>Frame duration </span>
                     <input
-                      onChange={(e) => {
-                        setFrameDuration(e.target.value);
-                      }}
+
+                      type="text"
+                      min="10"
+                      inputMode="numeric"
+                      onChange={frameDurationChangeHandle}
+
+                      onBlur={frameDurationBlurHandle}
                       maxLength={8}
                       value={frameDuration}
-                      className="pl-2 text-blue-400 rounded-md  outline outline-1 outline-green-700 w-[35%] bg-slate-900  "></input>
+                      className="no-spinner pl-2 text-blue-400 rounded-md  outline outline-1 outline-green-700 w-[35%] bg-slate-900  "></input>
 
                     <span className='text-[0.8em] px-1'>ms </span>
 
@@ -1010,7 +1063,7 @@ void displayFrame(const bool matrix[8][8]) {
           wordBreak: "break-word",
           textAlign: "left",
         }}
-        className="mt-10 w-[95%]  rounded-lg outline outline-2 outline-green-700 shadow-2xl shadow-black"
+        className="my-14 w-[90%]  rounded-lg outline outline-2 outline-green-700 shadow-2xl shadow-black"
       >
         <button
           onClick={() => {
@@ -1021,8 +1074,8 @@ void displayFrame(const bool matrix[8][8]) {
 
           {
             codeCopied ?
-            <><span>Copied! </span><FaClipboardCheck class="m-1 size-5" /></>
-            
+              <><span>Copied! </span><FaClipboardCheck class="m-1 size-5" /></>
+
               :
               <><span>Copy Code</span><LuClipboardCopy class="m-1 size-5"></LuClipboardCopy></>
           }
