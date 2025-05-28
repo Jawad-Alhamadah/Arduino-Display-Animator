@@ -10,16 +10,14 @@ function Tool({ Icon, onClick, target, tooltip = "", classes = '' }) {
 
 
     const tooltip_data_target = `tooltip-${target}`
-    const default_tool_class = isAnimationPlaying ?
-        ' size-6 rounded-full text-slate-500'
-        :
-
-        'focus:outline-none hover:scale-125 cursor-pointer hover:text-green-200 size-6  text-green-500'
+    const default_tool_class = 'focus:outline-none hover:scale-125 cursor-pointer hover:text-green-200 size-6  text-green-500'
 
 
     const isClickable =
         (target === 'stop' && isAnimationPlaying) ||
         (target !== 'stop' && !isAnimationPlaying);
+
+    const mergeClasses = isClickable? classes :  twMerge(classes,'hover:cursor-default hover:scale-100 hover:text-slate-500 text-slate-500')  
 
     const handleClick = isClickable ? onClick : undefined;
 
@@ -34,7 +32,7 @@ function Tool({ Icon, onClick, target, tooltip = "", classes = '' }) {
             <Icon
 
                 data-tooltip-target={tooltip_data_target}
-                className={twMerge(default_tool_class, classes)}
+                className={twMerge(default_tool_class, mergeClasses)}
                 onClick={handleClick}
             />
         </>

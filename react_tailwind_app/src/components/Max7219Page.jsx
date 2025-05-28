@@ -641,27 +641,6 @@ void displayFrame(const bool matrix[8][8]) {
               <div className='flex flex-wrap justify-between'>
                 <div className='flex space-x-4'>
 
-                  <div id="tooltip-duplicate" role="tooltip" className="capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[300ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
-                    Duplicate Frame
-                    <div className="tooltip-arrow" data-popper-arrow></div>
-                  </div>
-
-                  <div id="tooltip-play" role="tooltip" className="capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[300ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
-                    Play
-                    <div className="tooltip-arrow" data-popper-arrow></div>
-                  </div>
-
-
-
-                  <div id="tooltip-delete" role="tooltip" className="capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[300ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
-                    Delete Frame
-                    <div className="tooltip-arrow" data-popper-arrow></div>
-                  </div>
-                  <div id="tooltip-clear" role="tooltip" className="capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[300ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
-                    Clear Frame
-                    <div className="tooltip-arrow" data-popper-arrow></div>
-                  </div>
-
                   <Tool
                     Icon={MdAdd}
                     target="add"
@@ -681,14 +660,7 @@ void displayFrame(const bool matrix[8][8]) {
 
                       ></Tool>
 
-                      // <TiMediaStop className=' scale-110   hover:bg-red-600 hover:text-red-200 cursor-pointer  size-6 rounded-full outline outline-offset-2 outline-2 outline-[#ff0000] text-[#ff0000]' onClick={() => stopRepeat()}>stop</TiMediaStop >
                       :
-                      // <BsPlayFill
-                      //   data-tooltip-target="tooltip-play"
-                      //   className='hover:scale-125   hover:text-green-200 cursor-pointer   size-6 rounded-full  text-green-500'
-                      //   // onClick={() => repeatFunction(setCurrentMatrix, frameDuration, dotMatrixDivs.length)}
-                      //   onClick={() => repeatFunction((key) => dispatch(setToFrame(key)), frameDuration, dotMatrixDivs.length)}
-                      // />
 
                       <Tool
                         Icon={BsPlayFill}
@@ -697,32 +669,6 @@ void displayFrame(const bool matrix[8][8]) {
                         tooltip={"Play"}
                       ></Tool>
                   }
-
-                  {/* <MdAdd
-                    data-tooltip-target="tooltip-add"
-                    className='hover:scale-125 cursor-pointer  hover:text-green-200 size-6 rounded-full  text-green-500'
-                    onClick={addFrame}
-                  // onClick={() => {
-                  //   const newMat = {
-                  //     key: oledMatrix.length + 1,
-                  //     oledmatrix: Array.from({ length: 64 }, () => Array(128).fill(false))
-                  //   };
-                  //   setOledMatrix(prev => [...prev, newMat])
-                  //   setCurrentMatrix(newMat.key)
-                  // }}
-                  /> */}
-
-
-
-                  {/* <BsPlayFill className='bg-slate-900 hover:bg-green-600 hover:text-green-200 cursor-pointer   size-5 rounded-full outline outline-offset-2 outline-2 outline-green-500 text-green-500'
-                    onClick={() => repeatFunction(setCurrentMatrix, frameDuration, oledMatrix.length)}
-                  /> */}
-
-
-                  {/* <LuCopyPlus
-                    onClick={Duplicate}
-                    data-tooltip-target="tooltip-duplicate"
-                    className='hover:scale-125  hover:text-green-200 cursor-pointer  size-6  text-green-500' /> */}
 
                   <Tool
                     Icon={LuCopyPlus}
@@ -738,23 +684,14 @@ void displayFrame(const bool matrix[8][8]) {
                     tooltip={"Clear Frame"}
                   ></Tool>
 
-                  {/* <MdOutlineResetTv
-                    onClick={clearFrame}
-                    data-tooltip-target="tooltip-clear"
-                    className='hover:scale-125  hover:text-green-200 cursor-pointer  size-6  text-green-500'
-                  ></MdOutlineResetTv> */}
-
-                   <Tool
+                  <Tool
                     Icon={MdDeleteForever}
                     target="delete"
                     onClick={deleteFrame}
                     tooltip={"Delete Frame"}
                     classes={" hover:text-red-200 size-6 rounded-full  text-red-600"}
                   ></Tool>
-                  {/* <MdDeleteForever className=' cursor-pointer  hover:text-red-200 size-6 rounded-full  text-red-600'
-                    data-tooltip-target="tooltip-delete"
-                    onClick={deleteFrame}
-                  ></MdDeleteForever> */}
+
                 </div>
 
 
