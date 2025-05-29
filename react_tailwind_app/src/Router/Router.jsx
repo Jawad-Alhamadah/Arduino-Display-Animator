@@ -3,6 +3,7 @@ import * as ReactDOM from "react-dom/client";
 
 import Max7219ICPage from '../components/Max7219Page.jsx';
 import OledPage from "../components/OledPage.jsx"
+import UnderConstruction from "../components/UnderConstruction.jsx"
 import {
     createBrowserRouter,
     RouterProvider,
@@ -16,7 +17,7 @@ const router = createBrowserRouter([
     },
     {
         path:"/oled",
-        element: <OledPage/>
+        element: <UnderConstruction/>
 
     },
   

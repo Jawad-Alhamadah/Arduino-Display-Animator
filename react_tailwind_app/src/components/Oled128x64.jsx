@@ -145,6 +145,7 @@ export default function Oled128x64(props) {
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [isErasing, setIsErasing] = useState(false);
+  const prevMousePosRef = useRef({ x: null, y: null });
   // const [props.oledMatrix, props.setOledMatrix] = useState(
   //   [
   //              {
@@ -185,34 +186,104 @@ export default function Oled128x64(props) {
     });
   };
 
-  const handleCanvasMouseDown = (event) => {
+//   const handleCanvasMouseDown = (event) => {
     
+//     const { x, y } = getMousePosition(event);
+//     if (x === null || y === null) return;
+// console.log("passed x y checl")
+//     props.setOledMatrix((prev) => {
+//         const newMatrix = structuredClone(prev);
+//         const matrixObj = newMatrix.find(obj => obj.key === currentMatrixKey);
+//         if (!matrixObj) return prev;
+
+//         isErasing
+//             ? (matrixObj.matrix[y][x] = false)  // Erase pixel
+//             : (matrixObj.matrix[y][x] = true);  // Draw pixel
+
+//         return newMatrix;
+//     });
+
+//     setIsDrawing(true);
+// };
+
+// const handleCanvasMouseUp = () => {
+//     setIsDrawing(false);
+// };
+
+// const handleCanvasMouseMove = (event) => {
+//     if (!isDrawing) return;
+
+//     const { x, y } = getMousePosition(event);
+//     if (x === null || y === null) return;
+
+//     props.setOledMatrix((prev) => {
+//         const newMatrix = structuredClone(prev);
+//         const matrixObj = newMatrix.find(obj => obj.key === currentMatrixKey);
+//         if (!matrixObj) return prev;
+
+//         isErasing
+//             ? (matrixObj.matrix[y][x] = false)  // Erase pixel
+//             : (matrixObj.matrix[y][x] = true);  // Draw pixel
+
+//         return newMatrix;
+//     });
+// };
+
+
+const handleCanvasMouseDown = (event) => {
     const { x, y } = getMousePosition(event);
     if (x === null || y === null) return;
-console.log("passed x y checl")
+
+    prevMousePosRef.current = { x, y };
+    setIsDrawing(true);
+
     props.setOledMatrix((prev) => {
         const newMatrix = structuredClone(prev);
         const matrixObj = newMatrix.find(obj => obj.key === currentMatrixKey);
         if (!matrixObj) return prev;
 
-        isErasing
-            ? (matrixObj.matrix[y][x] = false)  // Erase pixel
-            : (matrixObj.matrix[y][x] = true);  // Draw pixel
-
+        matrixObj.matrix[y][x] = !isErasing;
         return newMatrix;
     });
-
-    setIsDrawing(true);
 };
 
 const handleCanvasMouseUp = () => {
     setIsDrawing(false);
+    prevMousePosRef.current = { x: null, y: null };
 };
+
+function drawInterpolatedLine(matrix, x0, y0, x1, y1, value) {
+    const dx = Math.abs(x1 - x0);
+    const dy = Math.abs(y1 - y0);
+    const sx = x0 < x1 ? 1 : -1;
+    const sy = y0 < y1 ? 1 : -1;
+    let err = dx - dy;
+
+    while (true) {
+        if (x0 >= 0 && x0 < 128 && y0 >= 0 && y0 < 64) {
+            matrix[y0][x0] = value;
+        }
+
+        if (x0 === x1 && y0 === y1) break;
+
+        const e2 = 2 * err;
+        if (e2 > -dy) {
+            err -= dy;
+            x0 += sx;
+        }
+        if (e2 < dx) {
+            err += dx;
+            y0 += sy;
+        }
+    }
+}
 
 const handleCanvasMouseMove = (event) => {
     if (!isDrawing) return;
 
     const { x, y } = getMousePosition(event);
+    const { x: prevX, y: prevY } = prevMousePosRef.current;
+
     if (x === null || y === null) return;
 
     props.setOledMatrix((prev) => {
@@ -220,13 +291,18 @@ const handleCanvasMouseMove = (event) => {
         const matrixObj = newMatrix.find(obj => obj.key === currentMatrixKey);
         if (!matrixObj) return prev;
 
-        isErasing
-            ? (matrixObj.matrix[y][x] = false)  // Erase pixel
-            : (matrixObj.matrix[y][x] = true);  // Draw pixel
+        if (prevX !== null && prevY !== null) {
+            drawInterpolatedLine(matrixObj.matrix, prevX, prevY, x, y, !isErasing);
+        } else {
+            matrixObj.matrix[y][x] = !isErasing;
+        }
 
         return newMatrix;
     });
+
+    prevMousePosRef.current = { x, y };
 };
+
 
 const getMousePosition = (event) => {
     const rect = canvasRef.current.getBoundingClientRect();
