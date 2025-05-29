@@ -1,29 +1,29 @@
-import React from 'react'
-
-import { useSelector, useDispatch } from 'react-redux'
-import { setToFrame } from '../reducers/currentMatrixSlice'
-import { setToKey } from '../reducers/currentKey'
-import Max7219IC from './Max7219IC';
-import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd';
-import PinSelector from './PinSelector';
-import { BsPlayFill } from "react-icons/bs";
-import { LuClipboardCopy } from "react-icons/lu";
-import { PiFlipHorizontalFill } from "react-icons/pi";
-import { PiFlipVerticalFill } from "react-icons/pi";
-import { TiMediaStop } from "react-icons/ti";
-import { MdAdd } from "react-icons/md";
+import React from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { setCurrentMatrixByKey } from '../reducers/currentMatrixSlice';
+import { setToKeyboardKey } from '../reducers/currentKeyboardKey';
+import { setToPlaying, setToStopped } from '../reducers/isAnimationPlaying';
 import EightByEightFrame from './EightByEightFrame';
 import EightByEightMain from './EightByEightMain';
-import { GrRotateLeft } from "react-icons/gr";
-import { GrRotateRight } from "react-icons/gr";
-import { LuCopyPlus } from "react-icons/lu";
+import Max7219IC from './Max7219IC';
+import PinSelector from './PinSelector';
+import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd';
+import { BsPlayFill, BsFillEraserFill } from "react-icons/bs";
+import { LuClipboardCopy, LuCopyPlus } from "react-icons/lu";
+import { PiFlipHorizontalFill, PiFlipVerticalFill } from "react-icons/pi";
+import { TiMediaStop } from "react-icons/ti";
+import { MdAdd, MdKeyboardDoubleArrowRight, MdKeyboardDoubleArrowLeft, MdOutlineResetTv } from "react-icons/md";
+import { GrRotateLeft, GrRotateRight } from "react-icons/gr";
 import { MdDeleteForever } from "react-icons/md";
-import { MdOutlineResetTv } from "react-icons/md";
-import { BsFillEraserFill } from "react-icons/bs";
 import { FaClipboardCheck } from "react-icons/fa6";
+
 import { ToastContainer, toast, Flip } from 'react-toastify';
-import { setToPlaying, setToStopped } from '../reducers/isAnimationPlaying'
+
+import ToolMainFrame from './ToolMainFrame';
+import { useNavigate } from 'react-router-dom'
 import Tool from "./Tool"
+
+
 function Max7219Page() {
 
   let pinCSRef = React.useRef(null)
@@ -52,9 +52,10 @@ function Max7219Page() {
   const HEIGHT = 64;
   // const [currentMatrix, setCurrentMatrix] = React.useState(1);
 
-  const currentMatrix = useSelector((state) => state.currentMatrix.value)
-  let currentKey = useSelector((state) => state.currentKey.value)
+  const currentMatrixKey = useSelector((state) => state.currentMatrixKey.value)
+  let currentKeyboardKey = useSelector((state) => state.currentKeyboardKey.value)
   let isAnimationPlaying = useSelector((state) => state.isAnimationPlaying.value)
+  const navigate = useNavigate();
 
   const dispatch = useDispatch()
   const newMatrix = {
@@ -74,7 +75,7 @@ function Max7219Page() {
   const [dotMatrixDivs, setDotMatrixDivs] = React.useState(
     [
       {
-        key: currentMatrix, dotmatrix: Array.from({ length: 8 }, () => Array(8).fill(false))
+        key: currentMatrixKey, dotmatrix: Array.from({ length: 8 }, () => Array(8).fill(false))
       },
 
     ]
@@ -91,6 +92,64 @@ function Max7219Page() {
   )
 
 
+  function shiftMatrixRightNoWrap(matrixKey) {
+    setDotMatrixDivs(prev =>
+      prev.map(matrix => {
+        if (matrix.key !== matrixKey) return matrix;
+
+        const shifted = matrix.dotmatrix.map(row => {
+          return [false, ...row.slice(0, -1)];
+        });
+
+        return { ...matrix, dotmatrix: shifted };
+      })
+    );
+  }
+
+  function shiftMatrixLeftNoWrap(matrixKey) {
+    setDotMatrixDivs(prev =>
+      prev.map(matrix => {
+        if (matrix.key !== matrixKey) return matrix;
+
+        const shifted = matrix.dotmatrix.map(row => {
+          return [...row.slice(1), false];
+        });
+
+        return { ...matrix, dotmatrix: shifted };
+      })
+    );
+  }
+
+  function shiftMatrixRight(matrixKey) {
+    setDotMatrixDivs(prev =>
+      prev.map(matrix => {
+        if (matrix.key !== matrixKey) return matrix;
+
+        const shifted = matrix.dotmatrix.map(row => {
+          const last = row[row.length - 1];
+          return [last, ...row.slice(0, -1)];
+        });
+
+        return { ...matrix, dotmatrix: shifted };
+      })
+    );
+  }
+
+  function shiftMatrixLeftByKey(matrixKey) {
+    setDotMatrixDivs(prev =>
+      prev.map(matrix => {
+        if (matrix.key !== matrixKey) return matrix;
+
+        const shifted = matrix.dotmatrix.map(row => {
+          const first = row[0];
+          return [...row.slice(1), first];
+        });
+
+        return { ...matrix, dotmatrix: shifted };
+      })
+    );
+  }
+
   function notifyUser(message, notificationFunction) {
     notificationFunction(message, {
       position: "top-right",
@@ -104,33 +163,7 @@ function Max7219Page() {
       transition: Flip,
     });
   }
-  // function notifyWarning(message) {
-  //   toast.warn(message, {
-  //     position: "top-right",
-  //     autoClose: 5000,
-  //     hideProgressBar: false,
-  //     closeOnClick: false,
-  //     pauseOnHover: true,
-  //     draggable: true,
-  //     progress: undefined,
-  //     theme: "dark",
-  //     transition: Flip,
-  //   });
-  // }
 
-  // function sucess(message) {
-  //   toast.success('🦄 Wow so easy!', {
-  //     position: "top-right",
-  //     autoClose: 5000,
-  //     hideProgressBar: false,
-  //     closeOnClick: false,
-  //     pauseOnHover: true,
-  //     draggable: true,
-  //     progress: undefined,
-  //     theme: "dark",
-  //     transition: Flip,
-  //   });
-  // }
   React.useEffect(() => {
     // Global mouseup listener to reset dragging state
     const handleMouseUp = () => {
@@ -146,13 +179,13 @@ function Max7219Page() {
 
     const handleKeyDown = (event) => {
 
-      dispatch(setToKey(event.code))
+      dispatch(setToKeyboardKey(event.code))
 
     };
 
     const handleKeyUp = (event) => {
 
-      dispatch(setToKey("KeyNone"))
+      dispatch(setToKeyboardKey("KeyNone"))
 
 
     };
@@ -187,6 +220,13 @@ function Max7219Page() {
   }, [pinDIN, pinCLK, pinCS])
 
 
+  function handleSelectScreen(e) {
+    const value = e.target.value;
+    if (!value) return
+
+    navigate(value)
+
+  }
   function frameDurationBlurHandle() {
 
     const num = Number(frameDuration);
@@ -293,7 +333,7 @@ function Max7219Page() {
 
     let editedStates = dotMatrixDivs.map(matrix => {
 
-      if (matrix.key === currentMatrix) return { key: matrix.key, dotmatrix: newDotmatrix }
+      if (matrix.key === currentMatrixKey) return { key: matrix.key, dotmatrix: newDotmatrix }
       return matrix
     })
 
@@ -339,7 +379,7 @@ function Max7219Page() {
   // }
 
   function Duplicate() {
-    let currMatrixIndex = dotMatrixDivs.findIndex((matrix) => matrix.key == currentMatrix) //dotMatrixDivs
+    let currMatrixIndex = dotMatrixDivs.findIndex((matrix) => matrix.key == currentMatrixKey) //dotMatrixDivs
     if (currMatrixIndex === -1) {
       return;
     }
@@ -354,7 +394,7 @@ function Max7219Page() {
       return newState
     })
     //setCurrentMatrix(newMatrix.key)
-    dispatch(setToFrame(newMatrix.key))
+    dispatch(setCurrentMatrixByKey(newMatrix.key))
   }
 
   function addFrame() {
@@ -367,7 +407,7 @@ function Max7219Page() {
     setDotMatrixDivs(prev => [...prev, newMat])
 
     // setCurrentMatrix(newMat.key)
-    dispatch(setToFrame(newMat.key))
+    dispatch(setCurrentMatrixByKey(newMat.key))
 
   }
 
@@ -377,11 +417,11 @@ function Max7219Page() {
   function deleteFrame() {
     if (dotMatrixDivs.length <= 1) return
 
-    let filteredMatrix = dotMatrixDivs.filter(matrix => matrix.key !== currentMatrix)
+    let filteredMatrix = dotMatrixDivs.filter(matrix => matrix.key !== currentMatrixKey)
 
     setDotMatrixDivs(filteredMatrix)
 
-    dispatch(setToFrame(filteredMatrix[filteredMatrix.length - 1].key))
+    dispatch(setCurrentMatrixByKey(filteredMatrix[filteredMatrix.length - 1].key))
 
   }
 
@@ -406,7 +446,7 @@ function Max7219Page() {
   function startAnimation() {
     //setIsAnimating(true);
     dispatch(setToPlaying())
-    repeatFunction((key) => dispatch(setToFrame(key)), frameDuration, dotMatrixDivs.length)
+    repeatFunction((key) => dispatch(setCurrentMatrixByKey(key)), frameDuration, dotMatrixDivs.length)
   }
   function repeatFunction(func, delay, repeat,) {
 
@@ -431,7 +471,7 @@ function Max7219Page() {
     if (repeatInterval.current) {
       clearInterval(repeatInterval.current);
       repeatInterval.current = null;
-      dispatch(setToFrame(dotMatrixDivs[0].key))
+      dispatch(setCurrentMatrixByKey(dotMatrixDivs[0].key))
       // setIsAnimating(false);
       dispatch(setToStopped())
     }
@@ -449,49 +489,48 @@ function Max7219Page() {
   };
 
 
-  React.useEffect(() => {
+  // React.useEffect(() => {
 
 
-    if (!timelineRef.current) return;
+  //   if (!timelineRef.current) return;
 
-    const observerCallback = (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
+  //   const observerCallback = (entries) => {
+  //     entries.forEach((entry) => {
+  //       if (entry.isIntersecting) {
 
-          // When intersecting, update the active frame state
-          // setActiveFrame(entry.target.getAttribute('data-frame'));
-          // console.log("jh")
-          // Check if the intersecting frame also intersects with timelineRef
-          const frameRect = entry.target.getBoundingClientRect();
-          const timelineRect = timelineRef.current.getBoundingClientRect();
+  //         // When intersecting, update the active frame state
+  //         // setActiveFrame(entry.target.getAttribute('data-frame'));
+  //         // console.log("jh")
+  //         // Check if the intersecting frame also intersects with timelineRef
+  //         const frameRect = entry.target.getBoundingClientRect();
+  //         const timelineRect = timelineRef.current.getBoundingClientRect();
 
-          if (
-            frameRect.left < timelineRect.right &&
-            frameRect.right > timelineRect.left &&
-            frameRect.top < timelineRect.bottom &&
-            frameRect.bottom > timelineRect.top
-          ) {
-            // console.log("Timeline is touching frame:", entry.target.getAttribute('data-frame'));
-          }
-        }
-      });
-    };
+  //         if (
+  //           frameRect.left < timelineRect.right &&
+  //           frameRect.right > timelineRect.left &&
+  //           frameRect.top < timelineRect.bottom &&
+  //           frameRect.bottom > timelineRect.top
+  //         ) {
+  //           // console.log("Timeline is touching frame:", entry.target.getAttribute('data-frame'));
+  //         }
+  //       }
+  //     });
+  //   };
 
-    const observer = new IntersectionObserver(observerCallback, {
-      root: null,
-      threshold: 0.01,
-    });
+  //   const observer = new IntersectionObserver(observerCallback, {
+  //     root: null,
+  //     threshold: 0.01,
+  //   });
 
-    // Observe each frame element
-    framesRef.current.forEach((frame) => observer.observe(frame));
+  //   // Observe each frame element
+  //   framesRef.current.forEach((frame) => observer.observe(frame));
 
-    return () => observer.disconnect(); // Cleanup on component unmount
-  }, [test]);
+  //   return () => observer.disconnect(); // Cleanup on component unmount
+  // }, [test]);
 
   function generateCode() {
 
     let rMatrices = flipAll(dotMatrixDivs);
-    //console.log(rMatrices.map(matrix=>matrix.dotmatrix))
     // let stringMatrices = JSON.stringify(rMatrices.map(matrix=>matrix.dotmatrix))
     let dotMatrixString = JSON.stringify(rMatrices.map(matrix => matrix.dotmatrix))
     let dotMatrixFormatted = dotMatrixString.replace(/[\[\]]/g, match => match === "[" ? "{" : "}")
@@ -563,7 +602,7 @@ void displayFrame(const bool matrix[8][8]) {
 
     let rMatrices = flipAll(dotMatrixDivs);
     // let stringMatrices = JSON.stringify(rMatrices.map(matrix=>matrix.dotmatrix))
-    let frame = rMatrices[rMatrices.findIndex(matrix => matrix.key === currentMatrix)].dotmatrix
+    let frame = rMatrices[rMatrices.findIndex(matrix => matrix.key === currentMatrixKey)].dotmatrix
     let dotMatrixString = JSON.stringify(frame)
     let dotMatrixFormatted = dotMatrixString.replace(/[\[\]]/g, match => match === "[" ? "{" : "}")
 
@@ -645,7 +684,7 @@ void displayFrame(const bool matrix[8][8]) {
                     Icon={MdAdd}
                     target="add"
                     onClick={addFrame}
-                    tooltip={"Add Frame"}
+                    tooltip={["Add Frame"]}
                   ></Tool>
 
                   {
@@ -655,7 +694,7 @@ void displayFrame(const bool matrix[8][8]) {
                         Icon={TiMediaStop}
                         target="stop"
                         onClick={stopAnimation}
-                        tooltip={"Stop Animation"}
+                        tooltip={["Stop Animation"]}
                         classes={"scale-110 hover:bg-red-600 hover:text-red-200 ring-2 ring-offset-2 ring-[#ff0000] text-[#ff0000]"}
 
                       ></Tool>
@@ -666,7 +705,7 @@ void displayFrame(const bool matrix[8][8]) {
                         Icon={BsPlayFill}
                         target="play"
                         onClick={startAnimation}
-                        tooltip={"Play"}
+                        tooltip={["Play"]}
                       ></Tool>
                   }
 
@@ -674,21 +713,21 @@ void displayFrame(const bool matrix[8][8]) {
                     Icon={LuCopyPlus}
                     target="duplicate"
                     onClick={Duplicate}
-                    tooltip={"Duplicate Frame"}
+                    tooltip={["Duplicate Frame"]}
                   ></Tool>
 
                   <Tool
                     Icon={MdOutlineResetTv}
                     target="clear"
                     onClick={clearFrame}
-                    tooltip={"Clear Frame"}
+                    tooltip={["Clear Frame"]}
                   ></Tool>
 
                   <Tool
                     Icon={MdDeleteForever}
                     target="delete"
                     onClick={deleteFrame}
-                    tooltip={"Delete Frame"}
+                    tooltip={["Delete Frame"]}
                     classes={" hover:text-red-200 size-6 rounded-full  text-red-600"}
                   ></Tool>
 
@@ -802,43 +841,86 @@ void displayFrame(const bool matrix[8][8]) {
 
             <div className='flex justify-between mb-2'>
 
-              <div id="tooltip-rotateLeft" role="tooltip" className="capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[300ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
-                rotate left
-                <div className="tooltip-arrow" data-popper-arrow></div>
-              </div>
 
-              <div id="tooltip-flipVertical" role="tooltip" className="capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[300ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
-                Flip vertically
-                <div className="tooltip-arrow" data-popper-arrow></div>
-              </div>
+              <ToolMainFrame
+                Icon={MdKeyboardDoubleArrowLeft}
+                target="shiftleft"
+                onClick={() =>
+                  currentKeyboardKey === "ControlLeft" ? shiftMatrixLeftNoWrap(currentMatrixKey)
+                    : shiftMatrixLeftByKey(currentMatrixKey)
 
-              <div id="tooltip-flipHorizontal" role="tooltip" className="capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[300ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
-                Flip horizontally
-                <div className="tooltip-arrow" data-popper-arrow></div>
-              </div>
 
-              <div id="tooltip-rotateRight" role="tooltip" className="capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[300ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
-                Rotate right
-                <div className="tooltip-arrow" data-popper-arrow></div>
-              </div>
+                }
+                tooltip={["shift left", "Press `Ctrl` for No Wrap shift"]}
 
-              <div id="tooltip-erase" role="tooltip" className="grid capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[300ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
-                <span>Erase</span>
-                <span> Shortcut: "d"</span>
+              ></ToolMainFrame>
+              <ToolMainFrame
+                Icon={GrRotateLeft}
+                target="rotateLeft"
+                onClick={() => flipOneLeft(currentMatrixKey)}
+                tooltip={["rotate left"]}
 
-                <div className="tooltip-arrow" data-popper-arrow></div>
-              </div>
+              ></ToolMainFrame>
 
-              <GrRotateLeft data-tooltip-target="tooltip-rotateLeft" className='hover:scale-125 hover:text-teal-200 rounded-full  text-green-600 hover:cursor-pointer' onClick={() => flipOneLeft(currentMatrix)} />
-              <PiFlipHorizontalFill data-tooltip-target="tooltip-flipHorizontal" className='hover:scale-125 hover:text-teal-200 hover:cursor-pointer  outline-green-300 outline-solid outline-1 mx-2 text-green-600' onClick={() => flipHorizontal(currentMatrix)} />
-              <PiFlipVerticalFill data-tooltip-target="tooltip-flipVertical" className='hover:scale-125 hover:text-teal-200 hover:cursor-pointer  outline-green-300 outline-solid outline-1  mx-2 text-green-600' onClick={() => flipVertical(currentMatrix)} />
+              <ToolMainFrame
+                Icon={PiFlipHorizontalFill}
+                target="flipHorizontal"
+                onClick={() => flipHorizontal(currentMatrixKey)}
+                tooltip={["Flip horizontally"]}
+
+              ></ToolMainFrame>
+
+
+              <ToolMainFrame
+                Icon={PiFlipVerticalFill}
+                target="flipVertical"
+                onClick={() => flipVertical(currentMatrixKey)}
+                tooltip={["Flip Vertically"]}
+
+              ></ToolMainFrame>
+
+
               {
-                currentKey === "KeyD" ?
-                  <BsFillEraserFill data-tooltip-target="tooltip-erase" className='scale-150 text-teal-300 hover:cursor-pointer  outline-green-300 outline-solid outline-1  mx-2 ' onClick={() => dispatch(setToKey("KeyNone"))} />
+                currentKeyboardKey === "KeyD" ?
+                  <ToolMainFrame
+                    Icon={BsFillEraserFill}
+                    target="erase"
+                    onClick={() => dispatch(setToKeyboardKey("KeyNone"))}
+                    tooltip={["Erase.", "ShortCut: D"]}
+                    classes={"scale-150 text-teal-300 hover:cursor-pointer  outline-green-300 outline-solid outline-1 "}
+
+                  ></ToolMainFrame>
                   :
-                  <BsFillEraserFill data-tooltip-target="tooltip-erase" className='hover:scale-125 hover:text-teal-200 hover:cursor-pointer  outline-green-300 outline-solid outline-1  mx-2 text-green-600' onClick={() => dispatch(setToKey("KeyD"))} />
+                  <ToolMainFrame
+                    Icon={BsFillEraserFill}
+                    target="erase"
+                    onClick={() => dispatch(setToKeyboardKey("KeyD"))}
+                    tooltip={["Erase.", "ShortCut: D"]}
+                    classes={"hover:scale-125 hover:text-teal-200 hover:cursor-pointer  outline-green-300 outline-solid outline-1  text-green-600"}
+
+                  ></ToolMainFrame>
+
               }
-              <GrRotateRight data-tooltip-target="tooltip-rotateRight" className='hover:scale-125 hover:text-teal-200  text-green-600 hover:cursor-pointer' onClick={() => flipOneRight(currentMatrix)} />
+
+              <ToolMainFrame
+                Icon={GrRotateRight}
+                target="rotateRight"
+                onClick={() => flipOneRight(currentMatrixKey)}
+                tooltip={["rotate Right"]}
+
+              ></ToolMainFrame>
+
+              <ToolMainFrame
+                Icon={MdKeyboardDoubleArrowRight}
+                target="shiftRight"
+                onClick={() =>
+                  currentKeyboardKey === "ControlLeft" ? shiftMatrixRightNoWrap(currentMatrixKey)
+                    : shiftMatrixRight(currentMatrixKey)}
+                tooltip={["shift Right","Press `Ctrl` for No Wrap shift"]}
+
+              ></ToolMainFrame>
+
+
 
 
             </div>
@@ -861,11 +943,6 @@ void displayFrame(const bool matrix[8][8]) {
 
           </div>
           <div className='flex mt-2'>
-            {/* <RxRotateCounterClockwise className=' outline-green-300 outline-solid outline-1 hover:text-teal-200 hover:cursor-pointer mx-2 size-5   text-green-500' onClick={() => flipOneLeft(currentMatrix)}>Flip left</RxRotateCounterClockwise> */}
-
-
-            {/* <RxRotateCounterClockwise className=' outline-green-300 outline- outline-1 hover:text-teal-200 hover:cursor-pointer mx-2 transform scale-x-[-1] size-5   text-green-400' onClick={() => flipOneRight(currentMatrix)}>Flip right</RxRotateCounterClockwise> */}
-
 
           </div>
           <Max7219IC />
@@ -891,8 +968,14 @@ void displayFrame(const bool matrix[8][8]) {
         <div className='flex flex-col'>
           <form class="max-w-sm mx-auto  bg-[#093710] p-4 relative">
 
-            <PinSelector label="DIN Pin : " pinRef={pinDINRef} pinSetter={setPinDIN} pinhighlightSetter={setDinPinHighlight}></PinSelector>
+            <select className="block w-full pl-2 border rounded px-2 py-1 rounded-md bg-slate-700 text-white mb-3"
+              onChange={handleSelectScreen}
+            >
+              <option selected value="/">Max 7219</option>
+              <option value="/Oled">Olex matrix 128x64</option>
 
+            </select>
+            <PinSelector label="DIN Pin : " pinRef={pinDINRef} pinSetter={setPinDIN} pinhighlightSetter={setDinPinHighlight}></PinSelector>
             <PinSelector label="CS Pin : " pinRef={pinCSRef} pinSetter={setPinCS} pinhighlightSetter={setCsPinHighlight}></PinSelector>
             <PinSelector label="CLK Pin : " pinRef={pinCLKRef} pinSetter={setPinCLK} pinhighlightSetter={setClkPinHighlight}></PinSelector>
             <div

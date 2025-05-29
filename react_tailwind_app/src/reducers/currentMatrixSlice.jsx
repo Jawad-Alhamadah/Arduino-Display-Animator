@@ -3,15 +3,15 @@ import { createSlice } from '@reduxjs/toolkit'
 const initialState = { value: Math.random().toString(36).substr(2, 9) }
 
 const currentMatrixSlice = createSlice({
-    name: 'currentMatrix',
+    name: 'currentMatrixKey',
     initialState,
     reducers: {
 
-        setToFrame: (state, action) => {
+        setCurrentMatrixByKey: (state, action) => {
             state.value = action.payload
         }
     }
 })
 
-export const { setToFrame } = currentMatrixSlice.actions
+export const {setCurrentMatrixByKey } = currentMatrixSlice.actions
 export default currentMatrixSlice.reducer

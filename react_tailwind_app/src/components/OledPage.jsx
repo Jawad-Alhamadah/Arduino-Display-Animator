@@ -24,7 +24,13 @@ import { LuCopy } from "react-icons/lu";
 // import ExampleMatrix from './components/ExampleMatrix';
 import OledFrame from "./OledFrame"
 import Oled128x64 from "./Oled128x64"
+import { useSelector, useDispatch } from 'react-redux';
+import { setToKeyboardKey } from '../reducers/currentKeyboardKey';
+import { setCurrentMatrixByKey } from '../reducers/currentMatrixSlice';
+
 function OledPage() {
+  const currentMatrixKey = useSelector((state) => state.currentMatrixKey.value)
+  const dispatch = useDispatch()
 
   let pinCSRef = React.useRef(null)
   let pinCLKRef = React.useRef(null)
@@ -32,7 +38,7 @@ function OledPage() {
   const framesRef = React.useRef([]);
   const timelineRef = React.useRef(null);
 
-  // const [isMouseDown, setIsMouseDown] = React.useState(false);
+  const [isMouseDown, setIsMouseDown] = React.useState(false);
   // const [downKey, setDownKey] = React.useState("l");
   const [generatedCode, setGeneratedCode] = React.useState("");
   const repeatInterval = React.useRef(null);
@@ -49,7 +55,7 @@ function OledPage() {
   const [isDragging, setIsDragging] = React.useState(false);
   const WIDTH = 128;
   const HEIGHT = 64;
-  const [currentMatrix, setCurrentMatrix] = React.useState(1);
+  // const [currentMatrix, setCurrentMatrix] = React.useState(1);
   const newMatrix = {
     key: 0, matrix:
       [
@@ -68,7 +74,7 @@ function OledPage() {
   const [oledMatrix, setOledMatrix] = React.useState(
     [
       {
-        key: 1, matrix: Array.from({ length: 64 }, () => Array(128).fill(false))
+        key: currentMatrixKey, matrix: Array.from({ length: 64 }, () => Array(128).fill(false))
       },
 
     ]
@@ -220,7 +226,7 @@ function OledPage() {
   // }
 
   function Duplicate(matrixToDuplicate) {
-    let currMatrixIndex = matrixToDuplicate.findIndex((matrix) => matrix.key == currentMatrix) //dotMatrixDivs
+    let currMatrixIndex = matrixToDuplicate.findIndex((matrix) => matrix.key == currentMatrixKey) //dotMatrixDivs
     if (currMatrixIndex === -1) {
       console.error("Matrix not found!");
       return;
@@ -237,7 +243,8 @@ function OledPage() {
       console.log(newState)
       return newState
     })
-    setCurrentMatrix(newMatrix.key)
+
+    dispatch(setCurrentMatrixByKey(newMatrix.key))
 
   }
 
@@ -279,7 +286,7 @@ function OledPage() {
     if (repeatInterval.current) {
       clearInterval(repeatInterval.current);
       repeatInterval.current = null;
-      setCurrentMatrix(matrix[0].key)
+      dispatch(setCurrentMatrixByKey(matrix[0].key))
     }
   }
 
@@ -295,47 +302,47 @@ function OledPage() {
   };
 
 
-  React.useEffect(() => {
+  // React.useEffect(() => {
 
 
-    if (!timelineRef.current) return;
+  //   if (!timelineRef.current) return;
 
-    const observerCallback = (entries) => {
-      entries.forEach((entry) => {
-        console.log("checking...")
-        console.log(framesRef)
-        console.log(timelineRef.current)
-        if (entry.isIntersecting) {
+  //   const observerCallback = (entries) => {
+  //     entries.forEach((entry) => {
+  //       console.log("checking...")
+  //       console.log(framesRef)
+  //       console.log(timelineRef.current)
+  //       if (entry.isIntersecting) {
 
-          // When intersecting, update the active frame state
-          // setActiveFrame(entry.target.getAttribute('data-frame'));
-          // console.log("jh")
-          // Check if the intersecting frame also intersects with timelineRef
-          const frameRect = entry.target.getBoundingClientRect();
-          const timelineRect = timelineRef.current.getBoundingClientRect();
+  //         // When intersecting, update the active frame state
+  //         // setActiveFrame(entry.target.getAttribute('data-frame'));
+  //         // console.log("jh")
+  //         // Check if the intersecting frame also intersects with timelineRef
+  //         const frameRect = entry.target.getBoundingClientRect();
+  //         const timelineRect = timelineRef.current.getBoundingClientRect();
 
-          if (
-            frameRect.left < timelineRect.right &&
-            frameRect.right > timelineRect.left &&
-            frameRect.top < timelineRect.bottom &&
-            frameRect.bottom > timelineRect.top
-          ) {
-            console.log("Timeline is touching frame:", entry.target.getAttribute('data-frame'));
-          }
-        }
-      });
-    };
+  //         if (
+  //           frameRect.left < timelineRect.right &&
+  //           frameRect.right > timelineRect.left &&
+  //           frameRect.top < timelineRect.bottom &&
+  //           frameRect.bottom > timelineRect.top
+  //         ) {
+  //           console.log("Timeline is touching frame:", entry.target.getAttribute('data-frame'));
+  //         }
+  //       }
+  //     });
+  //   };
 
-    const observer = new IntersectionObserver(observerCallback, {
-      root: null,
-      threshold: 0.01,
-    });
+  //   const observer = new IntersectionObserver(observerCallback, {
+  //     root: null,
+  //     threshold: 0.01,
+  //   });
 
-    // Observe each frame element
-    framesRef.current.forEach((frame) => observer.observe(frame));
+  //   // Observe each frame element
+  //   framesRef.current.forEach((frame) => observer.observe(frame));
 
-    return () => observer.disconnect(); // Cleanup on component unmount
-  }, [test]);
+  //   return () => observer.disconnect(); // Cleanup on component unmount
+  // }, [test]);
 
   function generateCode() {
 
@@ -412,7 +419,7 @@ void displayFrame(const bool matrix[8][8]) {
     let rMatrices = flipAll(oledMatrix);
     //console.log(rMatrices.map(matrix=>matrix.dotmatrix))
     // let stringMatrices = JSON.stringify(rMatrices.map(matrix=>matrix.dotmatrix))
-    let frame = rMatrices[rMatrices.findIndex(matrix => matrix.key === currentMatrix)].dotmatrix
+    let frame = rMatrices[rMatrices.findIndex(matrix => matrix.key === currentMatrixKey)].dotmatrix
     let dotMatrixString = JSON.stringify(frame)
     let dotMatrixFormatted = dotMatrixString.replace(/[\[\]]/g, match => match === "[" ? "{" : "}")
     console.log(`const bool frame[8][8] = ${dotMatrixFormatted}`)
@@ -616,7 +623,7 @@ void displayFrame(const bool matrix[8][8]) {
                         matrix: newMatrix.dotmatrix.map(row => [...row])
                       };
                       setOledMatrix(prev => [...prev, newMat])
-                      setCurrentMatrix(newMat.key)
+                      dispatch(setCurrentMatrixByKey(newMat.key))
                     }}
                   // onClick={() => {
                   //   const newMat = {
@@ -634,7 +641,7 @@ void displayFrame(const bool matrix[8][8]) {
                   /> */}
 
                   <button disabled={true} onClick={
-                    isAnimating&& repeatFunction(setCurrentMatrix, frameDuration, oledMatrix.length, oledMatrix)
+                    isAnimating&& repeatFunction((key) => dispatch(setCurrentMatrixByKey(key)), frameDuration, oledMatrix.length, oledMatrix)
 
                   }>
                     <BsPlayFill className='bg-slate-900  hover:bg-green-600 hover:text-green-200 cursor-pointer   size-5 rounded-full outline outline-offset-2 outline-2 outline-green-500 text-green-500'
@@ -648,10 +655,10 @@ void displayFrame(const bool matrix[8][8]) {
                 </div>
 
                 <div className='flex flex-wrap'>
-                  <RxRotateCounterClockwise className='hover:text-teal-200 hover:cursor-pointer mx-2 size-5 rounded-full  text-green-500' onClick={() => flipOneLeft(currentMatrix)}>Flip left</RxRotateCounterClockwise>
-                  <RxRotateCounterClockwise className='hover:text-teal-200 hover:cursor-pointer mx-2 transform scale-x-[-1] size-5 rounded-full  text-green-400' onClick={() => flipOneRight(currentMatrix)}>Flip right</RxRotateCounterClockwise>
-                  <PiFlipHorizontalFill className='hover:text-teal-200 hover:cursor-pointer mx-2  size-5 rounded-full  text-green-500' onClick={() => flipHorizontal(currentMatrix)}>Flip vert</PiFlipHorizontalFill>
-                  <PiFlipVerticalFill className='hover:text-teal-200 hover:cursor-pointer mx-2  size-5 rounded-full  text-green-500' onClick={() => flipVertical(currentMatrix)}>Flip horx</PiFlipVerticalFill   >
+                  <RxRotateCounterClockwise className='hover:text-teal-200 hover:cursor-pointer mx-2 size-5 rounded-full  text-green-500' onClick={() => flipOneLeft(currentMatrixKey)}>Flip left</RxRotateCounterClockwise>
+                  <RxRotateCounterClockwise className='hover:text-teal-200 hover:cursor-pointer mx-2 transform scale-x-[-1] size-5 rounded-full  text-green-400' onClick={() => flipOneRight(currentMatrixKey)}>Flip right</RxRotateCounterClockwise>
+                  <PiFlipHorizontalFill className='hover:text-teal-200 hover:cursor-pointer mx-2  size-5 rounded-full  text-green-500' onClick={() => flipHorizontal(currentMatrixKey)}>Flip vert</PiFlipHorizontalFill>
+                  <PiFlipVerticalFill className='hover:text-teal-200 hover:cursor-pointer mx-2  size-5 rounded-full  text-green-500' onClick={() => flipVertical(currentMatrixKey)}>Flip horx</PiFlipVerticalFill   >
                   <div className='flex w-[15em] bg-slate-800 rounded-sm text-green-500 '>
 
                     <span className='text-[0.8em] px-1'>Frame duration </span>
@@ -699,8 +706,8 @@ void displayFrame(const bool matrix[8][8]) {
 
                           ></EightByEightFrame> */}
                           <OledFrame
-                            currentMatrix={currentMatrix}
-                            setCurrentMatrix={setCurrentMatrix}
+                            currentMatrix={currentMatrixKey}
+                            // setCurrentMatrix={setCurrentMatrix}
                             oledMatrix={oledMatrix}
                             setOledMatrix={setOledMatrix}
                             width={WIDTH}
@@ -749,7 +756,7 @@ void displayFrame(const bool matrix[8][8]) {
 
 
 
-            <Oled128x64 currentMatrix={currentMatrix}
+            <Oled128x64 
               oledMatrix={oledMatrix}
               setOledMatrix={setOledMatrix}
 
@@ -788,9 +795,9 @@ void displayFrame(const bool matrix[8][8]) {
         <div className='flex flex-col'>
           <form class="max-w-sm mx-auto  bg-[#093710] p-4 relative">
 
-            <PinSelector label="Select Arduino Pin For DIN:" pinRef={pinDINRef} pinSetter={setPinDIN} pinhighlightSetter={setDinPinHighlight}></PinSelector>
+            {/* <PinSelector label="Select Arduino Pin For DIN:" pinRef={pinDINRef} pinSetter={setPinDIN} pinhighlightSetter={setDinPinHighlight}></PinSelector>
             <PinSelector label="Select Arduino Pin For CLK:" pinRef={pinCLKRef} pinSetter={setPinCLK} pinhighlightSetter={setClkPinHighlight}></PinSelector>
-            <PinSelector label="Select Arduino Pin For CS:" pinRef={pinCSRef} pinSetter={setPinCS} pinhighlightSetter={setCsPinHighlight}></PinSelector>
+            <PinSelector label="Select Arduino Pin For CS:" pinRef={pinCSRef} pinSetter={setPinCS} pinhighlightSetter={setCsPinHighlight}></PinSelector> */}
             <div
               type="button" //Needed to prevent form page refresh
 

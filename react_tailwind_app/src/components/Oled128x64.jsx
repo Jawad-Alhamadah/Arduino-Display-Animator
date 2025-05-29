@@ -134,12 +134,14 @@
 
 
 import { useEffect, useRef, useState } from "react";
-
+import { useSelector, useDispatch } from 'react-redux';
+import { setToKeyboardKey } from '../reducers/currentKeyboardKey';
 const WIDTH = 128;
 const HEIGHT = 64;
 const PIXEL_SIZE = 2; // Controls how large each pixel appears
 
 export default function Oled128x64(props) {
+    const currentMatrixKey = useSelector((state) => state.currentMatrixKey.value)
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [isErasing, setIsErasing] = useState(false);
@@ -163,7 +165,7 @@ export default function Oled128x64(props) {
   useEffect(()=>{
     drawCanvas();
     
-  },[props.currentMatrix])
+  },[currentMatrixKey])
   const drawCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -171,8 +173,8 @@ export default function Oled128x64(props) {
     ctx.clearRect(0, 0, WIDTH * PIXEL_SIZE, HEIGHT * PIXEL_SIZE);
 
     // Draw pixels efficiently
-   
-    props.oledMatrix.find(obj => obj.key === props.currentMatrix).oledmatrix.forEach((row, y) => {
+    console.log(currentMatrixKey)
+    props.oledMatrix.find(obj => obj.key === currentMatrixKey).matrix.forEach((row, y) => {
       row.forEach((pixel, x) => {
         if (pixel) {
           console.log(pixel)
@@ -184,17 +186,18 @@ export default function Oled128x64(props) {
   };
 
   const handleCanvasMouseDown = (event) => {
+    
     const { x, y } = getMousePosition(event);
     if (x === null || y === null) return;
-
+console.log("passed x y checl")
     props.setOledMatrix((prev) => {
         const newMatrix = structuredClone(prev);
-        const matrixObj = newMatrix.find(obj => obj.key === props.currentMatrix);
+        const matrixObj = newMatrix.find(obj => obj.key === currentMatrixKey);
         if (!matrixObj) return prev;
 
         isErasing
-            ? (matrixObj.oledmatrix[y][x] = false)  // Erase pixel
-            : (matrixObj.oledmatrix[y][x] = true);  // Draw pixel
+            ? (matrixObj.matrix[y][x] = false)  // Erase pixel
+            : (matrixObj.matrix[y][x] = true);  // Draw pixel
 
         return newMatrix;
     });
@@ -214,12 +217,12 @@ const handleCanvasMouseMove = (event) => {
 
     props.setOledMatrix((prev) => {
         const newMatrix = structuredClone(prev);
-        const matrixObj = newMatrix.find(obj => obj.key === props.currentMatrix);
+        const matrixObj = newMatrix.find(obj => obj.key === currentMatrixKey);
         if (!matrixObj) return prev;
 
         isErasing
-            ? (matrixObj.oledmatrix[y][x] = false)  // Erase pixel
-            : (matrixObj.oledmatrix[y][x] = true);  // Draw pixel
+            ? (matrixObj.matrix[y][x] = false)  // Erase pixel
+            : (matrixObj.matrix[y][x] = true);  // Draw pixel
 
         return newMatrix;
     });
@@ -266,7 +269,7 @@ useEffect(() => {
       props.setOledMatrix((prev) => {
         const newMatrix = structuredClone(prev);
        // newMatrix[y][x] = !newMatrix[y][x]; // Toggle pixel state
-        newMatrix.find(obj => obj.key === props.currentMatrix).oledmatrix[y][x] = !newMatrix.find(obj => obj.key === props.currentMatrix).oledmatrix[y][x]
+        newMatrix.find(obj => obj.key === currentMatrixKey).matrix[y][x] = !newMatrix.find(obj => obj.key === currentMatrixKey).matrix[y][x]
         return newMatrix;
       });
     }
@@ -387,10 +390,10 @@ const generateColumnCompressedCppArray = (pixels) => {
       
       
       
-      const compressedFrames = generateColumnCompressedCppArray(props.oledMatrix[0].oledmatrix);
+      const compressedFrames = generateColumnCompressedCppArray(props.oledMatrix[0].matrix);
       console.log(compressedFrames);
        
-        }}>fbgd</button>
+        }}>fbggggggggggggggggd</button>
           <canvas
       ref={canvasRef}
       width={WIDTH * PIXEL_SIZE}

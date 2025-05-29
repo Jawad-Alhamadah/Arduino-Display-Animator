@@ -1,13 +1,16 @@
 import React from 'react'
+import { useEffect, useRef, useState } from "react";
+import { useSelector, useDispatch } from 'react-redux';
+import { setToKeyboardKey } from '../reducers/currentKeyboardKey';
 
 function OledFrame(props) {
-
+const currentMatrixKey = useSelector((state) => state.currentMatrixKey.value)
     const WIDTH = 128;
     const HEIGHT = 64;
     const PIXEL_SIZE = 1; // Controls how large each pixel appears
     
      React.useEffect(() => {
-        if(props.currentMatrix===props.matrix.key){
+        if(currentMatrixKey===props.matrix.key){
             drawCanvas();
         }
         
@@ -19,12 +22,12 @@ function OledFrame(props) {
         if (!canvas) return;
         const ctx = canvas.getContext("2d");
         //ctx.clearRect(0, 0, WIDTH * PIXEL_SIZE, HEIGHT * PIXEL_SIZE);
-        console.log( "current matrix: "+props.currentMatrix+" key: "+ props.matrix.key)
+        console.log( "current matrix: "+currentMatrixKey+" key: "+ props.matrix.key)
         
         // Draw pixels efficiently
        
-        console.log(  props.currentMatrix)
-        props.oledMatrix.find(obj => obj.key === props.currentMatrix).oledmatrix.forEach((row, y) => {
+        console.log(  currentMatrixKey)
+        props.oledMatrix.find(obj => obj.key === currentMatrixKey).matrix.forEach((row, y) => {
           row.forEach((pixel, x) => {
             if (pixel) {
               ctx.fillStyle = "#06b6d4"; // cyan-300 in Tailwind

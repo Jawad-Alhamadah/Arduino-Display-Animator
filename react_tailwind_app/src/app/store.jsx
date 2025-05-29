@@ -1,12 +1,12 @@
 import { configureStore } from '@reduxjs/toolkit'
-import currentMatrixReducer from '../reducers/currentMatrixSlice'
-import currentKeyReducer from '../reducers/currentKey'
+import currentMatrixKeyReducer from '../reducers/currentMatrixSlice'
+import currentKeyboardKeyReducer from '../reducers/currentKeyboardKey'
 import isAnimationReducer from '../reducers/isAnimationPlaying'
 
 const store = configureStore({
   reducer: {
-    currentMatrix: currentMatrixReducer,
-    currentKey:currentKeyReducer,
+    currentMatrixKey: currentMatrixKeyReducer,
+    currentKeyboardKey:currentKeyboardKeyReducer,
     isAnimationPlaying:isAnimationReducer
   
   },
