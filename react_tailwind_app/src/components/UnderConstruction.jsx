@@ -22,7 +22,7 @@ const UnderConstruction = () => {
       <MdConstruction className="text-[80px] text-green-600 animate-pulse" />
 
       <div className="mt-10 text-sm text-green-600">
-        &copy; {new Date().getFullYear()} {siteName}. All rights reserved.
+        &copy; {new Date().getFullYear()} {siteName}.
       </div>
     </div>
   );
