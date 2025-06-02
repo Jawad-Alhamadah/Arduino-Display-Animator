@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { setCurrentMatrixByKey } from '../reducers/currentMatrixSlice';
 import { setToKeyboardKey } from '../reducers/currentKeyboardKey';
 import { setToPlaying, setToStopped } from '../reducers/isAnimationPlaying';
+import { setFrameDuration } from '../reducers/frameDurationSlice';
 import EightByEightFrame from './EightByEightFrame';
 import EightByEightMain from './EightByEightMain';
 import Max7219IC from './Max7219IC';
@@ -17,11 +18,12 @@ import { GrRotateLeft, GrRotateRight } from "react-icons/gr";
 import { MdDeleteForever } from "react-icons/md";
 import { FaClipboardCheck } from "react-icons/fa6";
 
-import { ToastContainer, toast, Flip } from 'react-toastify';
-
+import { ToastContainer, toast} from 'react-toastify';
+import {notifyUser} from "./toastifyFunctions"
 import ToolMainFrame from './ToolMainFrame';
 import { useNavigate } from 'react-router-dom'
 import Tool from "./Tool"
+import FrameDurationInput from './FrameDurationInput';
 
 
 function Max7219Page() {
@@ -42,7 +44,7 @@ function Max7219Page() {
   const [pinCS, setPinCS] = React.useState('none');
   const [pinCLK, setPinCLK] = React.useState('none');
   const [pinDIN, setPinDIN] = React.useState('none');
-  const [frameDuration, setFrameDuration] = React.useState('200');
+  // const [frameDuration, setFrameDuration] = React.useState('200');
   const [isGenerateDisabled, setIsGenerateDisabled] = React.useState(true);
   const [isCodeGenerated, setIsCodeGenerated] = React.useState(false);
   const [isDragging, setIsDragging] = React.useState(false);
@@ -55,6 +57,7 @@ function Max7219Page() {
   const currentMatrixKey = useSelector((state) => state.currentMatrixKey.value)
   let currentKeyboardKey = useSelector((state) => state.currentKeyboardKey.value)
   let isAnimationPlaying = useSelector((state) => state.isAnimationPlaying.value)
+  let frameDuration = useSelector((state)=> state.frameDuration.value)
   const navigate = useNavigate();
 
   const dispatch = useDispatch()
@@ -82,14 +85,14 @@ function Max7219Page() {
   )
 
 
-  const [oledMatrix, setOledMatrix] = React.useState(
-    [
-      {
-        key: 1, oledmatrix: Array.from({ length: 64 }, () => Array(128).fill(false))
-      },
+  // const [oledMatrix, setOledMatrix] = React.useState(
+  //   [
+  //     {
+  //       key: 1, oledmatrix: Array.from({ length: 64 }, () => Array(128).fill(false))
+  //     },
 
-    ]
-  )
+  //   ]
+  // )
 
 
   function shiftMatrixRightNoWrap(matrixKey) {
@@ -150,19 +153,19 @@ function Max7219Page() {
     );
   }
 
-  function notifyUser(message, notificationFunction) {
-    notificationFunction(message, {
-      position: "top-right",
-      autoClose: 5000,
-      hideProgressBar: false,
-      closeOnClick: false,
-      pauseOnHover: true,
-      draggable: true,
-      progress: undefined,
-      theme: "dark",
-      transition: Flip,
-    });
-  }
+  // function notifyUser(message, notificationFunction) {
+  //   notificationFunction(message, {
+  //     position: "top-right",
+  //     autoClose: 5000,
+  //     hideProgressBar: false,
+  //     closeOnClick: false,
+  //     pauseOnHover: true,
+  //     draggable: true,
+  //     progress: undefined,
+  //     theme: "dark",
+  //     transition: Flip,
+  //   });
+  // }
 
   React.useEffect(() => {
     // Global mouseup listener to reset dragging state
@@ -227,24 +230,24 @@ function Max7219Page() {
     navigate(value)
 
   }
-  function frameDurationBlurHandle() {
+  // function frameDurationBlurHandle() {
 
-    const num = Number(frameDuration);
-    if (num < 10) {
-      notifyUser("Duration can't be lower than 10", toast.warning)
-      setFrameDuration(10)
-    }
+  //   const num = Number(frameDuration);
+  //   if (num < 10) {
+  //     notifyUser("Duration can't be lower than 10", toast.warning)
+  //     setFrameDuration(10)
+  //   }
 
-  }
-  function frameDurationChangeHandle(e) {
-    let val = e.target.value
-    if (/^\d*$/.test(val)) {
-      setFrameDuration(val);
+  // }
+  // function frameDurationChangeHandle(e) {
+  //   let val = e.target.value
+  //   if (/^\d*$/.test(val)) {
+  //     setFrameDuration(val);
 
-    }
+  //   }
 
 
-  }
+  // }
   function flipAll() {
     let reversedMatrix = [[], [], [], [], [], [], [], []];
     let rMatrices = [];
@@ -739,7 +742,7 @@ void displayFrame(const bool matrix[8][8]) {
                   <RxRotateCounterClockwise className='hover:text-teal-200 hover:cursor-pointer mx-2 transform scale-x-[-1] size-5 rounded-full  text-green-400' onClick={() => flipOneRight(currentMatrix)}>Flip right</RxRotateCounterClockwise>
                   <PiFlipHorizontalFill className='hover:text-teal-200 hover:cursor-pointer mx-2  size-5 rounded-full  text-green-500' onClick={() => flipHorizontal(currentMatrix)}>Flip vert</PiFlipHorizontalFill>
                   <PiFlipVerticalFill className='hover:text-teal-200 hover:cursor-pointer mx-2  size-5 rounded-full  text-green-500' onClick={() => flipVertical(currentMatrix)}>Flip horx</PiFlipVerticalFill   > */}
-                  <div className='flex w-[15em] bg-slate-800 rounded-sm text-green-500 '>
+                  {/* <div className='flex w-[15em] bg-slate-800 rounded-sm text-green-500 '>
 
                     <span className='text-[0.8em] px-1'>Frame duration </span>
                     <input
@@ -756,7 +759,8 @@ void displayFrame(const bool matrix[8][8]) {
 
                     <span className='text-[0.8em] px-1'>ms </span>
 
-                  </div>
+                  </div> */}
+                  <FrameDurationInput></FrameDurationInput>
                 </div>
               </div>
 

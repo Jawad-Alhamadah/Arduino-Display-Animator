@@ -2,9 +2,10 @@ import React from 'react'
 import { useEffect, useRef, useState } from "react";
 import { useSelector, useDispatch } from 'react-redux';
 import { setToKeyboardKey } from '../reducers/currentKeyboardKey';
-
+import { setCurrentMatrixByKey } from '../reducers/currentMatrixSlice';
 function OledFrame(props) {
 const currentMatrixKey = useSelector((state) => state.currentMatrixKey.value)
+const dispatch = useDispatch()
     const WIDTH = 128;
     const HEIGHT = 64;
     const PIXEL_SIZE = 1; // Controls how large each pixel appears
@@ -21,12 +22,12 @@ const currentMatrixKey = useSelector((state) => state.currentMatrixKey.value)
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext("2d");
-        //ctx.clearRect(0, 0, WIDTH * PIXEL_SIZE, HEIGHT * PIXEL_SIZE);
-        console.log( "current matrix: "+currentMatrixKey+" key: "+ props.matrix.key)
+        ctx.clearRect(0, 0, WIDTH * PIXEL_SIZE, HEIGHT * PIXEL_SIZE);
+       // console.log( "current matrix: "+currentMatrixKey+" key: "+ props.matrix.key)
         
         // Draw pixels efficiently
        
-        console.log(  currentMatrixKey)
+        console.log(   props.oledMatrix)
         props.oledMatrix.find(obj => obj.key === currentMatrixKey).matrix.forEach((row, y) => {
           row.forEach((pixel, x) => {
             if (pixel) {
@@ -51,7 +52,7 @@ const currentMatrixKey = useSelector((state) => state.currentMatrixKey.value)
             "outline-red-700 outline-2 outline-dashed relative p-2" :
             "outline-slate-700 hover:outline-2 hover:outline-dashed relative p-2"
           }
-          onClick={() => props.setCurrentMatrix(props.matrix.key)}
+          onClick={() => dispatch(setCurrentMatrixByKey(props.matrix.key))}
     
         >
     

@@ -4,33 +4,44 @@ import React from 'react'
 
 // import { RiArrowLeftSFill, RiArrowRightSFill } from "react-icons/ri";
 // import { MdAddCircle } from "react-icons/md";
-import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd';
+
 import PinSelector from './PinSelector';
-// import { PiArrowFatRightDuotone } from "react-icons/pi";
-// import { PiArrowFatLeftDuotone } from "react-icons/pi";
-import { BsPlayFill } from "react-icons/bs";
-import { LuClipboardCopy } from "react-icons/lu";
+
 // import { PiArrowsLeftRightBold } from "react-icons/pi";
-import { PiFlipHorizontalFill } from "react-icons/pi";
-import { PiFlipVerticalFill } from "react-icons/pi";
 // import { TbFlipHorizontal } from "react-icons/tb";
 import { RxRotateCounterClockwise } from "react-icons/rx";
-import { TiMediaStop } from "react-icons/ti";
+import FrameDurationInput from './FrameDurationInput';
 // import { AiOutlineAppstoreAdd } from "react-icons/ai";
-import { MdAdd } from "react-icons/md";
 import { LuCopy } from "react-icons/lu";
-// import EightByEightFrame from './EightByEightFrame';
-// import EightByEightMain from './EightByEightMain';
-// import ExampleMatrix from './components/ExampleMatrix';
+import { setFrameDuration } from '../reducers/frameDurationSlice';
+import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd';
+import { BsPlayFill, BsFillEraserFill } from "react-icons/bs";
+import { LuClipboardCopy, LuCopyPlus } from "react-icons/lu";
+import { PiFlipHorizontalFill, PiFlipVerticalFill } from "react-icons/pi";
+import { TiMediaStop } from "react-icons/ti";
+import { MdAdd, MdKeyboardDoubleArrowRight, MdKeyboardDoubleArrowLeft, MdOutlineResetTv } from "react-icons/md";
+import { GrRotateLeft, GrRotateRight } from "react-icons/gr";
+import { MdDeleteForever } from "react-icons/md";
+import { FaClipboardCheck } from "react-icons/fa6";
+
 import OledFrame from "./OledFrame"
 import Oled128x64 from "./Oled128x64"
 import { useSelector, useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { setToKeyboardKey } from '../reducers/currentKeyboardKey';
 import { setCurrentMatrixByKey } from '../reducers/currentMatrixSlice';
+import generateMostEfficientCppArray from "./CppArrayFunctions"
+import generate_oled_template from "./generatedCodeTemplates"
+import { setToPlaying, setToStopped } from '../reducers/isAnimationPlaying';
+import { ToastContainer, toast } from 'react-toastify';
+import { notifyUser } from "./toastifyFunctions"
 
+import Tool from './Tool';
 function OledPage() {
   const currentMatrixKey = useSelector((state) => state.currentMatrixKey.value)
-  const dispatch = useDispatch()
+  let currentKeyboardKey = useSelector((state) => state.currentKeyboardKey.value)
+  let isAnimationPlaying = useSelector((state) => state.isAnimationPlaying.value)
+
 
   let pinCSRef = React.useRef(null)
   let pinCLKRef = React.useRef(null)
@@ -48,11 +59,18 @@ function OledPage() {
   const [pinCS, setPinCS] = React.useState('none');
   const [pinCLK, setPinCLK] = React.useState('none');
   const [pinDIN, setPinDIN] = React.useState('none');
-  const [frameDuration, setFrameDuration] = React.useState(200);
+  // const [frameDuration, setFrameDuration] = React.useState(200);
   const [isAnimating, setIsAnimating] = React.useState(false);
-  const [isGenerateDisabled, setIsGenerateDisabled] = React.useState(true);
+  const [isGenerateDisabled, setIsGenerateDisabled] = React.useState(false);
   const [isCodeGenerated, setIsCodeGenerated] = React.useState(false);
   const [isDragging, setIsDragging] = React.useState(false);
+
+
+
+  let frameDuration = useSelector((state) => state.frameDuration.value)
+  const navigate = useNavigate();
+  const dispatch = useDispatch()
+
   const WIDTH = 128;
   const HEIGHT = 64;
   // const [currentMatrix, setCurrentMatrix] = React.useState(1);
@@ -80,6 +98,26 @@ function OledPage() {
     ]
   )
 
+  // React.useEffect(() => {
+  //   // Global mouseup listener to reset dragging state
+  //   const handleMouseUp = () => {
+  //     setIsDragging(false);
+  //   };
+
+  //   const handleMouseDown = () => {
+  //     setIsDragging(true);
+  //   };
+
+  //   document.addEventListener("mouseup", handleMouseUp);
+  //   document.addEventListener("mousedown", handleMouseDown);
+
+  //   return () => {
+  //     document.removeEventListener("mouseup", handleMouseUp);
+  //     document.removeEventListener("mousedown", handleMouseDown);
+  //   };
+  // }, []);
+
+
   React.useEffect(() => {
     // Global mouseup listener to reset dragging state
     const handleMouseUp = () => {
@@ -93,29 +131,50 @@ function OledPage() {
     document.addEventListener("mouseup", handleMouseUp);
     document.addEventListener("mousedown", handleMouseDown);
 
+    const handleKeyDown = (event) => {
+
+      dispatch(setToKeyboardKey(event.code))
+
+    };
+
+    const handleKeyUp = (event) => {
+
+      dispatch(setToKeyboardKey("KeyNone"))
+
+
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
     return () => {
+      // Cleanup listener on unmount
+      window.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener("mouseup", handleMouseUp);
       document.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("mousedown", handleKeyUp);
     };
+
+
+
   }, []);
 
 
   // let [test, setTest] = React.useState(0);
 
 
-  React.useEffect(() => {
-    console.log("re")
-    console.log(pinCS)
-    console.log(pinCLK)
-    console.log(pinDIN)
-    if (pinCS != "none" && pinCLK != "none" && pinDIN != "none") {
-      console.log("inside")
-      setIsGenerateDisabled(false)
-    }
-    else {
-      setIsGenerateDisabled(true)
-    }
-  }, [pinDIN, pinCLK, pinCS])
+  // React.useEffect(() => {
+  //   console.log("re")
+  //   console.log(pinCS)
+  //   console.log(pinCLK)
+  //   console.log(pinDIN)
+  //   if (pinCS != "none" && pinCLK != "none" && pinDIN != "none") {
+  //     console.log("inside")
+  //     setIsGenerateDisabled(false)
+  //   }
+  //   else {
+  //     setIsGenerateDisabled(true)
+  //   }
+  // }, [pinDIN, pinCLK, pinCS])
 
 
   // function flipAll() {
@@ -225,6 +284,150 @@ function OledPage() {
 
   // }
 
+
+  // Rotate 90 degrees clockwise (right)
+
+const OUTER_SIZE = 128;
+const DISPLAY_WIDTH = 128;
+const DISPLAY_HEIGHT = 64;
+
+/**
+ * Ensures a 128x128 outer matrix with the original content centered.
+ */
+function expandToOuterMatrix(matrix) {
+  const outer = Array.from({ length: OUTER_SIZE }, () =>
+    Array(OUTER_SIZE).fill(0)
+  );
+
+  const height = matrix.length;
+  const width = matrix[0].length;
+  const yOffset = Math.floor((OUTER_SIZE - height) / 2);
+  const xOffset = Math.floor((OUTER_SIZE - width) / 2);
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      outer[y + yOffset][x + xOffset] = matrix[y][x];
+    }
+  }
+
+  return outer;
+}
+
+/**
+ * Clips a 128x128 matrix back to the central 128x64 area.
+ */
+function clipOuterMatrix(matrix) {
+  const yOffset = Math.floor((OUTER_SIZE - DISPLAY_HEIGHT) / 2);
+  return matrix.slice(yOffset, yOffset + DISPLAY_HEIGHT);
+}
+
+/**
+ * Rotates the outer matrix 90° to the right.
+ */
+function rotateMatrixRight(matrix) {
+  const height = matrix.length;
+  const width = matrix[0].length;
+  const rotated = Array.from({ length: width }, () => Array(height).fill(0));
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      rotated[x][height - 1 - y] = matrix[y][x];
+    }
+  }
+
+  return rotated;
+}
+
+/**
+ * Rotates the outer matrix 90° to the left.
+ */
+function rotateMatrixLeft(matrix) {
+  const height = matrix.length;
+  const width = matrix[0].length;
+  const rotated = Array.from({ length: width }, () => Array(height).fill(0));
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      rotated[width - 1 - x][y] = matrix[y][x];
+    }
+  }
+
+  return rotated;
+}
+
+/**
+ * Rotates the selected frame right.
+ */
+function rotateRightFrame(oledMatrix, currentKey) {
+  return oledMatrix.map(frame => {
+    if (frame.key !== currentKey) return frame;
+
+    const baseMatrix = frame.outerMatrix ?? expandToOuterMatrix(frame.matrix);
+    const rotated = rotateMatrixRight(baseMatrix);
+
+    return {
+      ...frame,
+      matrix: clipOuterMatrix(rotated),
+      outerMatrix: rotated,
+    };
+  });
+}
+
+/**
+ * Rotates the selected frame left.
+ */
+function rotateLeftFrame(oledMatrix, currentKey) {
+  return oledMatrix.map(frame => {
+    if (frame.key !== currentKey) return frame;
+
+    const baseMatrix = frame.outerMatrix ?? expandToOuterMatrix(frame.matrix);
+    const rotated = rotateMatrixLeft(baseMatrix);
+
+    return {
+      ...frame,
+      matrix: clipOuterMatrix(rotated),
+      outerMatrix: rotated,
+    };
+  });
+}
+
+/**
+ * Flips the selected frame horizontally.
+ * Destroys outerMatrix.
+ */
+function flipHorizontalFrame(oledMatrix, currentKey) {
+  return oledMatrix.map(frame => {
+    if (frame.key !== currentKey) return frame;
+
+    const matrix = frame.matrix.map(row => [...row].reverse());
+    return { ...frame, matrix, outerMatrix: undefined };
+  });
+}
+
+/**
+ * Flips the selected frame vertically.
+ * Destroys outerMatrix.
+ */
+function flipVerticalFrame(oledMatrix, currentKey) {
+  return oledMatrix.map(frame => {
+    if (frame.key !== currentKey) return frame;
+
+    const matrix = [...frame.matrix].reverse();
+    return { ...frame, matrix, outerMatrix: undefined };
+  });
+}
+
+/**
+ * Any non-rotation action should reset the outer matrix.
+ */
+function clearOuterMatrix(oledMatrix) {
+  return oledMatrix.map(frame => ({
+    ...frame,
+    outerMatrix: undefined,
+  }));
+}
+
+  
   function Duplicate(matrixToDuplicate) {
     let currMatrixIndex = matrixToDuplicate.findIndex((matrix) => matrix.key == currentMatrixKey) //dotMatrixDivs
     if (currMatrixIndex === -1) {
@@ -266,27 +469,37 @@ function OledPage() {
 
   // }
 
-  function repeatFunction(func, delay, repeat, matrix) {
-    func(matrix[0].key); //dotMatrixDivs
+  function startAnimation() {
+    //setIsAnimating(true);
+    dispatch(setToPlaying())
+    repeatFunction((key) => dispatch(setCurrentMatrixByKey(key)), frameDuration, oledMatrix.length)
+  }
+  function repeatFunction(func, delay, repeat,) {
+
+    func(oledMatrix[0].key); //dotMatrixDivs
     let counter = 1;
 
     repeatInterval.current = setInterval(() => {
 
       if (repeat !== counter) {
-        func(matrix[counter].key);//dotMatrixDivs
+        func(oledMatrix[counter].key);//dotMatrixDivs
         counter++;
       } else {
+        // setIsAnimating(false);
+        dispatch(setToStopped())
         clearInterval(repeatInterval.current)
       }
     }, delay);
 
   }
 
-  function stopRepeat(matrix) {
+  function stopAnimation() {
     if (repeatInterval.current) {
       clearInterval(repeatInterval.current);
       repeatInterval.current = null;
-      dispatch(setCurrentMatrixByKey(matrix[0].key))
+      dispatch(setCurrentMatrixByKey(oledMatrix[0].key))
+      // setIsAnimating(false);
+      dispatch(setToStopped())
     }
   }
 
@@ -344,74 +557,61 @@ function OledPage() {
   //   return () => observer.disconnect(); // Cleanup on component unmount
   // }, [test]);
 
+  function addFrame() {
+
+    const newMat = {
+      // key: dotMatrixDivs.length + 1,
+      key: generateId(),
+      dotmatrix: newMatrix.dotmatrix.map(row => [...row])
+    };
+    setDotMatrixDivs(prev => [...prev, newMat])
+
+    // setCurrentMatrix(newMat.key)
+    dispatch(setCurrentMatrixByKey(newMat.key))
+
+  }
+
   function generateCode() {
 
-    let rMatrices = flipAll(oledMatrix);
-    //console.log(rMatrices.map(matrix=>matrix.dotmatrix))
-    // let stringMatrices = JSON.stringify(rMatrices.map(matrix=>matrix.dotmatrix))
-    let dotMatrixString = JSON.stringify(rMatrices.map(matrix => matrix.dotmatrix))
-    let dotMatrixFormatted = dotMatrixString.replace(/[\[\]]/g, match => match === "[" ? "{" : "}")
-    console.log(`const bool frames[numFrames][8][8] = ${dotMatrixFormatted}`)
+    // let matrixObject = oledMatrix.find(obj => obj.key=== currentMatrixKey)
 
-    setGeneratedCode(`
-    
-const int DIN = ${pinDIN};
-const int CS = ${pinCS};
-const int CLK = ${pinCLK};
+    let list_of_frames = oledMatrix.map((frame, index) => generateMostEfficientCppArray(frame.matrix, index))
+    console.log(generate_oled_template(list_of_frames, frameDuration))
 
-
-// Define the frame data (matrix list)
-const int numFrames = ${dotMatrixDivs.length}; // Number of frames in the list
-const bool frames[numFrames][8][8] = ${dotMatrixFormatted};
-
-void setup() {
-  // Set pin modes
-  pinMode(DIN, OUTPUT);
-  pinMode(CLK, OUTPUT);
-  pinMode(CS, OUTPUT);
-
-  // Initialize MAX7219
-  digitalWrite(CS, HIGH);
-  sendCommand(0x0F, 0x00); // Display test off
-  sendCommand(0x09, 0x00); // Decode mode off
-  sendCommand(0x0B, 0x07); // Scan limit = 8 LEDs
-  sendCommand(0x0A, 0x08); // Brightness = medium
-  sendCommand(0x0C, 0x01); // Shutdown register = normal operation
-  clearDisplay();
-}
-
-void loop() {
-  for (int frame = 0; frame < numFrames; frame++) {
-    displayFrame(frames[frame]);
-    delay(${frameDuration}); // Delay between frames (adjust as needed)
+    //let frames_cpp = list_of_frames.map((frame,index) =>code_generation_templates[frame.strategy](frame.cpp,index))
+    //  let cpp_data = generateMostEfficientCppArray(matrixObject.matrix) 
+    //  setGeneratedCode(code_generation_templates[cpp_data.strategy](cpp_data.cpp))
+    // setIsCodeGenerated(true)
   }
-}
-
-void sendCommand(byte command, byte data) {
-  digitalWrite(CS, LOW);
-  shiftOut(DIN, CLK, MSBFIRST, command);
-  shiftOut(DIN, CLK, MSBFIRST, data);
-  digitalWrite(CS, HIGH);
-}
-
-void clearDisplay() {
-  for (int i = 0; i < 8; i++) {
-    sendCommand(i + 1, 0);
+  function generateId() {
+    return Math.random().toString(36).substr(2, 9)
   }
-}
+  function addFrame() {
 
-void displayFrame(const bool matrix[8][8]) {
-  for (int row = 0; row < 8; row++) {
-    byte rowData = 0;
-    for (int col = 0; col < 8; col++) {
-      if (matrix[row][col]) {
-        rowData |= (1 << col);
-      }
-    }
-    sendCommand(row + 1, rowData);
+    const newMat = {
+      // key: dotMatrixDivs.length + 1,
+      key: generateId(),
+      matrix: Array.from({ length: 64 }, () => Array(128).fill(false))
+    };
+    setOledMatrix(prev => [...prev, newMat])
+
+    // setCurrentMatrix(newMat.key)
+    dispatch(setCurrentMatrixByKey(newMat.key))
+
   }
-}`)
-    setIsCodeGenerated(true)
+
+  function clearFrame() {
+
+    let newMatrix = Array.from({ length: 64 }, () => Array(128).fill(false))
+
+    let editedStates = oledMatrix.map(matrix => {
+
+      if (matrix.key === currentMatrixKey) return { key: matrix.key, matrix: newMatrix }
+      return matrix
+    })
+
+    setOledMatrix(editedStates)
+
   }
 
   function generateCodeOneFrame() {
@@ -484,126 +684,7 @@ void displayFrame(const bool matrix[8][8]) {
   }
   return (
     <div className="w-screen text-center flex justify-center flex-col items-center  ">
-
-      {/* <DragDropContext onDragEnd={onDragEnd}>
-        <Droppable direction="horizontal" droppableId="dotMatrixDivs" type="MATRIX">
-          {(provided) => (
-            <div
-              className="md:min-w-[30em]  lg:min-w-[50em]  outline-green-800 rounded-md outline-2 outline bg-gray-800 max-h-[160px] overflow-y-hidden gap-2 m-5 p-3 max-w-[90%] overflow-x-auto scroll-content shadow-lg relative"
-              ref={provided.innerRef}
-              {...provided.droppableProps}
-            >
-              <div className='flex flex-wrap justify-between'>
-                <div className='flex space-x-3'>
-                  <MdAdd
-                    className='bg-slate-900 cursor-pointer hover:bg-green-600 hover:text-green-200 size-5 rounded-full outline outline-offset-2 outline-2 outline-green-500 text-green-500'
-                    onClick={() => {
-                      const newMat = {
-                        key: dotMatrixDivs.length + 1,
-                        dotmatrix: newMatrix.dotmatrix.map(row => [...row])
-                      };
-                      setDotMatrixDivs(prev => [...prev, newMat])
-                      setCurrentMatrix(newMat.key)
-                    }} 
-
-                    
-                    
-                    />
-
-                  <TiMediaStop className='bg-slate-900  hover:bg-green-600 hover:text-green-200 cursor-pointer  size-5 rounded-full outline outline-offset-2 outline-2 outline-green-500 text-green-500' onClick={() => stopRepeat()}>stop</TiMediaStop >
-                  <BsPlayFill className='bg-slate-900 hover:bg-green-600 hover:text-green-200 cursor-pointer   size-5 rounded-full outline outline-offset-2 outline-2 outline-green-500 text-green-500'
-                    onClick={() => repeatFunction(setCurrentMatrix, frameDuration, dotMatrixDivs.length)}
-                  />
-                  <LuCopy
-                    onClick={() => {
-                      let currMatrixIndex = dotMatrixDivs.findIndex((matrix) => matrix.key == currentMatrix)
-                      if (currMatrixIndex === -1) {
-                        console.error("Matrix not found!");
-                        return;
-                      }
-
-                      console.log(currMatrixIndex)
-                      let newMatrix = {
-                        key: dotMatrixDivs.length + 1,
-                        dotmatrix: dotMatrixDivs[currMatrixIndex].dotmatrix.map(row => [...row])
-                      }
-                      setDotMatrixDivs(prev => {
-                        let newState = [...prev];
-                        newState.splice(currMatrixIndex, 0, newMatrix)
-                        console.log(newState)
-                        return newState
-                      })
-
-                    }}
-                    className='bg-slate-900  hover:bg-green-600 hover:text-green-200 cursor-pointer  size-5 rounded-full outline outline-offset-2 outline-2 outline-green-500 text-green-500' />
-                </div>
-
-                <div className='flex flex-wrap'>
-                  <RxRotateCounterClockwise className='hover:text-teal-200 hover:cursor-pointer mx-2 size-5 rounded-full  text-green-500' onClick={() => flipOneLeft(currentMatrix)}>Flip left</RxRotateCounterClockwise>
-                  <RxRotateCounterClockwise className='hover:text-teal-200 hover:cursor-pointer mx-2 transform scale-x-[-1] size-5 rounded-full  text-green-400' onClick={() => flipOneRight(currentMatrix)}>Flip right</RxRotateCounterClockwise>
-                  <PiFlipHorizontalFill className='hover:text-teal-200 hover:cursor-pointer mx-2  size-5 rounded-full  text-green-500' onClick={() => flipHorizontal(currentMatrix)}>Flip vert</PiFlipHorizontalFill>
-                  <PiFlipVerticalFill className='hover:text-teal-200 hover:cursor-pointer mx-2  size-5 rounded-full  text-green-500' onClick={() => flipVertical(currentMatrix)}>Flip horx</PiFlipVerticalFill   >
-                  <div className='flex w-[15em] bg-slate-800 rounded-sm text-green-500 '>
-
-                    <span className='text-[0.8em] px-1'>Frame duration </span>
-                    <input
-                      onChange={(e) => {
-                        setFrameDuration(e.target.value);
-                      }}
-                      maxLength={8}
-                      value={frameDuration}
-                      className="rounded-md  outline outline-1 outline-green-700 w-[35%] bg-slate-900  "></input>
-
-                    <span className='text-[0.8em] px-1'>ms </span>
-
-                  </div>
-                </div>
-              </div>
-
-
-              <div className=' mt-3  bg-gray-900 rounded-md'>
-             
-
-                <div className='flex'
-                  onMouseDown={e => e.preventDefault()}
-                  draggable="false"
-                >
-                 
-                  {
-                  //8x8 frames
-                  dotMatrixDivs.map((matrix, index) => (
-                    <Draggable key={matrix.key} draggableId={String(matrix.key)} index={index}>
-                      {(provided) => (<>
-
-                        <EightByEightFrame
-
-                          matrix={matrix}
-                          provided={provided}
-                          framesRef={framesRef}
-                          currentMatrix={currentMatrix}
-                          setCurrentMatrix={setCurrentMatrix}
-                          index={index}
-
-                        ></EightByEightFrame>
-
-                      </>
-                      )
-
-                      }
-                    </Draggable>
-                  ))}
-                </div>
-
-              </div>
-
-              {provided.placeholder}
-            </div>
-
-          )}
-
-        </Droppable>
-
-      </DragDropContext> */}
+      <ToastContainer />
 
       <DragDropContext onDragEnd={onDragEnd}>
         <Droppable direction="horizontal" droppableId="oledMatrix" type="MATRIX">
@@ -614,31 +695,15 @@ void displayFrame(const bool matrix[8][8]) {
               {...provided.droppableProps}
             >
               <div className='flex flex-wrap justify-between'>
-                <div className='flex space-x-3'>
+                {/* <div className='flex space-x-3'>
                   <MdAdd
                     className='bg-slate-900 cursor-pointer hover:bg-green-600 hover:text-green-200 size-5 rounded-full outline outline-offset-2 outline-2 outline-green-500 text-green-500'
-                    onClick={() => {
-                      const newMat = {
-                        key: oledMatrix.length + 1,
-                        matrix: newMatrix.dotmatrix.map(row => [...row])
-                      };
-                      setOledMatrix(prev => [...prev, newMat])
-                      dispatch(setCurrentMatrixByKey(newMat.key))
-                    }}
-                  // onClick={() => {
-                  //   const newMat = {
-                  //     key: oledMatrix.length + 1,
-                  //     oledmatrix: Array.from({ length: 64 }, () => Array(128).fill(false))
-                  //   };
-                  //   setOledMatrix(prev => [...prev, newMat])
-                  //   setCurrentMatrix(newMat.key)
-                  // }}
+                    onClick={addFrame}
+                
                   />
 
                   <TiMediaStop className='bg-slate-900  hover:bg-green-600 hover:text-green-200 cursor-pointer  size-5 rounded-full outline outline-offset-2 outline-2 outline-green-500 text-green-500' onClick={() => stopRepeat()}>stop</TiMediaStop >
-                  {/* <BsPlayFill className='bg-slate-900 hover:bg-green-600 hover:text-green-200 cursor-pointer   size-5 rounded-full outline outline-offset-2 outline-2 outline-green-500 text-green-500'
-                    onClick={() => repeatFunction(setCurrentMatrix, frameDuration, oledMatrix.length)}
-                  /> */}
+                
 
                   <button disabled={true} onClick={
                     isAnimating&& repeatFunction((key) => dispatch(setCurrentMatrixByKey(key)), frameDuration, oledMatrix.length, oledMatrix)
@@ -652,19 +717,74 @@ void displayFrame(const bool matrix[8][8]) {
                   <LuCopy
                     onClick={() => Duplicate(oledMatrix)}
                     className='bg-slate-900  hover:bg-green-600 hover:text-green-200 cursor-pointer  size-5 rounded-full outline outline-offset-2 outline-2 outline-green-500 text-green-500' />
+                </div> */}
+
+                <div className='flex space-x-4'>
+
+                  <Tool
+                    Icon={MdAdd}
+                    target="add"
+                    onClick={addFrame}
+                    tooltip={["Add Frame"]}
+                  ></Tool>
+
+                  {
+                    isAnimationPlaying ?
+
+                      <Tool
+                        Icon={TiMediaStop}
+                        target="stop"
+                        onClick={stopAnimation}
+                        tooltip={["Stop Animation"]}
+                        classes={"scale-110 hover:bg-red-600 hover:text-red-200 ring-2 ring-offset-2 ring-[#ff0000] text-[#ff0000]"}
+
+                      ></Tool>
+
+                      :
+
+                      <Tool
+                        Icon={BsPlayFill}
+                        target="play"
+                        onClick={startAnimation}
+                        tooltip={["Play"]}
+                      ></Tool>
+                  }
+
+                  <Tool
+                    Icon={LuCopyPlus}
+                    target="duplicate"
+                    onClick={() => Duplicate(oledMatrix)}
+                    tooltip={["Duplicate Frame"]}
+                  ></Tool>
+
+                  <Tool
+                    Icon={MdOutlineResetTv}
+                    target="clear"
+                    onClick={clearFrame}
+                    tooltip={["Clear Frame"]}
+                  ></Tool>
+
+                  {/* <Tool
+                    Icon={MdDeleteForever}
+                    target="delete"
+                    onClick={deleteFrame}
+                    tooltip={["Delete Frame"]}
+                    classes={" hover:text-red-200 size-6 rounded-full  text-red-600"}
+                  ></Tool> */}
+
                 </div>
 
                 <div className='flex flex-wrap'>
-                  <RxRotateCounterClockwise className='hover:text-teal-200 hover:cursor-pointer mx-2 size-5 rounded-full  text-green-500' onClick={() => flipOneLeft(currentMatrixKey)}>Flip left</RxRotateCounterClockwise>
-                  <RxRotateCounterClockwise className='hover:text-teal-200 hover:cursor-pointer mx-2 transform scale-x-[-1] size-5 rounded-full  text-green-400' onClick={() => flipOneRight(currentMatrixKey)}>Flip right</RxRotateCounterClockwise>
-                  <PiFlipHorizontalFill className='hover:text-teal-200 hover:cursor-pointer mx-2  size-5 rounded-full  text-green-500' onClick={() => flipHorizontal(currentMatrixKey)}>Flip vert</PiFlipHorizontalFill>
-                  <PiFlipVerticalFill className='hover:text-teal-200 hover:cursor-pointer mx-2  size-5 rounded-full  text-green-500' onClick={() => flipVertical(currentMatrixKey)}>Flip horx</PiFlipVerticalFill   >
-                  <div className='flex w-[15em] bg-slate-800 rounded-sm text-green-500 '>
+                  <RxRotateCounterClockwise className='hover:text-teal-200 hover:cursor-pointer mx-2 size-5 rounded-full  text-green-500' onClick={()=>setOledMatrix(prev => rotateLeftFrame(prev, currentMatrixKey))}>Flip left</RxRotateCounterClockwise>
+                  <RxRotateCounterClockwise className='hover:text-teal-200 hover:cursor-pointer mx-2 transform scale-x-[-1] size-5 rounded-full  text-green-400' onClick={()=>setOledMatrix(prev => rotateRightFrame(prev, currentMatrixKey))}>Flip right</RxRotateCounterClockwise>
+                  <PiFlipHorizontalFill className='hover:text-teal-200 hover:cursor-pointer mx-2  size-5 rounded-full  text-green-500' onClick={()=>setOledMatrix(prev => flipHorizontalFrame(prev, currentMatrixKey))}>Flip vert</PiFlipHorizontalFill>
+                  <PiFlipVerticalFill className='hover:text-teal-200 hover:cursor-pointer mx-2  size-5 rounded-full  text-green-500' onClick={()=>setOledMatrix(prev => flipVerticalFrame(prev, currentMatrixKey))}>Flip horx</PiFlipVerticalFill   >
+                  {/* <div className='flex w-[15em] bg-slate-800 rounded-sm text-green-500 '>
 
                     <span className='text-[0.8em] px-1'>Frame duration </span>
                     <input
                       onChange={(e) => {
-                        setFrameDuration(e.target.value);
+                        dispatch(setFrameDuration(e.target.value))
                       }}
                       maxLength={8}
                       value={frameDuration}
@@ -672,17 +792,14 @@ void displayFrame(const bool matrix[8][8]) {
 
                     <span className='text-[0.8em] px-1'>ms </span>
 
-                  </div>
+                  </div> */}
+                  <FrameDurationInput></FrameDurationInput>
                 </div>
               </div>
 
 
               <div className=' mt-3  bg-gray-900 rounded-md'>
-                {/* <div className='text-green-500 font-bold bg-gray-800 '>
-                  <span>0</span>
-                  <span>:</span>
-                  <span>0</span>
-                </div> */}
+
 
                 <div className='flex'
                   onMouseDown={e => e.preventDefault()}
@@ -695,16 +812,7 @@ void displayFrame(const bool matrix[8][8]) {
                       <Draggable key={matrix.key} draggableId={String(matrix.key)} index={index}>
                         {(provided) => (<>
 
-                          {/* <EightByEightFrame
 
-                            matrix={matrix}
-                            provided={provided}
-                            framesRef={framesRef}
-                            currentMatrix={currentMatrix}
-                            setCurrentMatrix={setCurrentMatrix}
-                            index={index}
-
-                          ></EightByEightFrame> */}
                           <OledFrame
                             currentMatrix={currentMatrixKey}
                             // setCurrentMatrix={setCurrentMatrix}
@@ -738,6 +846,7 @@ void displayFrame(const bool matrix[8][8]) {
       </DragDropContext>
 
       {/* Other parts of your app */}
+
       <div className='flex shadow-xl shadow-[#282828]'>
 
         <div className=' relative 
@@ -756,48 +865,22 @@ void displayFrame(const bool matrix[8][8]) {
 
 
 
-            <Oled128x64 
+            <Oled128x64
               oledMatrix={oledMatrix}
               setOledMatrix={setOledMatrix}
 
             ></Oled128x64>
-            {/* <ExampleMatrix></ExampleMatrix> */}
-            {/* <EightByEightMain
 
-              oledMatrix={oledMatrix}
-              currentMatrix={currentMatrix}
-              isDragging={isDragging}
-              setOledMatrix={setOledMatrix}
-            ></EightByEightMain> */}
 
 
           </div>
 
-          {/* <Max7219IC /> */}
-          {/* <div className='w-[30%] mt-auto flex font-thin text-[0.5em] justify-evenly text-white'>
-            <div className="flex flex-col"><span>V</span><span>C</span><span>C</span></div>
-            <div className="flex flex-col"><span>G</span><span>N</span><span>D</span></div>
-            <div className="flex flex-col"><span>D</span><span>I</span><span>N</span></div>
-            <div className="flex flex-col"><span>C</span><span>S</span><span></span></div>
-            <div className="flex flex-col"><span>C</span><span>L</span><span>K</span></div>
-          </div>
-          <div className='bg-slate-900 w-[30%] h-2  flex justify-evenly '>
-
-            <div className='w-[0.2rem] h-6 bg-gray-400  shadow-sm'></div>
-            <div className='w-[0.2rem] h-6 bg-gray-400  shadow-sm'></div>
-            <div ref={pinDINRef} className={`w-[0.2rem] h-6 bg-gray-400  shadow-sm pin-din ${dinPinHighlight ? "hovered" : ""} `}></div>
-            <div ref={pinCSRef} className={`w-[0.2rem] h-6 bg-gray-400  shadow-sm pin-cs ${csPinHighlight ? "hovered" : ""} `}></div>
-            <div ref={pinCLKRef} className={`w-[0.2rem] h-6 bg-gray-400  shadow-sm pin-clk ${clkPinHighlight ? "hovered" : ""} `}></div>
-          </div> */}
 
 
         </div>
         <div className='flex flex-col'>
           <form class="max-w-sm mx-auto  bg-[#093710] p-4 relative">
 
-            {/* <PinSelector label="Select Arduino Pin For DIN:" pinRef={pinDINRef} pinSetter={setPinDIN} pinhighlightSetter={setDinPinHighlight}></PinSelector>
-            <PinSelector label="Select Arduino Pin For CLK:" pinRef={pinCLKRef} pinSetter={setPinCLK} pinhighlightSetter={setClkPinHighlight}></PinSelector>
-            <PinSelector label="Select Arduino Pin For CS:" pinRef={pinCSRef} pinSetter={setPinCS} pinhighlightSetter={setCsPinHighlight}></PinSelector> */}
             <div
               type="button" //Needed to prevent form page refresh
 
