@@ -27,7 +27,7 @@ const dispatch = useDispatch()
         
         // Draw pixels efficiently
        
-        console.log(   props.oledMatrix)
+     
         props.oledMatrix.find(obj => obj.key === currentMatrixKey).matrix.forEach((row, y) => {
           row.forEach((pixel, x) => {
             if (pixel) {

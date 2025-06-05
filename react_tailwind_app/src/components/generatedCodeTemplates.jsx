@@ -110,18 +110,6 @@ ${frames}
 void setup() {
 display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
 
-
-//  display.clearDisplay();
-// frames[0].strategy(frames[0].data,frames[0].length);
-//  display.display();
-//    delay(300);
-//  display.clearDisplay();
-// frames[1].strategy(frames[1].data,frames[1].length);
-//  display.display();
-//    delay(300);
- // display.clearDisplay();
- //frames[2].strategy(frames[2].data,frames[2].length);
- // display.display();
 }
 
 void loop() {

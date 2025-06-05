@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit'
 
-const initialState = { value: "l" }
+const initialState = { value: "KeyNone" }
 
 const currentKeyboardKeySlice = createSlice({
     name: 'currentKeyboardKey',

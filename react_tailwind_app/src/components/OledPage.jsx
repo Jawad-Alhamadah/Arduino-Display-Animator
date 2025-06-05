@@ -1,31 +1,21 @@
 import React from 'react'
-
-
-
-// import { RiArrowLeftSFill, RiArrowRightSFill } from "react-icons/ri";
-// import { MdAddCircle } from "react-icons/md";
-
-import PinSelector from './PinSelector';
-
-// import { PiArrowsLeftRightBold } from "react-icons/pi";
-// import { TbFlipHorizontal } from "react-icons/tb";
-import { RxRotateCounterClockwise } from "react-icons/rx";
 import FrameDurationInput from './FrameDurationInput';
-// import { AiOutlineAppstoreAdd } from "react-icons/ai";
-import { LuCopy } from "react-icons/lu";
-import { setFrameDuration } from '../reducers/frameDurationSlice';
 import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd';
 import { BsPlayFill, BsFillEraserFill } from "react-icons/bs";
 import { LuClipboardCopy, LuCopyPlus } from "react-icons/lu";
 import { PiFlipHorizontalFill, PiFlipVerticalFill } from "react-icons/pi";
 import { TiMediaStop } from "react-icons/ti";
-import { MdAdd, MdKeyboardDoubleArrowRight, MdKeyboardDoubleArrowLeft, MdOutlineResetTv } from "react-icons/md";
+import { MdAdd, MdKeyboardDoubleArrowRight, MdKeyboardDoubleArrowLeft } from "react-icons/md";
 import { GrRotateLeft, GrRotateRight } from "react-icons/gr";
 import { MdDeleteForever } from "react-icons/md";
-import { FaClipboardCheck } from "react-icons/fa6";
-
+import { GrHelpBook } from "react-icons/gr";
+import { BsExclamationCircle } from "react-icons/bs";
+import { FaHireAHelper } from "react-icons/fa6";
+import { TiArrowUpOutline } from "react-icons/ti";
+import { TiArrowDownOutline } from "react-icons/ti";
 import OledFrame from "./OledFrame"
 import Oled128x64 from "./Oled128x64"
+import { FaClipboardCheck } from "react-icons/fa6";
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { setToKeyboardKey } from '../reducers/currentKeyboardKey';
@@ -33,39 +23,54 @@ import { setCurrentMatrixByKey } from '../reducers/currentMatrixSlice';
 import generateMostEfficientCppArray from "./CppArrayFunctions"
 import generate_oled_template from "./generatedCodeTemplates"
 import { setToPlaying, setToStopped } from '../reducers/isAnimationPlaying';
-import { ToastContainer, toast } from 'react-toastify';
-import { notifyUser } from "./toastifyFunctions"
-
+import { ToastContainer } from 'react-toastify';
+import ToolMainFrame from "./ToolMainFrame"
+import { MdOutlineHelpCenter } from "react-icons/md";
+import { CgScreen } from "react-icons/cg";
+import WiringGuide from './wiringGuide';
 import Tool from './Tool';
+import { notifyUser } from './toastifyFunctions';
+import { TbNavigationQuestion } from "react-icons/tb";
+import { BsPatchQuestion } from "react-icons/bs";
+import { toast } from 'react-toastify';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+
+
 function OledPage() {
   const currentMatrixKey = useSelector((state) => state.currentMatrixKey.value)
   let currentKeyboardKey = useSelector((state) => state.currentKeyboardKey.value)
   let isAnimationPlaying = useSelector((state) => state.isAnimationPlaying.value)
+  const [oledHistory, setOledHistory] = React.useState({}); // { [frameKey]: [matrix, ...] }
+  const [copiedFrame, setCopiedFrame] = React.useState(null);
+  const currentKeyboardKeyRef = React.useRef(currentKeyboardKey);
+  const [codeCopied, setCodeCopied] = React.useState(false)
+  React.useEffect(() => {
+    currentKeyboardKeyRef.current = currentKeyboardKey;
+  }, [currentKeyboardKey]);
 
-
-  let pinCSRef = React.useRef(null)
-  let pinCLKRef = React.useRef(null)
-  let pinDINRef = React.useRef(null)
   const framesRef = React.useRef([]);
-  const timelineRef = React.useRef(null);
 
   const [isMouseDown, setIsMouseDown] = React.useState(false);
-  // const [downKey, setDownKey] = React.useState("l");
+
   const [generatedCode, setGeneratedCode] = React.useState("");
   const repeatInterval = React.useRef(null);
-  // const [csPinHighlight, setCsPinHighlight] = React.useState(false);
-  // const [clkPinHighlight, setClkPinHighlight] = React.useState(false);
-  // const [dinPinHighlight, setDinPinHighlight] = React.useState(false);
+
+  const [brushSize, setBrushSize] = React.useState(1);
   const [pinCS, setPinCS] = React.useState('none');
   const [pinCLK, setPinCLK] = React.useState('none');
   const [pinDIN, setPinDIN] = React.useState('none');
   // const [frameDuration, setFrameDuration] = React.useState(200);
-  const [isAnimating, setIsAnimating] = React.useState(false);
   const [isGenerateDisabled, setIsGenerateDisabled] = React.useState(false);
   const [isCodeGenerated, setIsCodeGenerated] = React.useState(false);
   const [isDragging, setIsDragging] = React.useState(false);
 
-
+  const [isWarningActive, setIsWarningActive] = React.useState(() => {
+    // getting stored value
+    const saved = localStorage.getItem("warnActive");
+    const initialValue = JSON.parse(saved);
+    return initialValue || "";
+  })
 
   let frameDuration = useSelector((state) => state.frameDuration.value)
   const navigate = useNavigate();
@@ -73,7 +78,7 @@ function OledPage() {
 
   const WIDTH = 128;
   const HEIGHT = 64;
-  // const [currentMatrix, setCurrentMatrix] = React.useState(1);
+
   const newMatrix = {
     key: 0, matrix:
       [
@@ -98,28 +103,13 @@ function OledPage() {
     ]
   )
 
-  // React.useEffect(() => {
-  //   // Global mouseup listener to reset dragging state
-  //   const handleMouseUp = () => {
-  //     setIsDragging(false);
-  //   };
 
-  //   const handleMouseDown = () => {
-  //     setIsDragging(true);
-  //   };
-
-  //   document.addEventListener("mouseup", handleMouseUp);
-  //   document.addEventListener("mousedown", handleMouseDown);
-
-  //   return () => {
-  //     document.removeEventListener("mouseup", handleMouseUp);
-  //     document.removeEventListener("mousedown", handleMouseDown);
-  //   };
-  // }, []);
 
 
   React.useEffect(() => {
     // Global mouseup listener to reset dragging state
+
+    currentKeyboardKeyRef.current = currentKeyboardKey;
     const handleMouseUp = () => {
       setIsDragging(false);
     };
@@ -158,276 +148,220 @@ function OledPage() {
 
   }, []);
 
+  function deleteFrame() {
+    if (oledMatrix.length <= 1) return
 
-  // let [test, setTest] = React.useState(0);
+    let filteredMatrix = oledMatrix.filter(matrix => matrix.key !== currentMatrixKey)
 
+    setOledMatrix(filteredMatrix)
 
-  // React.useEffect(() => {
-  //   console.log("re")
-  //   console.log(pinCS)
-  //   console.log(pinCLK)
-  //   console.log(pinDIN)
-  //   if (pinCS != "none" && pinCLK != "none" && pinDIN != "none") {
-  //     console.log("inside")
-  //     setIsGenerateDisabled(false)
-  //   }
-  //   else {
-  //     setIsGenerateDisabled(true)
-  //   }
-  // }, [pinDIN, pinCLK, pinCS])
+    dispatch(setCurrentMatrixByKey(filteredMatrix[filteredMatrix.length - 1].key))
 
-
-  // function flipAll() {
-  //   let reversedMatrix = [[], [], [], [], [], [], [], []];
-  //   let rMatrices = [];
-  //   for (let i = 0; i < dotMatrixDivs.length; i++) {
-  //     for (let j = 0; j < dotMatrixDivs[i].dotmatrix.length; j++) {
-  //       for (let k = 0; k < dotMatrixDivs[i].dotmatrix[j].length; k++) {
-  //         // console.log(dotMatrixDivs[i].dotmatrix[j])
-  //         reversedMatrix[k].push(dotMatrixDivs[i].dotmatrix[j][k]);
-  //         console.log(dotMatrixDivs[i].dotmatrix[j].length);
-  //       }
-
-  //     }
-  //     rMatrices.push({ key: dotMatrixDivs[i].key, dotmatrix: reversedMatrix });
-
-  //     reversedMatrix = [[], [], [], [], [], [], [], []];
-
-  //   }
-  //   //setDotMatrixDivs(rMatrices)
-  //   return rMatrices;
-  // }
-
-  // function flipOneLeft(key) {
-  //   setDotMatrixDivs((prevDivs) =>
-  //     prevDivs.map((div) => {
-  //       if (div.key !== key) return div;
-
-  //       let originalMatrix = div.dotmatrix;
-  //       let rotatedMatrix = Array.from({ length: 8 }, () => Array(8).fill(false));
-
-  //       for (let row = 0; row < 8; row++) {
-  //         for (let col = 0; col < 8; col++) {
-  //           rotatedMatrix[row][col] = originalMatrix[col][7 - row];
-  //         }
-  //       }
-
-  //       return { ...div, dotmatrix: rotatedMatrix };
-  //     })
-  //   );
-  // }
-
-  // function flipOneRight(key) {
-  //   setDotMatrixDivs((prevDivs) =>
-  //     prevDivs.map((div) => {
-  //       if (div.key !== key) return div;
-
-  //       let originalMatrix = div.dotmatrix;
-  //       let rotatedMatrix = Array.from({ length: 8 }, () => Array(8).fill(false));
-
-  //       for (let row = 0; row < 8; row++) {
-  //         for (let col = 0; col < 8; col++) {
-  //           rotatedMatrix[row][col] = originalMatrix[7 - col][row];
-  //         }
-  //       }
-
-  //       return { ...div, dotmatrix: rotatedMatrix };
-  //     })
-  //   );
-  // }
-
-  // function flipVertical(key) {
-  //   setDotMatrixDivs((prevDivs) =>
-  //     prevDivs.map((div) =>
-  //       div.key === key
-  //         ? {
-  //           ...div,
-  //           dotmatrix: [...div.dotmatrix].reverse(), // Reverse row order (top ↔ bottom)
-  //         }
-  //         : div
-  //     )
-  //   );
-  // }
-
-  // function flipHorizontal(key) {
-  //   setDotMatrixDivs((prevDivs) =>
-  //     prevDivs.map((div) =>
-  //       div.key === key
-  //         ? {
-  //           ...div,
-  //           dotmatrix: div.dotmatrix.map((row) => [...row].reverse()), // Reverse each row (left ↔ right)
-  //         }
-  //         : div
-  //     )
-  //   );
-  // }
-
-  // function Duplicate() {
-  //   let currMatrixIndex = oledMatrix.findIndex((matrix) => matrix.key == currentMatrix) //dotMatrixDivs
-  //   if (currMatrixIndex === -1) {
-  //     console.error("Matrix not found!");
-  //     return;
-  //   }
-
-  //   console.log(currMatrixIndex)
-  //   let newMatrix = {
-  //     key: oledMatrix.length + 1,
-  //     oledmatrix: oledMatrix[currMatrixIndex].oledmatrix.map(row => [...row])
-  //   }
-  //   setOledMatrix(prev => {
-  //     let newState = [...prev];
-  //     newState.splice(currMatrixIndex + 1, 0, newMatrix)
-  //     console.log(newState)
-  //     return newState
-  //   })
-  //   setCurrentMatrix(newMatrix.key)
-
-  // }
-
-
-  // Rotate 90 degrees clockwise (right)
-
-const OUTER_SIZE = 128;
-const DISPLAY_WIDTH = 128;
-const DISPLAY_HEIGHT = 64;
-
-/**
- * Ensures a 128x128 outer matrix with the original content centered.
- */
-function expandToOuterMatrix(matrix) {
-  const outer = Array.from({ length: OUTER_SIZE }, () =>
-    Array(OUTER_SIZE).fill(0)
-  );
-
-  const height = matrix.length;
-  const width = matrix[0].length;
-  const yOffset = Math.floor((OUTER_SIZE - height) / 2);
-  const xOffset = Math.floor((OUTER_SIZE - width) / 2);
-
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      outer[y + yOffset][x + xOffset] = matrix[y][x];
-    }
   }
 
-  return outer;
-}
-
-/**
- * Clips a 128x128 matrix back to the central 128x64 area.
- */
-function clipOuterMatrix(matrix) {
-  const yOffset = Math.floor((OUTER_SIZE - DISPLAY_HEIGHT) / 2);
-  return matrix.slice(yOffset, yOffset + DISPLAY_HEIGHT);
-}
-
-/**
- * Rotates the outer matrix 90° to the right.
- */
-function rotateMatrixRight(matrix) {
-  const height = matrix.length;
-  const width = matrix[0].length;
-  const rotated = Array.from({ length: width }, () => Array(height).fill(0));
-
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      rotated[x][height - 1 - y] = matrix[y][x];
-    }
+  function pushHistory(frameKey, matrix) {
+    setOledHistory(prev => {
+      const prevArr = prev[frameKey] || [];
+      // Only push if different from last
+      if (prevArr.length && JSON.stringify(prevArr[prevArr.length - 1]) === JSON.stringify(matrix)) {
+        return prev;
+      }
+      return {
+        ...prev,
+        [frameKey]: [...prevArr, structuredClone(matrix)].slice(-50) // limit to 50
+      };
+    });
   }
 
-  return rotated;
-}
+  const OUTER_SIZE = 128;
+  const DISPLAY_WIDTH = 128;
+  const DISPLAY_HEIGHT = 64;
 
-/**
- * Rotates the outer matrix 90° to the left.
- */
-function rotateMatrixLeft(matrix) {
-  const height = matrix.length;
-  const width = matrix[0].length;
-  const rotated = Array.from({ length: width }, () => Array(height).fill(0));
+  /**
+   * Ensures a 128x128 outer matrix with the original content centered.
+   */
+  function expandToOuterMatrix(matrix) {
+    const outer = Array.from({ length: OUTER_SIZE }, () =>
+      Array(OUTER_SIZE).fill(0)
+    );
 
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      rotated[width - 1 - x][y] = matrix[y][x];
+    const height = matrix.length;
+    const width = matrix[0].length;
+    const yOffset = Math.floor((OUTER_SIZE - height) / 2);
+    const xOffset = Math.floor((OUTER_SIZE - width) / 2);
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        outer[y + yOffset][x + xOffset] = matrix[y][x];
+      }
     }
+
+    return outer;
   }
 
-  return rotated;
-}
+  /**
+   * Clips a 128x128 matrix back to the central 128x64 area.
+   */
+  function clipOuterMatrix(matrix) {
+    const yOffset = Math.floor((OUTER_SIZE - DISPLAY_HEIGHT) / 2);
+    return matrix.slice(yOffset, yOffset + DISPLAY_HEIGHT);
+  }
 
-/**
- * Rotates the selected frame right.
- */
-function rotateRightFrame(oledMatrix, currentKey) {
-  return oledMatrix.map(frame => {
-    if (frame.key !== currentKey) return frame;
+  /**
+   * Rotates the outer matrix 90° to the right.
+   */
+  function rotateMatrixRight(matrix) {
+    const height = matrix.length;
+    const width = matrix[0].length;
+    const rotated = Array.from({ length: width }, () => Array(height).fill(0));
 
-    const baseMatrix = frame.outerMatrix ?? expandToOuterMatrix(frame.matrix);
-    const rotated = rotateMatrixRight(baseMatrix);
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        rotated[x][height - 1 - y] = matrix[y][x];
+      }
+    }
 
-    return {
-      ...frame,
-      matrix: clipOuterMatrix(rotated),
-      outerMatrix: rotated,
+    return rotated;
+  }
+
+  React.useEffect(() => {
+    const handleUndo = (e) => {
+      if (e.ctrlKey && e.key === "z") {
+        setOledHistory(prev => {
+          const arr = prev[currentMatrixKey] || [];
+          if (arr.length < 2) return prev; // nothing to undo
+          const newArr = arr.slice(0, -1);
+          const prevMatrix = newArr[newArr.length - 1];
+          setOledMatrix(matrices =>
+            matrices.map(frame =>
+              frame.key === currentMatrixKey
+                ? { ...frame, matrix: structuredClone(prevMatrix) }
+                : frame
+            )
+          );
+          return { ...prev, [currentMatrixKey]: newArr };
+        });
+      }
     };
-  });
-}
+    window.addEventListener("keydown", handleUndo);
+    return () => window.removeEventListener("keydown", handleUndo);
+  }, [currentMatrixKey]);
 
-/**
- * Rotates the selected frame left.
- */
-function rotateLeftFrame(oledMatrix, currentKey) {
-  return oledMatrix.map(frame => {
-    if (frame.key !== currentKey) return frame;
-
-    const baseMatrix = frame.outerMatrix ?? expandToOuterMatrix(frame.matrix);
-    const rotated = rotateMatrixLeft(baseMatrix);
-
-    return {
-      ...frame,
-      matrix: clipOuterMatrix(rotated),
-      outerMatrix: rotated,
+  React.useEffect(() => {
+    const handleCopyPaste = (e) => {
+      // Ctrl+C: Copy current frame
+      if (e.ctrlKey && e.key.toLowerCase() === "c") {
+        const frame = oledMatrix.find(f => f.key === currentMatrixKey);
+        if (frame) {
+          setCopiedFrame(structuredClone(frame.matrix));
+        }
+      }
+      // Ctrl+V: Paste as new frame
+      if (e.ctrlKey && e.key.toLowerCase() === "v") {
+        if (copiedFrame) {
+          const newMat = {
+            key: generateId(),
+            matrix: structuredClone(copiedFrame)
+          };
+          setOledMatrix(prev => [...prev, newMat]);
+          dispatch(setCurrentMatrixByKey(newMat.key));
+        }
+      }
     };
-  });
-}
+    window.addEventListener("keydown", handleCopyPaste);
+    return () => window.removeEventListener("keydown", handleCopyPaste);
+  }, [oledMatrix, currentMatrixKey, copiedFrame, dispatch]);
 
-/**
- * Flips the selected frame horizontally.
- * Destroys outerMatrix.
- */
-function flipHorizontalFrame(oledMatrix, currentKey) {
-  return oledMatrix.map(frame => {
-    if (frame.key !== currentKey) return frame;
+  /**
+   * Rotates the outer matrix 90° to the left.
+   */
+  function rotateMatrixLeft(matrix) {
+    const height = matrix.length;
+    const width = matrix[0].length;
+    const rotated = Array.from({ length: width }, () => Array(height).fill(0));
 
-    const matrix = frame.matrix.map(row => [...row].reverse());
-    return { ...frame, matrix, outerMatrix: undefined };
-  });
-}
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        rotated[width - 1 - x][y] = matrix[y][x];
+      }
+    }
 
-/**
- * Flips the selected frame vertically.
- * Destroys outerMatrix.
- */
-function flipVerticalFrame(oledMatrix, currentKey) {
-  return oledMatrix.map(frame => {
-    if (frame.key !== currentKey) return frame;
+    return rotated;
+  }
 
-    const matrix = [...frame.matrix].reverse();
-    return { ...frame, matrix, outerMatrix: undefined };
-  });
-}
+  /**
+   * Rotates the selected frame right.
+   */
+  function rotateRightFrame(oledMatrix, currentKey) {
+    return oledMatrix.map(frame => {
+      if (frame.key !== currentKey) return frame;
 
-/**
- * Any non-rotation action should reset the outer matrix.
- */
-function clearOuterMatrix(oledMatrix) {
-  return oledMatrix.map(frame => ({
-    ...frame,
-    outerMatrix: undefined,
-  }));
-}
+      const baseMatrix = frame.outerMatrix ?? expandToOuterMatrix(frame.matrix);
+      const rotated = rotateMatrixRight(baseMatrix);
 
-  
+      return {
+        ...frame,
+        matrix: clipOuterMatrix(rotated),
+        outerMatrix: rotated,
+      };
+    });
+  }
+
+  /**
+   * Rotates the selected frame left.
+   */
+  function rotateLeftFrame(oledMatrix, currentKey) {
+    return oledMatrix.map(frame => {
+      if (frame.key !== currentKey) return frame;
+
+      const baseMatrix = frame.outerMatrix ?? expandToOuterMatrix(frame.matrix);
+      const rotated = rotateMatrixLeft(baseMatrix);
+
+      return {
+        ...frame,
+        matrix: clipOuterMatrix(rotated),
+        outerMatrix: rotated,
+      };
+    });
+  }
+
+  /**
+   * Flips the selected frame horizontally.
+   * Destroys outerMatrix.
+   */
+  function flipHorizontalFrame(oledMatrix, currentKey) {
+    return oledMatrix.map(frame => {
+      if (frame.key !== currentKey) return frame;
+
+      const matrix = frame.matrix.map(row => [...row].reverse());
+      return { ...frame, matrix, outerMatrix: undefined };
+    });
+  }
+
+  /**
+   * Flips the selected frame vertically.
+   * Destroys outerMatrix.
+   */
+  function flipVerticalFrame(oledMatrix, currentKey) {
+    return oledMatrix.map(frame => {
+      if (frame.key !== currentKey) return frame;
+
+      const matrix = [...frame.matrix].reverse();
+      return { ...frame, matrix, outerMatrix: undefined };
+    });
+  }
+
+  /**
+   * Any non-rotation action should reset the outer matrix.
+   */
+  function clearOuterMatrix(oledMatrix) {
+    return oledMatrix.map(frame => ({
+      ...frame,
+      outerMatrix: undefined,
+    }));
+  }
+
+
   function Duplicate(matrixToDuplicate) {
     let currMatrixIndex = matrixToDuplicate.findIndex((matrix) => matrix.key == currentMatrixKey) //dotMatrixDivs
     if (currMatrixIndex === -1) {
@@ -435,7 +369,7 @@ function clearOuterMatrix(oledMatrix) {
       return;
     }
 
-    console.log(currMatrixIndex)
+
     let newMatrix = {
       key: oledMatrix.length + 1,
       matrix: oledMatrix[currMatrixIndex].matrix.map(row => [...row])
@@ -443,7 +377,7 @@ function clearOuterMatrix(oledMatrix) {
     setOledMatrix(prev => {
       let newState = [...prev];
       newState.splice(currMatrixIndex + 1, 0, newMatrix)
-      console.log(newState)
+
       return newState
     })
 
@@ -492,6 +426,13 @@ function clearOuterMatrix(oledMatrix) {
     }, delay);
 
   }
+  function handleSelectScreen(e) {
+    const value = e.target.value;
+    if (!value) return
+
+    navigate(value)
+
+  }
 
   function stopAnimation() {
     if (repeatInterval.current) {
@@ -515,47 +456,6 @@ function clearOuterMatrix(oledMatrix) {
   };
 
 
-  // React.useEffect(() => {
-
-
-  //   if (!timelineRef.current) return;
-
-  //   const observerCallback = (entries) => {
-  //     entries.forEach((entry) => {
-  //       console.log("checking...")
-  //       console.log(framesRef)
-  //       console.log(timelineRef.current)
-  //       if (entry.isIntersecting) {
-
-  //         // When intersecting, update the active frame state
-  //         // setActiveFrame(entry.target.getAttribute('data-frame'));
-  //         // console.log("jh")
-  //         // Check if the intersecting frame also intersects with timelineRef
-  //         const frameRect = entry.target.getBoundingClientRect();
-  //         const timelineRect = timelineRef.current.getBoundingClientRect();
-
-  //         if (
-  //           frameRect.left < timelineRect.right &&
-  //           frameRect.right > timelineRect.left &&
-  //           frameRect.top < timelineRect.bottom &&
-  //           frameRect.bottom > timelineRect.top
-  //         ) {
-  //           console.log("Timeline is touching frame:", entry.target.getAttribute('data-frame'));
-  //         }
-  //       }
-  //     });
-  //   };
-
-  //   const observer = new IntersectionObserver(observerCallback, {
-  //     root: null,
-  //     threshold: 0.01,
-  //   });
-
-  //   // Observe each frame element
-  //   framesRef.current.forEach((frame) => observer.observe(frame));
-
-  //   return () => observer.disconnect(); // Cleanup on component unmount
-  // }, [test]);
 
   function addFrame() {
 
@@ -576,12 +476,14 @@ function clearOuterMatrix(oledMatrix) {
     // let matrixObject = oledMatrix.find(obj => obj.key=== currentMatrixKey)
 
     let list_of_frames = oledMatrix.map((frame, index) => generateMostEfficientCppArray(frame.matrix, index))
-    console.log(generate_oled_template(list_of_frames, frameDuration))
+
 
     //let frames_cpp = list_of_frames.map((frame,index) =>code_generation_templates[frame.strategy](frame.cpp,index))
     //  let cpp_data = generateMostEfficientCppArray(matrixObject.matrix) 
-    //  setGeneratedCode(code_generation_templates[cpp_data.strategy](cpp_data.cpp))
-    // setIsCodeGenerated(true)
+    setGeneratedCode(generate_oled_template(list_of_frames, frameDuration))
+    setIsCodeGenerated(true)
+    setCodeCopied(false)
+    notifyUser("Code Generation Sucessful!", toast.success)
   }
   function generateId() {
     return Math.random().toString(36).substr(2, 9)
@@ -600,19 +502,106 @@ function clearOuterMatrix(oledMatrix) {
 
   }
 
+  React.useEffect(() => {
+    // Ensure every frame has at least one history entry
+    oledMatrix.forEach(frame => {
+      setOledHistory(prev => {
+        const arr = prev[frame.key] || [];
+        if (arr.length === 0) {
+          return {
+            ...prev,
+            [frame.key]: [structuredClone(frame.matrix)]
+          };
+        }
+        return prev;
+      });
+    });
+  }, [oledMatrix]);
+
   function clearFrame() {
+    setOledMatrix(prev => {
+      const newMatrix = prev.map(frame =>
+        frame.key === currentMatrixKey
+          ? { ...frame, matrix: Array.from({ length: 64 }, () => Array(128).fill(false)) }
+          : frame
+      );
+      // Push to history after clearing
+      pushHistory(currentMatrixKey, newMatrix.find(f => f.key === currentMatrixKey).matrix);
+      return newMatrix;
+    });
+  }
 
-    let newMatrix = Array.from({ length: 64 }, () => Array(128).fill(false))
+  function shiftLeft(oledMatrix) {
 
-    let editedStates = oledMatrix.map(matrix => {
+    let matrixCopy = [...oledMatrix]
+    let currMatrixIndex = matrixCopy.findIndex((matrix) => matrix.key == currentMatrixKey)
 
-      if (matrix.key === currentMatrixKey) return { key: matrix.key, matrix: newMatrix }
-      return matrix
-    })
+    let matrix = matrixCopy[currMatrixIndex].matrix
+    for (let y = 0; y < matrix.length; y++) {
+      for (let x = 0; x < matrix[y].length - 1; x++) {
+        matrix[y][x] = matrix[y][x + 1];
+      }
+      matrix[y][matrix[y].length - 1] = 0; // Clear rightmost column
+    }
+    setOledMatrix(matrixCopy)
 
-    setOledMatrix(editedStates)
 
   }
+
+  function shiftRight(oledMatrix) {
+    let matrixCopy = [...oledMatrix]
+    let currMatrixIndex = matrixCopy.findIndex((matrix) => matrix.key == currentMatrixKey)
+
+
+    // let matrix  = [...oledMatrix[currMatrixIndex].matrix]
+    //console.log(matrixCopy[currMatrixIndex].matrix) 
+    let matrix = matrixCopy[currMatrixIndex].matrix
+
+
+
+    for (let y = 0; y < matrix.length; y++) {
+      for (let x = matrix[y].length - 1; x > 0; x--) {
+        matrix[y][x] = matrix[y][x - 1];
+      }
+      matrix[y][0] = 0; // Clear leftmost column
+    }
+    setOledMatrix(matrixCopy)
+
+  }
+
+  function shiftLeftWrapped(oledMatrix) {
+    let matrixCopy = [...oledMatrix];
+    let currMatrixIndex = matrixCopy.findIndex(m => m.key === currentMatrixKey);
+    let matrix = matrixCopy[currMatrixIndex].matrix;
+
+    for (let y = 0; y < matrix.length; y++) {
+      const firstPixel = matrix[y][0];
+      for (let x = 0; x < matrix[y].length - 1; x++) {
+        matrix[y][x] = matrix[y][x + 1];
+      }
+      matrix[y][matrix[y].length - 1] = firstPixel; // Wraparound
+    }
+
+    setOledMatrix(matrixCopy);
+  }
+
+
+  function shiftRightWrapped(oledMatrix) {
+    let matrixCopy = [...oledMatrix];
+    let currMatrixIndex = matrixCopy.findIndex(m => m.key === currentMatrixKey);
+    let matrix = matrixCopy[currMatrixIndex].matrix;
+
+    for (let y = 0; y < matrix.length; y++) {
+      const lastPixel = matrix[y][matrix[y].length - 1];
+      for (let x = matrix[y].length - 1; x > 0; x--) {
+        matrix[y][x] = matrix[y][x - 1];
+      }
+      matrix[y][0] = lastPixel; // Wraparound
+    }
+
+    setOledMatrix(matrixCopy);
+  }
+
 
   function generateCodeOneFrame() {
 
@@ -683,18 +672,18 @@ void displayFrame(const bool matrix[8][8]) {
     setIsCodeGenerated(true)
   }
   return (
-    <div className="w-screen text-center flex justify-center flex-col items-center  ">
+    <div className="theme-blue w-screen text-center flex justify-center flex-col items-center">
       <ToastContainer />
 
       <DragDropContext onDragEnd={onDragEnd}>
         <Droppable direction="horizontal" droppableId="oledMatrix" type="MATRIX">
           {(provided) => (
             <div
-              className="md:min-w-[30em]  lg:min-w-[50em]  outline-green-800 rounded-md outline-2 outline bg-gray-800 max-h-[160px] overflow-y-hidden gap-2 m-5 p-3 max-w-[90%] overflow-x-auto scroll-content shadow-lg relative"
+              className=" shadow-2xl  py-3 max-500:w-[85%]  md:min-w-[80%]  lg:min-w-[70%] rounded-md  bg-gray-800 max-500:max-h-[200px] max-h-[165px] overflow-y-hidden gap-2 m-5 p-3 max-w-[90%] overflow-x-auto scroll-content  relative"
               ref={provided.innerRef}
               {...provided.droppableProps}
             >
-              <div className='flex flex-wrap justify-between'>
+              <div className=' max-500:grid max-500:justify-center w-full flex flex-wrap justify-between max-sm:grid max-sm: '>
                 {/* <div className='flex space-x-3'>
                   <MdAdd
                     className='bg-slate-900 cursor-pointer hover:bg-green-600 hover:text-green-200 size-5 rounded-full outline outline-offset-2 outline-2 outline-green-500 text-green-500'
@@ -719,7 +708,7 @@ void displayFrame(const bool matrix[8][8]) {
                     className='bg-slate-900  hover:bg-green-600 hover:text-green-200 cursor-pointer  size-5 rounded-full outline outline-offset-2 outline-2 outline-green-500 text-green-500' />
                 </div> */}
 
-                <div className='flex space-x-4'>
+                <div className='flex space-x-4 max-500:justify-center  '>
 
                   <Tool
                     Icon={MdAdd}
@@ -758,56 +747,41 @@ void displayFrame(const bool matrix[8][8]) {
                   ></Tool>
 
                   <Tool
-                    Icon={MdOutlineResetTv}
+                    Icon={CgScreen}
                     target="clear"
                     onClick={clearFrame}
                     tooltip={["Clear Frame"]}
                   ></Tool>
 
-                  {/* <Tool
+                  <Tool
                     Icon={MdDeleteForever}
                     target="delete"
                     onClick={deleteFrame}
                     tooltip={["Delete Frame"]}
                     classes={" hover:text-red-200 size-6 rounded-full  text-red-600"}
-                  ></Tool> */}
+                  ></Tool>
+
 
                 </div>
 
-                <div className='flex flex-wrap'>
-                  <RxRotateCounterClockwise className='hover:text-teal-200 hover:cursor-pointer mx-2 size-5 rounded-full  text-green-500' onClick={()=>setOledMatrix(prev => rotateLeftFrame(prev, currentMatrixKey))}>Flip left</RxRotateCounterClockwise>
-                  <RxRotateCounterClockwise className='hover:text-teal-200 hover:cursor-pointer mx-2 transform scale-x-[-1] size-5 rounded-full  text-green-400' onClick={()=>setOledMatrix(prev => rotateRightFrame(prev, currentMatrixKey))}>Flip right</RxRotateCounterClockwise>
-                  <PiFlipHorizontalFill className='hover:text-teal-200 hover:cursor-pointer mx-2  size-5 rounded-full  text-green-500' onClick={()=>setOledMatrix(prev => flipHorizontalFrame(prev, currentMatrixKey))}>Flip vert</PiFlipHorizontalFill>
-                  <PiFlipVerticalFill className='hover:text-teal-200 hover:cursor-pointer mx-2  size-5 rounded-full  text-green-500' onClick={()=>setOledMatrix(prev => flipVerticalFrame(prev, currentMatrixKey))}>Flip horx</PiFlipVerticalFill   >
-                  {/* <div className='flex w-[15em] bg-slate-800 rounded-sm text-green-500 '>
+                <div className='flex flex-wrap max-500:mt-3 '>
 
-                    <span className='text-[0.8em] px-1'>Frame duration </span>
-                    <input
-                      onChange={(e) => {
-                        dispatch(setFrameDuration(e.target.value))
-                      }}
-                      maxLength={8}
-                      value={frameDuration}
-                      className="rounded-md  outline outline-1 outline-green-700 w-[35%] bg-slate-900  "></input>
-
-                    <span className='text-[0.8em] px-1'>ms </span>
-
-                  </div> */}
                   <FrameDurationInput></FrameDurationInput>
                 </div>
               </div>
 
+              <div className=' mt-3  bg-gray-900 rounded-md pb-3 overflow-x-auto pt-2 px-3 '>
 
-              <div className=' mt-3  bg-gray-900 rounded-md'>
 
-
-                <div className='flex'
+                <div className='flex min-w-full'
                   onMouseDown={e => e.preventDefault()}
                   draggable="false"
                 >
 
+
                   {
                     //8x8 frames
+
                     oledMatrix.map((matrix, index) => (
                       <Draggable key={matrix.key} draggableId={String(matrix.key)} index={index}>
                         {(provided) => (<>
@@ -847,10 +821,10 @@ void displayFrame(const bool matrix[8][8]) {
 
       {/* Other parts of your app */}
 
-      <div className='flex shadow-xl shadow-[#282828]'>
+      <div className='flex shadow-2xl   max-500:grid bg-gray-800  rounded-lg pb-3 '>
 
         <div className=' relative 
-      shadow-sm max-sm:w-[85%] w-[19em] max-h-[40em] bg-[#093710] flex flex-col justify-center items-center pt-5'
+      shadow-sm max-sm:w-[85%] w-[19em] max-h-[40em]  flex flex-col justify-center items-center pt-5'
           onMouseDown={() => setIsMouseDown(true)}
           onMouseUp={() => setIsMouseDown(false)}
 
@@ -862,13 +836,146 @@ void displayFrame(const bool matrix[8][8]) {
             onMouseUp={() => setIsMouseDown(false)}
 
           >
+            <div className='flex w-full justify-center space-x-3 mb-2'>
+              <ToolMainFrame
+                Icon={MdKeyboardDoubleArrowLeft}
+                target="shiftleft"
+                shortCutKey="ControlLeft"
+                toggleKey="ControlLeft"
+                onHold={() =>
+                  currentKeyboardKeyRef.current === "ControlLeft" ? shiftLeft(oledMatrix)
+                    : shiftLeftWrapped(oledMatrix)}
+                oledMatrix={oledMatrix}
 
+                tooltip={["shift left", "Press `Ctrl` for No Wrap shift"]}
+                classes={currentKeyboardKey === "ControlLeft" ? "scale-110 text-yellow-400" : ""}
+
+              ></ToolMainFrame>
+
+
+              <ToolMainFrame
+                Icon={GrRotateLeft}
+                target="rotateLeft"
+                onClick={() => setOledMatrix(prev => rotateLeftFrame(prev, currentMatrixKey))}
+                tooltip={["rotate left"]}
+
+              ></ToolMainFrame>
+
+              <ToolMainFrame
+                Icon={PiFlipHorizontalFill}
+                target="flipHorizontal"
+                onClick={() => setOledMatrix(prev => flipHorizontalFrame(prev, currentMatrixKey))}
+                tooltip={["Flip horizontally"]}
+
+              ></ToolMainFrame>
+
+
+              <ToolMainFrame
+                Icon={PiFlipVerticalFill}
+                target="flipVertical"
+                onClick={() => setOledMatrix(prev => flipVerticalFrame(prev, currentMatrixKey))}
+                tooltip={["Flip Vertically"]}
+
+              ></ToolMainFrame>
+
+
+              {/* {
+                currentKeyboardKey === "KeyD" ?
+                  <ToolMainFrame
+                    Icon={BsFillEraserFill}
+                    target="erase"
+                    onClick={() => dispatch(setToKeyboardKey("KeyNone"))}
+                    tooltip={["Erase.", "ShortCut: D"]}
+                    classes={"scale-150 text-teal-300 hover:cursor-pointer  outline-green-300 outline-solid outline-1 "}
+
+                  ></ToolMainFrame>
+                  :
+                  <ToolMainFrame
+                    Icon={BsFillEraserFill}
+                    target="erase"
+                    onClick={() => dispatch(setToKeyboardKey("KeyD"))}
+                    tooltip={["Erase.", "ShortCut: D"]}
+                    classes={"hover:scale-125 hover:text-teal-200 hover:cursor-pointer  outline-green-300 outline-solid outline-1  text-green-600"}
+
+                  ></ToolMainFrame>
+
+              } */}
+
+              {
+                currentKeyboardKey === "KeyD" ?
+                  <ToolMainFrame
+                    Icon={BsFillEraserFill}
+                    target="erase"
+                    onClick={() => dispatch(setToKeyboardKey("KeyNone"))}
+                    tooltip={["Erase.", "ShortCut: D"]}
+                    classes={"scale-125 text-teal-300 hover:cursor-pointer  outline-green-300 outline-solid outline-1 "}
+
+                  ></ToolMainFrame>
+                  :
+                  <ToolMainFrame
+                    Icon={BsFillEraserFill}
+                    target="erase"
+                    onClick={() => dispatch(setToKeyboardKey("KeyD"))}
+                    tooltip={["Erase.", "ShortCut: D"]}
+
+
+                  ></ToolMainFrame>
+
+              }
+              <ToolMainFrame
+                Icon={GrRotateRight}
+                target="rotateRight"
+                onClick={() => setOledMatrix(prev => rotateRightFrame(prev, currentMatrixKey))}
+                tooltip={["rotate Right"]}
+
+              ></ToolMainFrame>
+
+              <ToolMainFrame
+                Icon={MdKeyboardDoubleArrowRight}
+                target="shiftRight"
+                onHold={() =>
+                  currentKeyboardKeyRef.current === "ControlLeft" ? shiftRight(oledMatrix)
+                    : shiftRightWrapped(oledMatrix)}
+                tooltip={["shift Right", "Press `Ctrl` for No Wrap shift"]}
+                classes={currentKeyboardKey === "ControlLeft" ? "scale-110 text-yellow-400" : ""}
+              ></ToolMainFrame>
+
+              <div className=''>
+
+                {console.log(brushSize)}
+                <ToolMainFrame
+                  Icon={TiArrowUpOutline}
+                  target="brushUp"
+                  onClick={() => setBrushSize(prev => {
+                    if (prev >= 4) return 4
+                    return prev + 2
+
+                  })}
+                  tooltip={["Draw Size Up"]}
+                  classes="size-4"
+                ></ToolMainFrame>
+
+                <ToolMainFrame
+                  Icon={TiArrowDownOutline}
+                  target="brushDown"
+                  tooltip={["Draw size Down"]}
+                  classes="size-4"
+                  onClick={() => setBrushSize(prev => {
+                    if (prev <= 0) return 1
+                    return prev - 2
+
+                  })}
+
+                ></ToolMainFrame>
+              </div>
+            </div>
 
 
             <Oled128x64
               oledMatrix={oledMatrix}
               setOledMatrix={setOledMatrix}
-
+              brushSize={brushSize}
+              onStrokeEnd={matrix => pushHistory(currentMatrixKey, matrix)}
             ></Oled128x64>
 
 
@@ -876,11 +983,71 @@ void displayFrame(const bool matrix[8][8]) {
           </div>
 
 
-
         </div>
-        <div className='flex flex-col'>
-          <form class="max-w-sm mx-auto  bg-[#093710] p-4 relative">
+        <div className='flex flex-col '>
+          <form className="max-w-sm mx-auto  p-4 relative max-500:m-0">
 
+            <div className='flex justify-end space-x-2 pb-2  items-center'>
+
+              <WiringGuide></WiringGuide>
+
+
+              <div id="tooltip_shortcuts" role="tooltip" className="w-[25em] grid capitalize absolute z-10 invisible  py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[300ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
+                <span> Copy Frame : Ctrl + C </span>
+                <span> Paste Frame: Ctrl + V  </span>
+                <span> Undo: Ctrl + Z</span>
+                <span>Draw Straight Line: Shift </span>
+                <span>Draw Horizontal, vertical Or Diagnal line: Ctrl + Shift</span>
+                <span>Erase : D</span>
+
+
+                <div className="tooltip-arrow" data-popper-arrow></div>
+              </div>
+
+              <div data-tooltip-target="tooltip_shortcuts" className='flex text-[0.8em] font-bold p-1 text-iconColor items-center space-x-1 bg-slate-900 rounded-md outline outline-slate-700'>
+                <div>Show Shortcuts</div>
+                <BsPatchQuestion
+                  className='size-5 text-pink-700 '
+                />
+
+              </div>
+
+
+              <FaHireAHelper data-tooltip-target="tooltip_guide" className='size-5 text-cyan-600 '></FaHireAHelper >
+
+              <div id="tooltip_warning" role="tooltip" className="w-[25em] grid capitalize absolute z-10 invisible  py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[300ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
+                <span>Oled Displays have multiple Types.</span>
+                <span>If I2C Oled setting fails, try SPI and vice versa</span>
+                <span>wiring Depends on the Board and Oled type.</span>
+                <span className='text-yellow-400 mt-1'> for Quick guide, Hover on icon on the left.</span>
+                <div className="tooltip-arrow" data-popper-arrow></div>
+              </div>
+
+              {isWarningActive ?
+                <BsExclamationCircle onMouseEnter={
+                  () => {
+                    localStorage.setItem("warnActive", false)
+                    setIsWarningActive(false)
+
+                  }
+
+                } data-tooltip-target="tooltip_warning" className="animate-pulse text-yellow-400  size-5 " />
+                :
+                <BsExclamationCircle data-tooltip-target="tooltip_warning" className="  text-slate-600  size-5 " />
+              }
+
+            </div>
+
+
+
+            <select className="block w-full pl-2 border border-transparent px-2 py-1 rounded-md bg-slate-700 text-iconColor mb-3 
+             outline-none focus:outline-none ring-0 focus:ring-0 focus:border-transparent focus:shadow-none"
+              onChange={handleSelectScreen}
+            >
+              <option selected value="/">Max 7219</option>
+              <option value="/Oled">Olex matrix 128x64</option>
+
+            </select>
             <div
               type="button" //Needed to prevent form page refresh
 
@@ -888,20 +1055,9 @@ void displayFrame(const bool matrix[8][8]) {
                 isGenerateDisabled ?
                   'bg-slate-900 text-gray-600 outline outline-gray-600 py-1 px-2 rounded-sm'
                   :
-                  'bg-slate-900 text-green-600 outline outline-green-600 py-1 px-2 rounded-sm cursor-pointer'
+                  'hover:bg-iconColor hover:text-white bg-slate-900 text-accentText  py-1 px-2 rounded-sm cursor-pointer'
               }
               onClick={isGenerateDisabled ? () => { } : () => generateCode()}>Generate animation code</div>
-
-            <div
-              type="button" //Needed to prevent form page refresh
-
-              className={
-                isGenerateDisabled ?
-                  'bg-slate-900 text-gray-600 outline outline-gray-600 py-1 px-2 rounded-sm mt-5'
-                  :
-                  'bg-slate-900 text-green-600 outline outline-green-600 py-1 px-2 rounded-sm mt-5 cursor-pointer'
-              }
-              onClick={isGenerateDisabled ? () => { } : () => generateCodeOneFrame()}>Generate frame code</div>
 
           </form>
         </div>
@@ -919,18 +1075,42 @@ void displayFrame(const bool matrix[8][8]) {
           wordBreak: "break-word",
           textAlign: "left",
         }}
-        class="mt-10 w-[95%]  rounded-lg outline outline-2 outline-green-700 shadow-2xl shadow-black"
+        class="mt-10 w-[95%]  rounded-lg outline outline-2 outline-iconColor shadow-2xl shadow-black"
       >
         <button
           onClick={() => {
             navigator.clipboard.writeText(generatedCode)
+            setCodeCopied(true)
           }}
-          className='ml-auto flex justify-between items-center hover:scale-110 font-semibold  outline outline-2 outline-green-600 rounded-md m-3 p-2 text-green-300 shadow-lg shadow-[#191919]'>
+          className='transition-transform duration-200 glow-on-hover relative ml-auto flex justify-between items-center hover:scale-125 font-semibold  outline outline-2 outline-iconColor rounded-md m-3 p-2 text-iconColor shadow-lg shadow-[#191919]'>
 
-          <span >Cody Code</span>
-          <LuClipboardCopy class="m-1 size-5"></LuClipboardCopy>
+          {
+            codeCopied ?
+              <><span>Copied! </span><FaClipboardCheck class="m-1 size-5" /></>
+
+              :
+              <><span>Copy Code</span><LuClipboardCopy class="m-1 size-5"></LuClipboardCopy></>
+          }
+
         </button>
-        <code>{generatedCode}</code>
+
+        {isCodeGenerated && (
+          <SyntaxHighlighter
+            language="cpp"
+            style={vscDarkPlus}
+            customStyle={{
+              backgroundColor: "#282c34",
+              borderRadius: "0.5rem",
+              fontSize: "0.9rem",
+              padding: "1rem",
+              marginTop: "2rem",
+              width: "95%",
+              textAlign: "left"
+            }}
+          >
+            {generatedCode}
+          </SyntaxHighlighter>
+        )}
       </pre> : <></>}
 
 

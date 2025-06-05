@@ -27,7 +27,7 @@ function FrameDurationInput() {
     }
 
     return (
-        <div className='flex w-[15em] bg-slate-800 rounded-sm text-green-500 '>
+        <div className='flex w-[15em] bg-slate-800 rounded-sm text-iconColor max-500:justify-center text-lg '>
 
             <span className='text-[0.8em] px-1'>Frame duration </span>
             <input
@@ -40,7 +40,7 @@ function FrameDurationInput() {
                 onBlur={frameDurationBlurHandle}
                 maxLength={8}
                 value={frameDuration}
-                className="no-spinner pl-2 text-blue-400 rounded-md  outline outline-1 outline-green-700 w-[35%] bg-slate-900  "></input>
+                className=" no-spinner pl-2 text-blue-400 rounded-md  outline outline-1 outline-iconColor w-[35%] bg-slate-900  "></input>
 
             <span className='text-[0.8em] px-1'>ms </span>
 

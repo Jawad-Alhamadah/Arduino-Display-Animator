@@ -2,15 +2,32 @@ import React from 'react';
 import { twMerge } from 'tailwind-merge';
 import { setToPlaying, setToStopped } from '../reducers/isAnimationPlaying'
 import { useSelector, useDispatch } from 'react-redux'
+ 
 
+function ToolMainFrame({ Icon, onClick, target, tooltip = "", classes = '', onHold,interval=30 }) {
+const intervalRef = React.useRef(null);
+let currentKeyboardKey = useSelector((state) => state.currentKeyboardKey.value)
 
-function ToolMainFrame({ Icon, onClick, target, tooltip = "", classes = '' }) {
+    const startHold = () => {
+       
+        if(!onHold) return
+        if (intervalRef.current) return; // Prevent multiple intervals
+        onHold(); // Trigger once immediately
+        intervalRef.current = setInterval(onHold, interval);
+    };
+
+    const stopHold = () => {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+    };
+
+ 
 
     let isAnimationPlaying = useSelector((state) => state.isAnimationPlaying.value)
 
 
     const tooltip_data_target = `tooltip-${target}`
-    const default_tool_class =  'focus:outline-none hover:scale-125 hover:text-teal-200 rounded-full  text-green-600 hover:cursor-pointer'
+    const default_tool_class = 'focus:outline-none hover:scale-125 hover:text-iconColorHover rounded-full  text-iconColor hover:cursor-pointer size-5'
 
 
     const isClickable =
@@ -32,7 +49,11 @@ function ToolMainFrame({ Icon, onClick, target, tooltip = "", classes = '' }) {
             </div>
 
             <Icon
-
+                onMouseDown={startHold}
+                onMouseUp={stopHold}
+                onMouseLeave={stopHold}
+                onTouchStart={startHold}
+                onTouchEnd={stopHold}
                 data-tooltip-target={tooltip_data_target}
                 className={twMerge(default_tool_class, mergeClasses)}
                 onClick={handleClick}

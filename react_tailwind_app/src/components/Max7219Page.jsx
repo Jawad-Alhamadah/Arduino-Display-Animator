@@ -669,7 +669,7 @@ void displayFrame(const bool matrix[8][8]) {
     setIsCodeGenerated(true)
   }
   return (
-    <div className="w-screen text-center flex justify-center flex-col items-center">
+    <div className="theme-green w-screen text-center flex justify-center flex-col items-center">
       <ToastContainer />
 
       <DragDropContext onDragEnd={onDragEnd}>

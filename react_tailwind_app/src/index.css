@@ -2,6 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer utilities {
+  @keyframes ping-border {
+    0% {
+      transform:  scale(0.5);
+      opacity: 1;
+    }
+    75% {
+      transform: scale(2.5);
+      opacity: 0;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  .animate-ping-border {
+    animation: ping-border 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+}
 
 
 .glow-on-hover:before {
