@@ -25,6 +25,7 @@
     "react-spinners": "^0.14.1",
     "react-syntax-highlighter": "^15.6.1",
     "react-toastify": "^11.0.5",
+    "react-tooltip": "^5.28.1",
     "sortablejs": "^1.15.3",
     "tailwind-merge": "^3.3.0"
   },

@@ -2,15 +2,15 @@ import React from 'react';
 import { twMerge } from 'tailwind-merge';
 import { setToPlaying, setToStopped } from '../reducers/isAnimationPlaying'
 import { useSelector, useDispatch } from 'react-redux'
- 
+import { Tooltip as ReactTooltip } from "react-tooltip";
 
-function ToolMainFrame({ Icon, onClick, target, tooltip = "", classes = '', onHold,interval=30 }) {
-const intervalRef = React.useRef(null);
-let currentKeyboardKey = useSelector((state) => state.currentKeyboardKey.value)
+function ToolMainFrame({ Icon, onClick, target, tooltip = "", classes = '', onHold, interval = 300 }) {
+    const intervalRef = React.useRef(null);
+    let currentKeyboardKey = useSelector((state) => state.currentKeyboardKey.value)
 
     const startHold = () => {
-       
-        if(!onHold) return
+
+        if (!onHold) return
         if (intervalRef.current) return; // Prevent multiple intervals
         onHold(); // Trigger once immediately
         intervalRef.current = setInterval(onHold, interval);
@@ -21,7 +21,7 @@ let currentKeyboardKey = useSelector((state) => state.currentKeyboardKey.value)
         intervalRef.current = null;
     };
 
- 
+
 
     let isAnimationPlaying = useSelector((state) => state.isAnimationPlaying.value)
 
@@ -42,22 +42,48 @@ let currentKeyboardKey = useSelector((state) => state.currentKeyboardKey.value)
     return (
         <>
 
+            <ReactTooltip
+                id={`my-tooltip-${target}`}
+                place="top"
+                 delayShow={interval}
+                 delayHide={45}
+                 
+                 
+                className='capitalize'
+                content={
+                    <>
+                        {tooltip.map((tip, index) => (
+                            <React.Fragment key={index}>
+                                {tip}
+                                {index !== tooltip.length - 1 && <br />}
+                            </React.Fragment>
+                        ))}
+                    </>
 
+                }
+            />
+            {/* 
             <div id={tooltip_data_target} role="tooltip" className="grid capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[300ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
                 {tooltip.map((tip, index) => <span key={index}>{tip}</span>)}
                 <div className="tooltip-arrow" data-popper-arrow></div>
-            </div>
+            </div> */}
 
-            <Icon
+            <div className='flex'>
+
+                <Icon
+                
                 onMouseDown={startHold}
                 onMouseUp={stopHold}
                 onMouseLeave={stopHold}
                 onTouchStart={startHold}
                 onTouchEnd={stopHold}
-                data-tooltip-target={tooltip_data_target}
+                // data-tooltip-target={tooltip_data_target}
+                data-tooltip-id={`my-tooltip-${target}`}
                 className={twMerge(default_tool_class, mergeClasses)}
                 onClick={handleClick}
             />
+            </div>
+            
         </>
 
     );

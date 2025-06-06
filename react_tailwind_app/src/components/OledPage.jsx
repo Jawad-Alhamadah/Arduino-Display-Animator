@@ -35,9 +35,10 @@ import { BsPatchQuestion } from "react-icons/bs";
 import { toast } from 'react-toastify';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-
-
+import PinSelector from './PinSelector';
+import { useLocation } from 'react-router-dom';
 function OledPage() {
+  const location = useLocation();
   const currentMatrixKey = useSelector((state) => state.currentMatrixKey.value)
   let currentKeyboardKey = useSelector((state) => state.currentKeyboardKey.value)
   let isAnimationPlaying = useSelector((state) => state.isAnimationPlaying.value)
@@ -60,6 +61,8 @@ function OledPage() {
   const [pinCS, setPinCS] = React.useState('none');
   const [pinCLK, setPinCLK] = React.useState('none');
   const [pinDIN, setPinDIN] = React.useState('none');
+  const [board, setBoard] = React.useState('nano');
+  const [display, setDisplay] = React.useState('');
   // const [frameDuration, setFrameDuration] = React.useState(200);
   const [isGenerateDisabled, setIsGenerateDisabled] = React.useState(false);
   const [isCodeGenerated, setIsCodeGenerated] = React.useState(false);
@@ -104,7 +107,10 @@ function OledPage() {
   )
 
 
+React.useEffect(()=>{
 
+  setDisplay(location.pathname)
+},[])
 
   React.useEffect(() => {
     // Global mouseup listener to reset dragging state
@@ -836,7 +842,7 @@ void displayFrame(const bool matrix[8][8]) {
             onMouseUp={() => setIsMouseDown(false)}
 
           >
-            <div className='flex w-full justify-center space-x-3 mb-2'>
+            <div className='flex w-full justify-between   mb-2'>
               <ToolMainFrame
                 Icon={MdKeyboardDoubleArrowLeft}
                 target="shiftleft"
@@ -1043,11 +1049,17 @@ void displayFrame(const bool matrix[8][8]) {
             <select className="block w-full pl-2 border border-transparent px-2 py-1 rounded-md bg-slate-700 text-iconColor mb-3 
              outline-none focus:outline-none ring-0 focus:ring-0 focus:border-transparent focus:shadow-none"
               onChange={handleSelectScreen}
+              value={display}
             >
-              <option selected value="/">Max 7219</option>
+              <option value="/max">Max 7219</option>
               <option value="/Oled">Olex matrix 128x64</option>
 
             </select>
+
+            {/* <PinSelector label="DIN Pin : " pinRef={pinDINRef} pinSetter={setPinDIN} pinhighlightSetter={setDinPinHighlight}></PinSelector>
+            <PinSelector label="CS Pin : " pinRef={pinCSRef} pinSetter={setPinCS} pinhighlightSetter={setCsPinHighlight}></PinSelector>
+            <PinSelector label="CLK Pin : " pinRef={pinCLKRef} pinSetter={setPinCLK} pinhighlightSetter={setClkPinHighlight}></PinSelector> */}
+
             <div
               type="button" //Needed to prevent form page refresh
 

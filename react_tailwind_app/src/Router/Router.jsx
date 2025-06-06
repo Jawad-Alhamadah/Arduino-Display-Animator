@@ -15,6 +15,10 @@ const router = createBrowserRouter([
         element: <Max7219ICPage/>
     },
     {
+        path: "/max",
+        element: <Max7219ICPage/>
+    },
+    {
         path:"/oled",
         element: <OledPage/>
 
