@@ -37,6 +37,10 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import PinSelector from './PinSelector';
 import { useLocation } from 'react-router-dom';
+import { Tooltip as ReactTooltip } from "react-tooltip";
+
+
+
 function OledPage() {
   const location = useLocation();
   const currentMatrixKey = useSelector((state) => state.currentMatrixKey.value)
@@ -75,6 +79,27 @@ function OledPage() {
     return initialValue || "";
   })
 
+  const handleRotateRight = React.useCallback(() => {
+
+    const rotateRightFrame = (oledMatrix, currentKey) => {
+      return oledMatrix.map(frame => {
+        if (frame.key !== currentKey) return frame;
+
+        const baseMatrix = frame.outerMatrix ?? expandToOuterMatrix(frame.matrix);
+        const rotated = rotateMatrixRight(baseMatrix);
+
+        return {
+          ...frame,
+          matrix: clipOuterMatrix(rotated),
+          outerMatrix: rotated,
+        };
+      });
+    }
+
+
+    setOledMatrix(prev => rotateRightFrame(prev, currentMatrixKey))
+  }, [currentMatrixKey]);
+
   let frameDuration = useSelector((state) => state.frameDuration.value)
   const navigate = useNavigate();
   const dispatch = useDispatch()
@@ -107,10 +132,25 @@ function OledPage() {
   )
 
 
-React.useEffect(()=>{
+const handleBrushSizeUp = React.useCallback(() => {
+  setBrushSize(prev => {
+    if (prev === 1) return 2;
+    if (prev === 2) return 4;
+    return 4; // stays at 4 if already 4 or above
+  });
+}, []);
+  
+const handleBrushSizeDown = React.useCallback(() => {
+  setBrushSize(prev => {
+    if (prev === 4) return 2;
+    if (prev === 2) return 1;
+    return 1; // stays at 1 if already 1 or below
+  });
+}, []);
+  React.useEffect(() => {
 
-  setDisplay(location.pathname)
-},[])
+    setDisplay(location.pathname)
+  }, [])
 
   React.useEffect(() => {
     // Global mouseup listener to reset dragging state
@@ -298,20 +338,7 @@ React.useEffect(()=>{
   /**
    * Rotates the selected frame right.
    */
-  function rotateRightFrame(oledMatrix, currentKey) {
-    return oledMatrix.map(frame => {
-      if (frame.key !== currentKey) return frame;
 
-      const baseMatrix = frame.outerMatrix ?? expandToOuterMatrix(frame.matrix);
-      const rotated = rotateMatrixRight(baseMatrix);
-
-      return {
-        ...frame,
-        matrix: clipOuterMatrix(rotated),
-        outerMatrix: rotated,
-      };
-    });
-  }
 
   /**
    * Rotates the selected frame left.
@@ -591,7 +618,23 @@ React.useEffect(()=>{
     setOledMatrix(matrixCopy);
   }
 
-
+const MemoizedCodeBlock = React.useMemo(() => (
+  <SyntaxHighlighter
+    language="cpp"
+    style={vscDarkPlus}
+    customStyle={{
+      backgroundColor: "#282c34",
+      borderRadius: "0.5rem",
+      fontSize: "0.9rem",
+      padding: "1rem",
+      marginTop: "2rem",
+      width: "95%",
+      textAlign: "left"
+    }}
+  >
+    {generatedCode}
+  </SyntaxHighlighter>
+), [generatedCode]);
   function shiftRightWrapped(oledMatrix) {
     let matrixCopy = [...oledMatrix];
     let currMatrixIndex = matrixCopy.findIndex(m => m.key === currentMatrixKey);
@@ -678,14 +721,16 @@ void displayFrame(const bool matrix[8][8]) {
     setIsCodeGenerated(true)
   }
   return (
-    <div className="theme-blue w-screen text-center flex justify-center flex-col items-center">
+    <div className="theme-blue w-screen text-center flex justify-center flex-col items-center "
+
+    >
       <ToastContainer />
 
       <DragDropContext onDragEnd={onDragEnd}>
         <Droppable direction="horizontal" droppableId="oledMatrix" type="MATRIX">
           {(provided) => (
             <div
-              className=" shadow-2xl  py-3 max-500:w-[85%]  md:min-w-[80%]  lg:min-w-[70%] rounded-md  bg-gray-800 max-500:max-h-[200px] max-h-[165px] overflow-y-hidden gap-2 m-5 p-3 max-w-[90%] overflow-x-auto scroll-content  relative"
+              className=" shadow-2xl  py-3 max-500:w-[85%]  md:min-w-[80%]  lg:min-w-[70%] rounded-md  bg-gray-800 max-500:max-h-[200px] max-h-[170px] overflow-y-hidden gap-2 m-5 px-3  max-w-[90%]  scroll-content  relative"
               ref={provided.innerRef}
               {...provided.droppableProps}
             >
@@ -714,7 +759,7 @@ void displayFrame(const bool matrix[8][8]) {
                     className='bg-slate-900  hover:bg-green-600 hover:text-green-200 cursor-pointer  size-5 rounded-full outline outline-offset-2 outline-2 outline-green-500 text-green-500' />
                 </div> */}
 
-                <div className='flex space-x-4 max-500:justify-center  '>
+                <div className='flex gap-x-4 max-500:justify-center  '>
 
                   <Tool
                     Icon={MdAdd}
@@ -764,7 +809,7 @@ void displayFrame(const bool matrix[8][8]) {
                     target="delete"
                     onClick={deleteFrame}
                     tooltip={["Delete Frame"]}
-                    classes={" hover:text-red-200 size-6 rounded-full  text-red-600"}
+                    classes={" hover:text-red-200 rounded-full  text-red-600"}
                   ></Tool>
 
 
@@ -779,7 +824,7 @@ void displayFrame(const bool matrix[8][8]) {
               <div className=' mt-3  bg-gray-900 rounded-md pb-3 overflow-x-auto pt-2 px-3 '>
 
 
-                <div className='flex min-w-full'
+                <div className='flex '
                   onMouseDown={e => e.preventDefault()}
                   draggable="false"
                 >
@@ -827,22 +872,22 @@ void displayFrame(const bool matrix[8][8]) {
 
       {/* Other parts of your app */}
 
-      <div className='flex shadow-2xl   max-500:grid bg-gray-800  rounded-lg pb-3 '>
+      <div className='flex shadow-2xl  max-420:w-[90%]  max-500:grid bg-gray-800  rounded-lg pb-3 '>
 
         <div className=' relative 
-      shadow-sm max-sm:w-[85%] w-[19em] max-h-[40em]  flex flex-col justify-center items-center pt-5'
+      shadow-sm  w-[25em]   max-h-[40em] max-600:w-[19em] flex flex-col items-center justify-center  py-10 justify-self-center '
           onMouseDown={() => setIsMouseDown(true)}
           onMouseUp={() => setIsMouseDown(false)}
 
         >
 
 
-          <div className='   bg-gray-900 p-3'
+          <div className='   bg-gray-900 p-3 scale-125 max-600:scale-100'
             onMouseDown={() => setIsMouseDown(true)}
             onMouseUp={() => setIsMouseDown(false)}
 
           >
-            <div className='flex w-full justify-between   mb-2'>
+            <div className='flex w-full justify-between   mb-2 '>
               <ToolMainFrame
                 Icon={MdKeyboardDoubleArrowLeft}
                 target="shiftleft"
@@ -931,7 +976,7 @@ void displayFrame(const bool matrix[8][8]) {
               <ToolMainFrame
                 Icon={GrRotateRight}
                 target="rotateRight"
-                onClick={() => setOledMatrix(prev => rotateRightFrame(prev, currentMatrixKey))}
+                onClick={handleRotateRight}
                 tooltip={["rotate Right"]}
 
               ></ToolMainFrame>
@@ -952,11 +997,8 @@ void displayFrame(const bool matrix[8][8]) {
                 <ToolMainFrame
                   Icon={TiArrowUpOutline}
                   target="brushUp"
-                  onClick={() => setBrushSize(prev => {
-                    if (prev >= 4) return 4
-                    return prev + 2
-
-                  })}
+                  onClick={handleBrushSizeUp}
+                  shortCutKey="KeyH"
                   tooltip={["Draw Size Up"]}
                   classes="size-4"
                 ></ToolMainFrame>
@@ -966,11 +1008,7 @@ void displayFrame(const bool matrix[8][8]) {
                   target="brushDown"
                   tooltip={["Draw size Down"]}
                   classes="size-4"
-                  onClick={() => setBrushSize(prev => {
-                    if (prev <= 0) return 1
-                    return prev - 2
-
-                  })}
+                  onClick={handleBrushSizeDown}
 
                 ></ToolMainFrame>
               </div>
@@ -982,6 +1020,7 @@ void displayFrame(const bool matrix[8][8]) {
               setOledMatrix={setOledMatrix}
               brushSize={brushSize}
               onStrokeEnd={matrix => pushHistory(currentMatrixKey, matrix)}
+              
             ></Oled128x64>
 
 
@@ -1106,7 +1145,7 @@ void displayFrame(const bool matrix[8][8]) {
 
         </button>
 
-        {isCodeGenerated && (
+        {/* {isCodeGenerated && (
           <SyntaxHighlighter
             language="cpp"
             style={vscDarkPlus}
@@ -1122,7 +1161,11 @@ void displayFrame(const bool matrix[8][8]) {
           >
             {generatedCode}
           </SyntaxHighlighter>
-        )}
+        )} */}
+        <code>
+          {generatedCode}
+        </code>
+        {/* {isCodeGenerated && MemoizedCodeBlock} */}
       </pre> : <></>}
 
 

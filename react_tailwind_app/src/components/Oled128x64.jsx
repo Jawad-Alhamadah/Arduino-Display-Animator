@@ -299,11 +299,12 @@ const handleCanvasMouseDown = (event) => {
           width={WIDTH * PIXEL_SIZE}
           height={HEIGHT * PIXEL_SIZE}
           style={{ display: "block" }}
-          className="border border-slate-700"
+          className="border border-slate-700 cursor-none"
           onMouseMove={handleCanvasMouseMove}
           onMouseLeave={handleCanvasMouseLeave}
           onMouseEnter={handleCanvasMouseEnter}
           onMouseDown={handleCanvasMouseDown}
+          
         // onMouseUp={handleGlobalMouseUp}
         />
         {/* Cursor indicator */}
@@ -314,8 +315,8 @@ const handleCanvasMouseDown = (event) => {
               pointerEvents: "none",
               left: (cursorPos.x - Math.floor(brushSize / 2)) * PIXEL_SIZE,
               top: (cursorPos.y - Math.floor(brushSize / 2)) * PIXEL_SIZE,
-              width: brushSize * PIXEL_SIZE,
-              height: brushSize * PIXEL_SIZE,
+              width: brushSize * PIXEL_SIZE+1,
+              height: brushSize * PIXEL_SIZE+1,
               border: "2px solid #55c7f4", // blue-500
               background: "rgba(59, 130, 246, 0.15)", // semi-transparent blue
               boxSizing: "border-box",

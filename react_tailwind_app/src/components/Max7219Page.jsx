@@ -46,6 +46,8 @@ function Max7219Page() {
   const [pinCS, setPinCS] = React.useState('none');
   const [pinCLK, setPinCLK] = React.useState('none');
   const [pinDIN, setPinDIN] = React.useState('none');
+  let [board, setBoard] = React.useState("")
+
   // const [frameDuration, setFrameDuration] = React.useState('200');
   const [isGenerateDisabled, setIsGenerateDisabled] = React.useState(true);
   const [isCodeGenerated, setIsCodeGenerated] = React.useState(false);
@@ -96,7 +98,11 @@ function Max7219Page() {
   //   ]
   // )
 
+  function handleBoardChange(event) {
+    console.log(event)
+    setBoard(event.target.value)
 
+  }
   function shiftMatrixRightNoWrap(matrixKey) {
     setDotMatrixDivs(prev =>
       prev.map(matrix => {
@@ -984,9 +990,12 @@ void displayFrame(const bool matrix[8][8]) {
             </select>
 
             <select className=" block self-center max-500:w-full w-[90%]  border border-transparent ring-0 focus:ring-0 focus:border-transparent outline-none focus:outline-none justify-self-center pl-2 border rounded px-2 py-1 rounded-md bg-slate-700 text-white mb-3"
-
+              onChange={handleBoardChange}
             >
-              <option selected>Pick a Board</option>
+
+              <option selected
+
+              >Pick a Board</option>
               <option value="nano">Nano/Uno</option>
               <option value="mega">Mega</option>
               <option value="micro">Leonardo/micro</option>
@@ -994,9 +1003,10 @@ void displayFrame(const bool matrix[8][8]) {
 
             </select>
             <div className='flex max-500:grid max-750:grid gap-1 w-full '>
-              <PinSelector label="DIN" pinRef={pinDINRef} pinSetter={setPinDIN} pinhighlightSetter={setDinPinHighlight}></PinSelector>
-              <PinSelector label="CS" pinRef={pinCSRef} pinSetter={setPinCS} pinhighlightSetter={setCsPinHighlight}></PinSelector>
-              <PinSelector label="CLK" pinRef={pinCLKRef} pinSetter={setPinCLK} pinhighlightSetter={setClkPinHighlight}></PinSelector>
+             
+              <PinSelector board={board} label="DIN" pinRef={pinDINRef} pinSetter={setPinDIN} pinhighlightSetter={setDinPinHighlight}></PinSelector>
+              <PinSelector board={board} label="CS" pinRef={pinCSRef} pinSetter={setPinCS} pinhighlightSetter={setCsPinHighlight}></PinSelector>
+              <PinSelector board={board} label="CLK" pinRef={pinCLKRef} pinSetter={setPinCLK} pinhighlightSetter={setClkPinHighlight}></PinSelector>
 
             </div>
 

@@ -4,9 +4,26 @@ import { setToPlaying, setToStopped } from '../reducers/isAnimationPlaying'
 import { useSelector, useDispatch } from 'react-redux'
 import { Tooltip as ReactTooltip } from "react-tooltip";
 
-function ToolMainFrame({ Icon, onClick, target, tooltip = "", classes = '', onHold, interval = 300 }) {
+function ToolMainFrame({ Icon, onClick, target, tooltip = [""], classes = '', onHold, interval = 300, shortCutKey }) {
     const intervalRef = React.useRef(null);
     let currentKeyboardKey = useSelector((state) => state.currentKeyboardKey.value)
+
+    React.useEffect(() => {
+        console.log("Effect ran", { shortCutKey, onClick });
+        if (!shortCutKey || !onClick) return;
+      
+        const handleKeyDown = (e) => {
+             
+            // e.code is like "KeyD", "ControlLeft", etc.
+            if (e.code === shortCutKey) {
+                onClick();
+               
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [shortCutKey, onClick]);
 
     const startHold = () => {
 
@@ -21,14 +38,9 @@ function ToolMainFrame({ Icon, onClick, target, tooltip = "", classes = '', onHo
         intervalRef.current = null;
     };
 
-
-
     let isAnimationPlaying = useSelector((state) => state.isAnimationPlaying.value)
-
-
     const tooltip_data_target = `tooltip-${target}`
-    const default_tool_class = 'focus:outline-none hover:scale-125 hover:text-iconColorHover rounded-full  text-iconColor hover:cursor-pointer size-5'
-
+    const default_tool_class = 'active:scale-110 active:text-[#0763a4] focus:outline-none hover:scale-125 hover:text-iconColorHover rounded-full  text-iconColor hover:cursor-pointer size-5'
 
     const isClickable =
         (target === 'stop' && isAnimationPlaying) ||
@@ -45,10 +57,10 @@ function ToolMainFrame({ Icon, onClick, target, tooltip = "", classes = '', onHo
             <ReactTooltip
                 id={`my-tooltip-${target}`}
                 place="top"
-                 delayShow={interval}
-                 delayHide={45}
-                 
-                 
+                delayShow={interval}
+                delayHide={45}
+                style={{ backgroundColor: "#374151" }}
+
                 className='capitalize'
                 content={
                     <>
@@ -71,19 +83,19 @@ function ToolMainFrame({ Icon, onClick, target, tooltip = "", classes = '', onHo
             <div className='flex'>
 
                 <Icon
-                
-                onMouseDown={startHold}
-                onMouseUp={stopHold}
-                onMouseLeave={stopHold}
-                onTouchStart={startHold}
-                onTouchEnd={stopHold}
-                // data-tooltip-target={tooltip_data_target}
-                data-tooltip-id={`my-tooltip-${target}`}
-                className={twMerge(default_tool_class, mergeClasses)}
-                onClick={handleClick}
-            />
+
+                    onMouseDown={startHold}
+                    onMouseUp={stopHold}
+                    onMouseLeave={stopHold}
+                    onTouchStart={startHold}
+                    onTouchEnd={stopHold}
+                    // data-tooltip-target={tooltip_data_target}
+                    data-tooltip-id={`my-tooltip-${target}`}
+                    className={twMerge(default_tool_class, mergeClasses)}
+                    onClick={handleClick}
+                />
             </div>
-            
+
         </>
 
     );
