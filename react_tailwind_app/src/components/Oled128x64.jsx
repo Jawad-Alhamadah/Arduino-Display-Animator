@@ -5,9 +5,25 @@ import { generate_oled_code_RLE } from "./generatedCodeTemplates";
 
 const WIDTH = 128;
 const HEIGHT = 64;
-const PIXEL_SIZE = 2; // Controls how large each pixel appears
+
+function getPixelSize() {
+  if (typeof window !== "undefined" && window.innerWidth < 450) {
+    return 2;
+  }
+  return 2.5;
+}
 
 export default function Oled128x64(props) {
+  const [pixelSize, setPixelSize] = useState(getPixelSize());
+
+  useEffect(() => {
+    function handleResize() {
+      setPixelSize(getPixelSize());
+    }
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const currentMatrixKey = useSelector((state) => state.currentMatrixKey.value);
   const prevMousePosRef = useRef({ x: null, y: null });
   let currentKeyboardKey = useSelector((state) => state.currentKeyboardKey.value)
@@ -21,8 +37,6 @@ export default function Oled128x64(props) {
 
   const [cursorPos, setCursorPos] = useState({ x: null, y: null });
   const [isCursorOver, setIsCursorOver] = useState(false);
-
-
 
   function constrainLine(x0, y0, x1, y1) {
     const dx = Math.abs(x1 - x0);
@@ -43,18 +57,17 @@ export default function Oled128x64(props) {
     return [x0, y1];
   }
 
-
   useEffect(() => {
     drawCanvas();
   }, []);
 
   useEffect(() => {
     drawCanvas();
-  }, [props.oledMatrix]);
+  }, [props.oledMatrix, pixelSize]);
 
   useEffect(() => {
     drawCanvas();
-  }, [currentMatrixKey]);
+  }, [currentMatrixKey, pixelSize]);
 
   useEffect(() => {
     const handleGlobalMouseUp = (event) => {
@@ -64,8 +77,8 @@ export default function Oled128x64(props) {
       // Get mouse position at release
       if (canvasRef.current && event) {
         const rect = canvasRef.current.getBoundingClientRect();
-        const x = Math.floor((event.clientX - rect.left) / PIXEL_SIZE);
-        const y = Math.floor((event.clientY - rect.top) / PIXEL_SIZE);
+        const x = Math.floor((event.clientX - rect.left) / pixelSize);
+        const y = Math.floor((event.clientY - rect.top) / pixelSize);
         if (x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT) {
           setLastReleasePoint({ x, y });
         }
@@ -83,62 +96,60 @@ export default function Oled128x64(props) {
     return () => {
       window.removeEventListener("mouseup", handleGlobalMouseUp);
     };
-  }, [props.onStrokeEnd, props.oledMatrix, currentMatrixKey]);
-
+  }, [props.onStrokeEnd, props.oledMatrix, currentMatrixKey, pixelSize]);
 
   const drawCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, WIDTH * PIXEL_SIZE, HEIGHT * PIXEL_SIZE);
+    ctx.clearRect(0, 0, WIDTH * pixelSize, HEIGHT * pixelSize);
 
     props.oledMatrix.find(obj => obj.key === currentMatrixKey).matrix.forEach((row, y) => {
       row.forEach((pixel, x) => {
         if (pixel) {
           ctx.fillStyle = "#06b6d4";
-          ctx.fillRect(x * PIXEL_SIZE, y * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
+          ctx.fillRect(Math.round(x * pixelSize), Math.round(y * pixelSize), Math.ceil(pixelSize), Math.ceil(pixelSize));
         }
       });
     });
   };
 
-const handleCanvasMouseDown = (event) => {
-  const { x, y } = getMousePosition(event);
-  if (x === null || y === null) return;
+  const handleCanvasMouseDown = (event) => {
+    const { x, y } = getMousePosition(event);
+    if (x === null || y === null) return;
 
-  const shift = event.shiftKey;
-  const ctrl = event.ctrlKey || event.metaKey;
+    const shift = event.shiftKey;
+    const ctrl = event.ctrlKey || event.metaKey;
 
-  if (shift && lastReleasePoint) {
-    let [x0, y0] = [lastReleasePoint.x, lastReleasePoint.y];
-    let [x1, y1] = [x, y];
-    if (ctrl) {
-      [x1, y1] = constrainLine(x0, y0, x1, y1);
+    if (shift && lastReleasePoint) {
+      let [x0, y0] = [lastReleasePoint.x, lastReleasePoint.y];
+      let [x1, y1] = [x, y];
+      if (ctrl) {
+        [x1, y1] = constrainLine(x0, y0, x1, y1);
+      }
+      props.setOledMatrix((prev) => {
+        const newMatrix = structuredClone(prev);
+        const matrixObj = newMatrix.find(obj => obj.key === currentMatrixKey);
+        if (!matrixObj) return prev;
+        drawInterpolatedLine(matrixObj.matrix, x0, y0, x1, y1, !isErasing);
+        return newMatrix;
+      });
+      setLastReleasePoint({ x: x1, y: y1 });
+    } else {
+      // Normal brush
+      props.setOledMatrix((prev) => {
+        const newMatrix = structuredClone(prev);
+        const matrixObj = newMatrix.find(obj => obj.key === currentMatrixKey);
+        if (!matrixObj) return prev;
+        drawBrush(matrixObj.matrix, x, y, !isErasing);
+        return newMatrix;
+      });
     }
-    props.setOledMatrix((prev) => {
-      const newMatrix = structuredClone(prev);
-      const matrixObj = newMatrix.find(obj => obj.key === currentMatrixKey);
-      if (!matrixObj) return prev;
-      drawInterpolatedLine(matrixObj.matrix, x0, y0, x1, y1, !isErasing);
-      return newMatrix;
-    });
-    // Optionally update lastReleasePoint to the new endpoint if you want to chain lines
-    setLastReleasePoint({ x: x1, y: y1 });
-  } else {
-    // Normal brush
-    props.setOledMatrix((prev) => {
-      const newMatrix = structuredClone(prev);
-      const matrixObj = newMatrix.find(obj => obj.key === currentMatrixKey);
-      if (!matrixObj) return prev;
-      drawBrush(matrixObj.matrix, x, y, !isErasing);
-      return newMatrix;
-    });
-  }
 
-  prevMousePosRef.current = { x, y };
-  setIsDrawing(true);
-  didDragRef.current = false;
-};
+    prevMousePosRef.current = { x, y };
+    setIsDrawing(true);
+    didDragRef.current = false;
+  };
 
   function drawBrush(matrix, x, y, value) {
     const half = Math.floor(brushSize / 2);
@@ -152,7 +163,6 @@ const handleCanvasMouseDown = (event) => {
       }
     }
   }
-
 
   function drawInterpolatedLine(matrix, x0, y0, x1, y1, value) {
     const dx = Math.abs(x1 - x0);
@@ -180,7 +190,6 @@ const handleCanvasMouseDown = (event) => {
     }
   }
 
-
   const handleCanvasMouseMove = (event) => {
     const { x, y } = getMousePosition(event);
     setCursorPos({ x, y }); // Always update cursor position
@@ -206,7 +215,6 @@ const handleCanvasMouseDown = (event) => {
       return newMatrix;
     });
 
-
     prevMousePosRef.current = { x, y };
   };
 
@@ -223,42 +231,11 @@ const handleCanvasMouseDown = (event) => {
     const rect = canvasRef.current.getBoundingClientRect();
     const scaleX = canvasRef.current.width / rect.width;
     const scaleY = canvasRef.current.height / rect.height;
-    const x = Math.floor((event.clientX - rect.left) * scaleX / PIXEL_SIZE);
-    const y = Math.floor((event.clientY - rect.top) * scaleY / PIXEL_SIZE);
+    const x = Math.floor((event.clientX - rect.left) * scaleX / pixelSize);
+    const y = Math.floor((event.clientY - rect.top) * scaleY / pixelSize);
     if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return { x: null, y: null };
     return { x, y };
   };
-  // const getMousePosition = (event) => {
-  //   const rect = canvasRef.current.getBoundingClientRect();
-  //   const x = Math.floor((event.clientX - rect.left) / PIXEL_SIZE);
-  //   const y = Math.floor((event.clientY - rect.top) / PIXEL_SIZE);
-
-  //   if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return { x: null, y: null };
-  //   return { x, y };
-  // };
-
-  // useEffect(() => {
-  //   const handleKeyDown = (event) => {
-  //     console.log(currentKeyboardKey)
-  //     if (currentKeyboardKey === "KeyD") {
-  //       setIsErasing(true);
-  //     }
-  //   };
-
-  //   const handleKeyUp = (event) => {
-
-  //     setIsErasing(false);
-
-  //   };
-
-  //   window.addEventListener("keydown", handleKeyDown);
-  //   window.addEventListener("keyup", handleKeyUp);
-
-  //   return () => {
-  //     window.removeEventListener("keydown", handleKeyDown);
-  //     window.removeEventListener("keyup", handleKeyUp);
-  //   };
-  // }, []);
 
   useEffect(() => {
     if (currentKeyboardKey === "KeyD") {
@@ -276,8 +253,8 @@ const handleCanvasMouseDown = (event) => {
     }
 
     const rect = canvasRef.current.getBoundingClientRect();
-    const x = Math.floor((event.clientX - rect.left) / PIXEL_SIZE);
-    const y = Math.floor((event.clientY - rect.top) / PIXEL_SIZE);
+    const x = Math.floor((event.clientX - rect.left) / pixelSize);
+    const y = Math.floor((event.clientY - rect.top) / pixelSize);
 
     if (x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT) {
       props.setOledMatrix((prev) => {
@@ -289,23 +266,19 @@ const handleCanvasMouseDown = (event) => {
     }
   };
 
-
-
   return (
     <>
-      <div style={{ position: "relative", width: WIDTH * PIXEL_SIZE, height: HEIGHT * PIXEL_SIZE }}>
+      <div style={{ position: "relative", width: WIDTH * pixelSize, height: HEIGHT * pixelSize }}>
         <canvas
           ref={canvasRef}
-          width={WIDTH * PIXEL_SIZE}
-          height={HEIGHT * PIXEL_SIZE}
+          width={WIDTH * pixelSize}
+          height={HEIGHT * pixelSize}
           style={{ display: "block" }}
-          className="border border-slate-700 cursor-none"
+          className="border border-slate-700 cursor-none "
           onMouseMove={handleCanvasMouseMove}
           onMouseLeave={handleCanvasMouseLeave}
           onMouseEnter={handleCanvasMouseEnter}
           onMouseDown={handleCanvasMouseDown}
-          
-        // onMouseUp={handleGlobalMouseUp}
         />
         {/* Cursor indicator */}
         {isCursorOver && cursorPos.x !== null && cursorPos.y !== null && (
@@ -313,10 +286,10 @@ const handleCanvasMouseDown = (event) => {
             style={{
               position: "absolute",
               pointerEvents: "none",
-              left: (cursorPos.x - Math.floor(brushSize / 2)) * PIXEL_SIZE,
-              top: (cursorPos.y - Math.floor(brushSize / 2)) * PIXEL_SIZE,
-              width: brushSize * PIXEL_SIZE+1,
-              height: brushSize * PIXEL_SIZE+1,
+              left: (cursorPos.x - Math.floor(brushSize / 2)) * pixelSize,
+              top: (cursorPos.y - Math.floor(brushSize / 2)) * pixelSize,
+              width: brushSize * pixelSize + 1,
+              height: brushSize * pixelSize + 1,
               border: "2px solid #55c7f4", // blue-500
               background: "rgba(59, 130, 246, 0.15)", // semi-transparent blue
               boxSizing: "border-box",

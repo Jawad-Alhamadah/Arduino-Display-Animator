@@ -9,21 +9,17 @@ function ToolMainFrame({ Icon, onClick, target, tooltip = [""], classes = '', on
     let currentKeyboardKey = useSelector((state) => state.currentKeyboardKey.value)
 
     React.useEffect(() => {
-        console.log("Effect ran", { shortCutKey, onClick });
-        if (!shortCutKey || !onClick) return;
-      
         const handleKeyDown = (e) => {
-             
-            // e.code is like "KeyD", "ControlLeft", etc.
-            if (e.code === shortCutKey) {
-                onClick();
-               
+            // Find the shortcut key and onClick for this Tool instance
+            if (shortCutKey && isClickable && e.code === shortCutKey) {
+                console.log("Shortcut triggered", { shortCutKey, val:e.code });
+                onClick && onClick();
             }
         };
-
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [shortCutKey, onClick]);
+        // Only run once on mount/unmount
+    }, []);
 
     const startHold = () => {
 
@@ -54,26 +50,7 @@ function ToolMainFrame({ Icon, onClick, target, tooltip = [""], classes = '', on
     return (
         <>
 
-            <ReactTooltip
-                id={`my-tooltip-${target}`}
-                place="top"
-                delayShow={interval}
-                delayHide={45}
-                style={{ backgroundColor: "#374151" }}
 
-                className='capitalize'
-                content={
-                    <>
-                        {tooltip.map((tip, index) => (
-                            <React.Fragment key={index}>
-                                {tip}
-                                {index !== tooltip.length - 1 && <br />}
-                            </React.Fragment>
-                        ))}
-                    </>
-
-                }
-            />
             {/* 
             <div id={tooltip_data_target} role="tooltip" className="grid capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[300ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
                 {tooltip.map((tip, index) => <span key={index}>{tip}</span>)}
@@ -96,6 +73,27 @@ function ToolMainFrame({ Icon, onClick, target, tooltip = [""], classes = '', on
                 />
             </div>
 
+
+            <ReactTooltip
+                id={`my-tooltip-${target}`}
+                place="top"
+                delayShow={interval}
+                delayHide={45}
+                style={{ backgroundColor: "#374151" }}
+
+                className='capitalize z-50'
+                content={
+                    <>
+                        {tooltip.map((tip, index) => (
+                            <React.Fragment key={index}>
+                                {tip}
+                                {index !== tooltip.length - 1 && <br />}
+                            </React.Fragment>
+                        ))}
+                    </>
+
+                }
+            />
         </>
 
     );

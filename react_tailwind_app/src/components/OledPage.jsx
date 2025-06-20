@@ -21,7 +21,7 @@ import { useNavigate } from 'react-router-dom';
 import { setToKeyboardKey } from '../reducers/currentKeyboardKey';
 import { setCurrentMatrixByKey } from '../reducers/currentMatrixSlice';
 import generateMostEfficientCppArray from "./CppArrayFunctions"
-import generate_oled_template from "./generatedCodeTemplates"
+import { generate_oled_template, generate_oled_template_SPI } from "./generatedCodeTemplates"
 import { setToPlaying, setToStopped } from '../reducers/isAnimationPlaying';
 import { ToastContainer } from 'react-toastify';
 import ToolMainFrame from "./ToolMainFrame"
@@ -38,6 +38,8 @@ import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import PinSelector from './PinSelector';
 import { useLocation } from 'react-router-dom';
 import { Tooltip as ReactTooltip } from "react-tooltip";
+import AnimateText from './AnimateText';
+import { SiArduino } from "react-icons/si";
 
 
 
@@ -62,10 +64,12 @@ function OledPage() {
   const repeatInterval = React.useRef(null);
 
   const [brushSize, setBrushSize] = React.useState(1);
+  const [pinDC, setPinDC] = React.useState('none');
+  const [pinReset, setPinReset] = React.useState('none');
   const [pinCS, setPinCS] = React.useState('none');
-  const [pinCLK, setPinCLK] = React.useState('none');
-  const [pinDIN, setPinDIN] = React.useState('none');
   const [board, setBoard] = React.useState('nano');
+  const [oledType, setOledType] = React.useState('I2C');
+
   const [display, setDisplay] = React.useState('');
   // const [frameDuration, setFrameDuration] = React.useState(200);
   const [isGenerateDisabled, setIsGenerateDisabled] = React.useState(false);
@@ -79,6 +83,16 @@ function OledPage() {
     return initialValue || "";
   })
 
+  const currentMatrixKeyRef = React.useRef(currentMatrixKey);
+  React.useEffect(() => {
+    currentMatrixKeyRef.current = currentMatrixKey;
+  }, [currentMatrixKey]);
+
+
+   const currentAnimationPlayingRef = React.useRef(isAnimationPlaying);
+  React.useEffect(() => {
+    currentAnimationPlayingRef.current = isAnimationPlaying;
+  }, [isAnimationPlaying]);
   const handleRotateRight = React.useCallback(() => {
 
     const rotateRightFrame = (oledMatrix, currentKey) => {
@@ -100,6 +114,12 @@ function OledPage() {
     setOledMatrix(prev => rotateRightFrame(prev, currentMatrixKey))
   }, [currentMatrixKey]);
 
+
+  function handleBoardChange(event) {
+    console.log(event)
+    setBoard(event.target.value)
+
+  }
   let frameDuration = useSelector((state) => state.frameDuration.value)
   const navigate = useNavigate();
   const dispatch = useDispatch()
@@ -131,22 +151,27 @@ function OledPage() {
     ]
   )
 
+  const oledMatrixCurrentRef = React.useRef(oledMatrix)
 
-const handleBrushSizeUp = React.useCallback(() => {
-  setBrushSize(prev => {
-    if (prev === 1) return 2;
-    if (prev === 2) return 4;
-    return 4; // stays at 4 if already 4 or above
-  });
-}, []);
-  
-const handleBrushSizeDown = React.useCallback(() => {
-  setBrushSize(prev => {
-    if (prev === 4) return 2;
-    if (prev === 2) return 1;
-    return 1; // stays at 1 if already 1 or below
-  });
-}, []);
+  React.useEffect(() => {
+    oledMatrixCurrentRef.current = oledMatrix
+  }, [oledMatrix])
+
+  const handleBrushSizeUp = React.useCallback(() => {
+    setBrushSize(prev => {
+      if (prev === 1) return 2;
+      if (prev === 2) return 4;
+      return 4; // stays at 4 if already 4 or above
+    });
+  }, []);
+
+  const handleBrushSizeDown = React.useCallback(() => {
+    setBrushSize(prev => {
+      if (prev === 4) return 2;
+      if (prev === 2) return 1;
+      return 1; // stays at 1 if already 1 or below
+    });
+  }, []);
   React.useEffect(() => {
 
     setDisplay(location.pathname)
@@ -195,16 +220,15 @@ const handleBrushSizeDown = React.useCallback(() => {
   }, []);
 
   function deleteFrame() {
-    if (oledMatrix.length <= 1) return
-
-    let filteredMatrix = oledMatrix.filter(matrix => matrix.key !== currentMatrixKey)
-
-    setOledMatrix(filteredMatrix)
-
-    dispatch(setCurrentMatrixByKey(filteredMatrix[filteredMatrix.length - 1].key))
-
+    const oled = oledMatrixCurrentRef.current
+    if (oled.length <= 1) return;
+    
+    const filteredMatrix = oled.filter(matrix => matrix.key !== currentMatrixKeyRef.current);
+    if (filteredMatrix.length > 0) {
+      dispatch(setCurrentMatrixByKey(filteredMatrix[filteredMatrix.length - 1].key));
+    }
+    setOledMatrix(filteredMatrix);
   }
-
   function pushHistory(frameKey, matrix) {
     setOledHistory(prev => {
       const prevArr = prev[frameKey] || [];
@@ -438,25 +462,29 @@ const handleBrushSizeDown = React.useCallback(() => {
 
   function startAnimation() {
     //setIsAnimating(true);
+    if(currentAnimationPlayingRef.current) return stopAnimation()
     dispatch(setToPlaying())
-    repeatFunction((key) => dispatch(setCurrentMatrixByKey(key)), frameDuration, oledMatrix.length)
+    repeatFunction((key) => dispatch(setCurrentMatrixByKey(key)), frameDuration,oledMatrixCurrentRef.current.length)
   }
   function repeatFunction(func, delay, repeat,) {
-
-    func(oledMatrix[0].key); //dotMatrixDivs
+    const oled = oledMatrixCurrentRef.current
+    console.log(oled)
+    console.log(repeat)
+     console.log(delay)
+    func(oled[0].key); //dotMatrixDivs
     let counter = 1;
 
     repeatInterval.current = setInterval(() => {
 
       if (repeat !== counter) {
-        func(oledMatrix[counter].key);//dotMatrixDivs
+        func(oled[counter].key);//dotMatrixDivs
         counter++;
       } else {
         // setIsAnimating(false);
         dispatch(setToStopped())
         clearInterval(repeatInterval.current)
       }
-    }, delay);
+    }, parseInt(delay));
 
   }
   function handleSelectScreen(e) {
@@ -468,10 +496,11 @@ const handleBrushSizeDown = React.useCallback(() => {
   }
 
   function stopAnimation() {
+
     if (repeatInterval.current) {
       clearInterval(repeatInterval.current);
       repeatInterval.current = null;
-      dispatch(setCurrentMatrixByKey(oledMatrix[0].key))
+      dispatch(setCurrentMatrixByKey(oledMatrixCurrentRef.current[0].key))
       // setIsAnimating(false);
       dispatch(setToStopped())
     }
@@ -513,7 +542,9 @@ const handleBrushSizeDown = React.useCallback(() => {
 
     //let frames_cpp = list_of_frames.map((frame,index) =>code_generation_templates[frame.strategy](frame.cpp,index))
     //  let cpp_data = generateMostEfficientCppArray(matrixObject.matrix) 
-    setGeneratedCode(generate_oled_template(list_of_frames, frameDuration))
+    if (oledType === "I2C") { setGeneratedCode(generate_oled_template(list_of_frames, frameDuration)) }
+    if (oledType === "SPI") { setGeneratedCode(generate_oled_template_SPI(list_of_frames, frameDuration, pinCS, pinReset, pinDC)) }
+    //setGeneratedCode(generate_oled_template(list_of_frames, frameDuration))
     setIsCodeGenerated(true)
     setCodeCopied(false)
     notifyUser("Code Generation Sucessful!", toast.success)
@@ -618,23 +649,23 @@ const handleBrushSizeDown = React.useCallback(() => {
     setOledMatrix(matrixCopy);
   }
 
-const MemoizedCodeBlock = React.useMemo(() => (
-  <SyntaxHighlighter
-    language="cpp"
-    style={vscDarkPlus}
-    customStyle={{
-      backgroundColor: "#282c34",
-      borderRadius: "0.5rem",
-      fontSize: "0.9rem",
-      padding: "1rem",
-      marginTop: "2rem",
-      width: "95%",
-      textAlign: "left"
-    }}
-  >
-    {generatedCode}
-  </SyntaxHighlighter>
-), [generatedCode]);
+  const MemoizedCodeBlock = React.useMemo(() => (
+    <SyntaxHighlighter
+      language="cpp"
+      style={vscDarkPlus}
+      customStyle={{
+        backgroundColor: "#282c34",
+        borderRadius: "0.5rem",
+        fontSize: "0.9rem",
+        padding: "1rem",
+        marginTop: "2rem",
+        width: "95%",
+        textAlign: "left"
+      }}
+    >
+      {generatedCode}
+    </SyntaxHighlighter>
+  ), [generatedCode]);
   function shiftRightWrapped(oledMatrix) {
     let matrixCopy = [...oledMatrix];
     let currMatrixIndex = matrixCopy.findIndex(m => m.key === currentMatrixKey);
@@ -777,7 +808,7 @@ void displayFrame(const bool matrix[8][8]) {
                         onClick={stopAnimation}
                         tooltip={["Stop Animation"]}
                         classes={"scale-110 hover:bg-red-600 hover:text-red-200 ring-2 ring-offset-2 ring-[#ff0000] text-[#ff0000]"}
-
+                        // shortCutKey="Space"
                       ></Tool>
 
                       :
@@ -787,6 +818,7 @@ void displayFrame(const bool matrix[8][8]) {
                         target="play"
                         onClick={startAnimation}
                         tooltip={["Play"]}
+                        shortCutKey="Space"
                       ></Tool>
                   }
 
@@ -794,7 +826,7 @@ void displayFrame(const bool matrix[8][8]) {
                     Icon={LuCopyPlus}
                     target="duplicate"
                     onClick={() => Duplicate(oledMatrix)}
-                    tooltip={["Duplicate Frame"]}
+                    tooltip={["Duplicate Frame","ctrl + c, ctrl + v"]}
                   ></Tool>
 
                   <Tool
@@ -810,6 +842,7 @@ void displayFrame(const bool matrix[8][8]) {
                     onClick={deleteFrame}
                     tooltip={["Delete Frame"]}
                     classes={" hover:text-red-200 rounded-full  text-red-600"}
+                    shortCutKey="Delete"
                   ></Tool>
 
 
@@ -872,7 +905,7 @@ void displayFrame(const bool matrix[8][8]) {
 
       {/* Other parts of your app */}
 
-      <div className='flex shadow-2xl  max-420:w-[90%]  max-500:grid bg-gray-800  rounded-lg pb-3 '>
+      <div className='flex shadow-2xl  max-420:w-[95%] max-650:w-[80%]  max-650:grid bg-gray-800  rounded-lg pb-3 '>
 
         <div className=' relative 
       shadow-sm  w-[25em]   max-h-[40em] max-600:w-[19em] flex flex-col items-center justify-center  py-10 justify-self-center '
@@ -882,7 +915,7 @@ void displayFrame(const bool matrix[8][8]) {
         >
 
 
-          <div className='   bg-gray-900 p-3 scale-125 max-600:scale-100'
+          <div className='   bg-gray-900 p-3 shadow-md drop-shadow-sm shadow-slate-900 '
             onMouseDown={() => setIsMouseDown(true)}
             onMouseUp={() => setIsMouseDown(false)}
 
@@ -993,12 +1026,12 @@ void displayFrame(const bool matrix[8][8]) {
 
               <div className=''>
 
-                {console.log(brushSize)}
+
                 <ToolMainFrame
                   Icon={TiArrowUpOutline}
                   target="brushUp"
                   onClick={handleBrushSizeUp}
-                  shortCutKey="KeyH"
+                  shortCutKey="Equal"
                   tooltip={["Draw Size Up"]}
                   classes="size-4"
                 ></ToolMainFrame>
@@ -1008,6 +1041,7 @@ void displayFrame(const bool matrix[8][8]) {
                   target="brushDown"
                   tooltip={["Draw size Down"]}
                   classes="size-4"
+                  shortCutKey="Minus"
                   onClick={handleBrushSizeDown}
 
                 ></ToolMainFrame>
@@ -1020,7 +1054,7 @@ void displayFrame(const bool matrix[8][8]) {
               setOledMatrix={setOledMatrix}
               brushSize={brushSize}
               onStrokeEnd={matrix => pushHistory(currentMatrixKey, matrix)}
-              
+
             ></Oled128x64>
 
 
@@ -1034,39 +1068,31 @@ void displayFrame(const bool matrix[8][8]) {
 
             <div className='flex justify-end space-x-2 pb-2  items-center'>
 
-              <WiringGuide></WiringGuide>
 
 
-              <div id="tooltip_shortcuts" role="tooltip" className="w-[25em] grid capitalize absolute z-10 invisible  py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[300ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
-                <span> Copy Frame : Ctrl + C </span>
-                <span> Paste Frame: Ctrl + V  </span>
-                <span> Undo: Ctrl + Z</span>
-                <span>Draw Straight Line: Shift </span>
-                <span>Draw Horizontal, vertical Or Diagnal line: Ctrl + Shift</span>
-                <span>Erase : D</span>
 
 
-                <div className="tooltip-arrow" data-popper-arrow></div>
-              </div>
 
-              <div data-tooltip-target="tooltip_shortcuts" className='flex text-[0.8em] font-bold p-1 text-iconColor items-center space-x-1 bg-slate-900 rounded-md outline outline-slate-700'>
+
+              <div
+                data-tooltip-id="tooltip_shortcuts"
+                data-tooltip-place="top"
+                className='flex text-[0.8em] font-bold p-1 text-iconColor items-center space-x-1 bg-slate-900 rounded-md outline outline-slate-700 cursor-pointer'
+
+              >
                 <div>Show Shortcuts</div>
-                <BsPatchQuestion
-                  className='size-5 text-pink-700 '
-                />
-
+                <BsPatchQuestion className='size-5 text-pink-700' />
               </div>
 
-
-              <FaHireAHelper data-tooltip-target="tooltip_guide" className='size-5 text-cyan-600 '></FaHireAHelper >
-
-              <div id="tooltip_warning" role="tooltip" className="w-[25em] grid capitalize absolute z-10 invisible  py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[300ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
-                <span>Oled Displays have multiple Types.</span>
-                <span>If I2C Oled setting fails, try SPI and vice versa</span>
-                <span>wiring Depends on the Board and Oled type.</span>
-                <span className='text-yellow-400 mt-1'> for Quick guide, Hover on icon on the left.</span>
-                <div className="tooltip-arrow" data-popper-arrow></div>
+              <WiringGuide></WiringGuide>
+              {/* <div data-tooltip-target="tooltip_guide" className='flex space-x-1 outline outline-slate-700 rounded-md bg-slate-900 outline-offset-2 items-center '>
+                <SiArduino className='size-7 text-cyan-600' />
+                <FaHireAHelper className='size-5 text-cyan-600  '></FaHireAHelper >
               </div>
+ */}
+
+
+
 
               {isWarningActive ?
                 <BsExclamationCircle onMouseEnter={
@@ -1076,25 +1102,61 @@ void displayFrame(const bool matrix[8][8]) {
 
                   }
 
-                } data-tooltip-target="tooltip_warning" className="animate-pulse text-yellow-400  size-5 " />
+                } data-tooltip-id="tooltip_warning" className="animate-pulse text-yellow-400  size-5 " />
                 :
-                <BsExclamationCircle data-tooltip-target="tooltip_warning" className="  text-slate-600  size-5 " />
+                <BsExclamationCircle data-tooltip-id="tooltip_warning" className="  text-slate-600  size-5 " />
               }
 
             </div>
 
 
 
-            <select className="block w-full pl-2 border border-transparent px-2 py-1 rounded-md bg-slate-700 text-iconColor mb-3 
+            <select className=" block w-full pl-2 border border-transparent px-2 py-1 rounded-md bg-slate-700 text-iconColor mb-3 
              outline-none focus:outline-none ring-0 focus:ring-0 focus:border-transparent focus:shadow-none"
               onChange={handleSelectScreen}
               value={display}
             >
               <option value="/max">Max 7219</option>
-              <option value="/Oled">Olex matrix 128x64</option>
+              <option value="/Oled">Oled matrix 128x64</option>
+
+            </select>
+            <select className=" block w-full pl-2 border border-transparent px-2 py-1 rounded-md bg-slate-700 text-iconColor mb-3 
+             outline-none focus:outline-none ring-0 focus:ring-0 focus:border-transparent focus:shadow-none"
+              onChange={(e) => setOledType(e.target.value)}
+              value={oledType}
+            >
+              <option value="I2C">Type: I2C</option>
+              <option value="SPI">Type: SPI</option>
 
             </select>
 
+            {oledType === "SPI" && <>
+
+              <select className=" block w-full pl-2 border border-transparent px-2 py-1 rounded-md bg-slate-700 text-iconColor mb-3 
+             outline-none focus:outline-none ring-0 focus:ring-0 focus:border-transparent focus:shadow-none"
+                onChange={handleBoardChange}
+              >
+
+                <option selected
+
+                >Pick a Board</option>
+                <option value="nano">Nano/Uno</option>
+                <option value="mega">Mega</option>
+                <option value="micro">Leonardo/micro</option>
+                <option value="every">Every</option>
+
+              </select>
+
+              <
+                div className='flex max-500:grid max-750:grid gap-1 w-full '>
+
+                <PinSelector board={board} label="CS" pinSetter={setPinCS} ></PinSelector>
+                <PinSelector board={board} label="Reset" pinSetter={setPinReset} ></PinSelector>
+                <PinSelector board={board} label="DC" pinSetter={setPinDC} ></PinSelector>
+
+              </div>
+            </>
+            }
             {/* <PinSelector label="DIN Pin : " pinRef={pinDINRef} pinSetter={setPinDIN} pinhighlightSetter={setDinPinHighlight}></PinSelector>
             <PinSelector label="CS Pin : " pinRef={pinCSRef} pinSetter={setPinCS} pinhighlightSetter={setCsPinHighlight}></PinSelector>
             <PinSelector label="CLK Pin : " pinRef={pinCLKRef} pinSetter={setPinCLK} pinhighlightSetter={setClkPinHighlight}></PinSelector> */}
@@ -1106,7 +1168,7 @@ void displayFrame(const bool matrix[8][8]) {
                 isGenerateDisabled ?
                   'bg-slate-900 text-gray-600 outline outline-gray-600 py-1 px-2 rounded-sm'
                   :
-                  'hover:bg-iconColor hover:text-white bg-slate-900 text-accentText  py-1 px-2 rounded-sm cursor-pointer'
+                  'hover:bg-[#33566bbe] hover:text-white bg-slate-900 text-accentText  py-1 px-2 rounded-sm cursor-pointer'
               }
               onClick={isGenerateDisabled ? () => { } : () => generateCode()}>Generate animation code</div>
 
@@ -1125,15 +1187,16 @@ void displayFrame(const bool matrix[8][8]) {
           whiteSpace: "pre-wrap",
           wordBreak: "break-word",
           textAlign: "left",
+          boxSizing: "border-box",
         }}
-        class="mt-10 w-[95%]  rounded-lg outline outline-2 outline-iconColor shadow-2xl shadow-black"
+        className="overflow-x-hidden mt-10 w-[85%]  rounded-lg outline outline-2 outline-iconColor shadow-2xl shadow-black"
       >
         <button
           onClick={() => {
             navigator.clipboard.writeText(generatedCode)
             setCodeCopied(true)
           }}
-          className='transition-transform duration-200 glow-on-hover relative ml-auto flex justify-between items-center hover:scale-125 font-semibold  outline outline-2 outline-iconColor rounded-md m-3 p-2 text-iconColor shadow-lg shadow-[#191919]'>
+          className=' transition-transform duration-200 glow-on-hover relative ml-auto flex justify-between items-center hover:scale-125 font-semibold  outline outline-2 outline-iconColor rounded-md m-3 p-2 text-iconColor shadow-lg shadow-[#191919]'>
 
           {
             codeCopied ?
@@ -1162,13 +1225,62 @@ void displayFrame(const bool matrix[8][8]) {
             {generatedCode}
           </SyntaxHighlighter>
         )} */}
+        {/* <AnimateText
+        text= {generatedCode}
+        speed={0.05}
+        ></AnimateText > */}
         <code>
           {generatedCode}
         </code>
         {/* {isCodeGenerated && MemoizedCodeBlock} */}
       </pre> : <></>}
 
+      <ReactTooltip
+        id="tooltip_shortcuts"
+        place="top"
+        delayShow={30}
+        delayHide={45}
+        portal={true}
+        style={{ backgroundColor: "#374151" }}
+        className='capitalize w-[25em] z-50 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-gray-900 rounded-lg shadow-xs dark:bg-gray-700'
+        content={
+          <>
+            <div className="flex flex-col space-y-1">
+              <span>Copy Frame : Ctrl + C</span>
+              <span>Paste Frame: Ctrl + V</span>
+              <span>Undo: Ctrl + Z</span>
+              <span>Draw Straight Line: Shift</span>
+              <span>Draw Horizontal, Vertical or Diagonal Line: Ctrl + Shift</span>
+              <span>Erase : D</span>
+            </div>
+          </>
+        }
+      >
 
+      </ReactTooltip>
+
+      <ReactTooltip
+        id="tooltip_warning"
+        place="top"
+        delayShow={30}
+        delayHide={45}
+
+        style={{ backgroundColor: "#374151" }}
+        portal={true}
+
+        className='capitalize w-[25em] grid capitalize absolute z-10   py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[300ms] bg-gray-900 rounded-lg shadow-xs tooltip dark:bg-gray-700'
+        content={
+          <>
+            <span>Oled Displays have multiple Types.</span>
+            <span>If I2C Oled setting fails, try SPI and vice versa</span>
+            <span>wiring Depends on the Board and Oled type.</span>
+            <span className='text-yellow-400 mt-1'> for Quick guide, Hover on icon on the left.</span>
+
+
+          </>
+
+        }
+      />
     </div>
 
   );

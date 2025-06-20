@@ -5,7 +5,22 @@ import { useSelector, useDispatch } from 'react-redux'
 import { Tooltip as ReactTooltip } from "react-tooltip";
 
 
-function Tool({ Icon, onClick, target, tooltip = [""], classes = '', interval=300 }) {
+function Tool({ Icon, onClick, target, tooltip = [""], classes = '', interval=300,shortCutKey }) {
+
+
+  React.useEffect(() => {
+    const handleKeyDown = (e) => {
+        // Find the shortcut key and onClick for this Tool instance
+        if (shortCutKey && isClickable && e.code === shortCutKey) {
+            console.log("Shortcut triggered", { shortCutKey, val:e.code });
+            onClick && onClick();
+        }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+    // Only run once on mount/unmount
+}, []);
+
 
     let isAnimationPlaying = useSelector((state) => state.isAnimationPlaying.value)
 
@@ -40,6 +55,8 @@ function Tool({ Icon, onClick, target, tooltip = [""], classes = '', interval=30
                             <React.Fragment key={index}>
                                 {tip}
                                 {index !== tooltip.length - 1 && <br />}
+                                {<br />}
+                                {shortCutKey? `ShortCut: ${shortCutKey}`:""}
                             </React.Fragment>
                         ))}
                     </>

@@ -21,12 +21,14 @@ function PinSelector(props) {
             <select
                 onFocus={() => {
                     if(!props.pinRef) return
+                    if(!props.pinhighlightSetter) return
                     props.pinRef.current.style.backgroundColor = "red";
                     props.pinRef.current.style.transform = "scale(1.3)";
                     props.pinhighlightSetter(true)
                 }}
                 onBlur={() => {
                     if(!props.pinRef) return
+                    if(!props.pinhighlightSetter) return
                     props.pinRef.current.style.backgroundColor = "#9ca3af";
                     props.pinRef.current.style.transform = "scale(1)"
                     props.pinhighlightSetter(false)
@@ -41,6 +43,7 @@ function PinSelector(props) {
                 {pinOptions.map(pin => (
                     <option key={pin} value={pin}>{`D${pin}`}</option>
                 ))}
+                 <option value="none" >optional</option>
             </select>
         </div>
     )
