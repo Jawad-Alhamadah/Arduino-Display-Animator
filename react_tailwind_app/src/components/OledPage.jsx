@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useRef } from 'react'
 import FrameDurationInput from './FrameDurationInput';
 import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd';
 import { BsPlayFill, BsFillEraserFill } from "react-icons/bs";
@@ -40,9 +40,9 @@ import { useLocation } from 'react-router-dom';
 import { Tooltip as ReactTooltip } from "react-tooltip";
 import AnimateText from './AnimateText';
 import { SiArduino } from "react-icons/si";
-
-
-
+import StampPicker from "./StampPicker";
+import { FaStamp } from "react-icons/fa6";
+import { FaRegPenToSquare } from "react-icons/fa6";
 function OledPage() {
   const location = useLocation();
   const currentMatrixKey = useSelector((state) => state.currentMatrixKey.value)
@@ -89,7 +89,7 @@ function OledPage() {
   }, [currentMatrixKey]);
 
 
-   const currentAnimationPlayingRef = React.useRef(isAnimationPlaying);
+  const currentAnimationPlayingRef = React.useRef(isAnimationPlaying);
   React.useEffect(() => {
     currentAnimationPlayingRef.current = isAnimationPlaying;
   }, [isAnimationPlaying]);
@@ -175,6 +175,16 @@ function OledPage() {
   React.useEffect(() => {
 
     setDisplay(location.pathname)
+
+
+    let cs = localStorage.getItem('CS')
+    let dc = localStorage.getItem('DC')
+    let reset = localStorage.getItem('Reset')
+
+    if (cs) setPinCS(cs)
+    if (dc) setPinDC(dc)
+    if (reset) setPinReset(reset)
+
   }, [])
 
   React.useEffect(() => {
@@ -222,7 +232,7 @@ function OledPage() {
   function deleteFrame() {
     const oled = oledMatrixCurrentRef.current
     if (oled.length <= 1) return;
-    
+
     const filteredMatrix = oled.filter(matrix => matrix.key !== currentMatrixKeyRef.current);
     if (filteredMatrix.length > 0) {
       dispatch(setCurrentMatrixByKey(filteredMatrix[filteredMatrix.length - 1].key));
@@ -462,15 +472,15 @@ function OledPage() {
 
   function startAnimation() {
     //setIsAnimating(true);
-    if(currentAnimationPlayingRef.current) return stopAnimation()
+    if (currentAnimationPlayingRef.current) return stopAnimation()
     dispatch(setToPlaying())
-    repeatFunction((key) => dispatch(setCurrentMatrixByKey(key)), frameDuration,oledMatrixCurrentRef.current.length)
+    repeatFunction((key) => dispatch(setCurrentMatrixByKey(key)), frameDuration, oledMatrixCurrentRef.current.length)
   }
   function repeatFunction(func, delay, repeat,) {
     const oled = oledMatrixCurrentRef.current
     console.log(oled)
     console.log(repeat)
-     console.log(delay)
+    console.log(delay)
     func(oled[0].key); //dotMatrixDivs
     let counter = 1;
 
@@ -683,6 +693,18 @@ function OledPage() {
   }
 
 
+  function resetToDefaultBrush() {
+    // Only reset the stamp selection without affecting keyboard-based drawing functionality
+    setStampSymbol(null);
+
+    // Don't need to change the current keyboard state at all
+    // The Shift and Ctrl+Shift functionality for line drawing will remain intact
+    // as it's handled separately in the Oled128x64 component
+
+    // Optional: Add a subtle notification
+    // notifyUser("Switched to drawing brush", toast.info);
+  }
+
   function generateCodeOneFrame() {
 
     let rMatrices = flipAll(oledMatrix);
@@ -751,6 +773,10 @@ void displayFrame(const bool matrix[8][8]) {
 }`)
     setIsCodeGenerated(true)
   }
+  const [stampSymbol, setStampSymbol] = React.useState(null);
+  const [shiftSpeed, setShiftSpeed] = useState(100); // milliseconds between shifts
+  const isShiftingRef = useRef(false);
+  const originalMatrixRef = useRef(null);
   return (
     <div className="theme-blue w-screen text-center flex justify-center flex-col items-center "
 
@@ -808,7 +834,7 @@ void displayFrame(const bool matrix[8][8]) {
                         onClick={stopAnimation}
                         tooltip={["Stop Animation"]}
                         classes={"scale-110 hover:bg-red-600 hover:text-red-200 ring-2 ring-offset-2 ring-[#ff0000] text-[#ff0000]"}
-                        // shortCutKey="Space"
+                      // shortCutKey="Space"
                       ></Tool>
 
                       :
@@ -826,7 +852,7 @@ void displayFrame(const bool matrix[8][8]) {
                     Icon={LuCopyPlus}
                     target="duplicate"
                     onClick={() => Duplicate(oledMatrix)}
-                    tooltip={["Duplicate Frame","ctrl + c, ctrl + v"]}
+                    tooltip={["Duplicate Frame", "ctrl + c, ctrl + v"]}
                   ></Tool>
 
                   <Tool
@@ -920,132 +946,193 @@ void displayFrame(const bool matrix[8][8]) {
             onMouseUp={() => setIsMouseDown(false)}
 
           >
-            <div className='flex w-full justify-between   mb-2 '>
-              <ToolMainFrame
-                Icon={MdKeyboardDoubleArrowLeft}
-                target="shiftleft"
-                shortCutKey="ControlLeft"
-                toggleKey="ControlLeft"
-                onHold={() =>
-                  currentKeyboardKeyRef.current === "ControlLeft" ? shiftLeft(oledMatrix)
-                    : shiftLeftWrapped(oledMatrix)}
-                oledMatrix={oledMatrix}
+            <div className=' w-full justify-between   mb-2 '>
 
-                tooltip={["shift left", "Press `Ctrl` for No Wrap shift"]}
-                classes={currentKeyboardKey === "ControlLeft" ? "scale-110 text-yellow-400" : ""}
-
-              ></ToolMainFrame>
-
-
-              <ToolMainFrame
-                Icon={GrRotateLeft}
-                target="rotateLeft"
-                onClick={() => setOledMatrix(prev => rotateLeftFrame(prev, currentMatrixKey))}
-                tooltip={["rotate left"]}
-
-              ></ToolMainFrame>
-
-              <ToolMainFrame
-                Icon={PiFlipHorizontalFill}
-                target="flipHorizontal"
-                onClick={() => setOledMatrix(prev => flipHorizontalFrame(prev, currentMatrixKey))}
-                tooltip={["Flip horizontally"]}
-
-              ></ToolMainFrame>
-
-
-              <ToolMainFrame
-                Icon={PiFlipVerticalFill}
-                target="flipVertical"
-                onClick={() => setOledMatrix(prev => flipVerticalFrame(prev, currentMatrixKey))}
-                tooltip={["Flip Vertically"]}
-
-              ></ToolMainFrame>
-
-
-              {/* {
-                currentKeyboardKey === "KeyD" ?
-                  <ToolMainFrame
-                    Icon={BsFillEraserFill}
-                    target="erase"
-                    onClick={() => dispatch(setToKeyboardKey("KeyNone"))}
-                    tooltip={["Erase.", "ShortCut: D"]}
-                    classes={"scale-150 text-teal-300 hover:cursor-pointer  outline-green-300 outline-solid outline-1 "}
-
-                  ></ToolMainFrame>
-                  :
-                  <ToolMainFrame
-                    Icon={BsFillEraserFill}
-                    target="erase"
-                    onClick={() => dispatch(setToKeyboardKey("KeyD"))}
-                    tooltip={["Erase.", "ShortCut: D"]}
-                    classes={"hover:scale-125 hover:text-teal-200 hover:cursor-pointer  outline-green-300 outline-solid outline-1  text-green-600"}
-
-                  ></ToolMainFrame>
-
-              } */}
-
-              {
-                currentKeyboardKey === "KeyD" ?
-                  <ToolMainFrame
-                    Icon={BsFillEraserFill}
-                    target="erase"
-                    onClick={() => dispatch(setToKeyboardKey("KeyNone"))}
-                    tooltip={["Erase.", "ShortCut: D"]}
-                    classes={"scale-125 text-teal-300 hover:cursor-pointer  outline-green-300 outline-solid outline-1 "}
-
-                  ></ToolMainFrame>
-                  :
-                  <ToolMainFrame
-                    Icon={BsFillEraserFill}
-                    target="erase"
-                    onClick={() => dispatch(setToKeyboardKey("KeyD"))}
-                    tooltip={["Erase.", "ShortCut: D"]}
-
-
-                  ></ToolMainFrame>
-
-              }
-              <ToolMainFrame
-                Icon={GrRotateRight}
-                target="rotateRight"
-                onClick={handleRotateRight}
-                tooltip={["rotate Right"]}
-
-              ></ToolMainFrame>
-
-              <ToolMainFrame
-                Icon={MdKeyboardDoubleArrowRight}
-                target="shiftRight"
-                onHold={() =>
-                  currentKeyboardKeyRef.current === "ControlLeft" ? shiftRight(oledMatrix)
-                    : shiftRightWrapped(oledMatrix)}
-                tooltip={["shift Right", "Press `Ctrl` for No Wrap shift"]}
-                classes={currentKeyboardKey === "ControlLeft" ? "scale-110 text-yellow-400" : ""}
-              ></ToolMainFrame>
-
-              <div className=''>
+              <div className='flex w-full justify-evenly mb-2'>
+                <ToolMainFrame
+                  Icon={MdKeyboardDoubleArrowLeft}
+                  target="shiftleft"
+                  shortCutKey="ControlLeft"
+                  toggleKey="ControlLeft"
+                  interval={shiftSpeed} // Use the shift speed for the interval
+                  onHold={() => {
+                    // Track the start of a shift sequence for history
+                    if (!isShiftingRef.current) {
+                      isShiftingRef.current = true;
+                      // Save the original state for the history
+                      const currentMatrix = oledMatrix.find(m => m.key === currentMatrixKey);
+                      if (currentMatrix) {
+                        originalMatrixRef.current = JSON.parse(JSON.stringify(currentMatrix.matrix));
+                      }
+                      
+                      // Set up cleanup when mouse is released
+                      const handleMouseUpOnce = () => {
+                        if (isShiftingRef.current) {
+                          isShiftingRef.current = false;
+                          
+                          // Add to history only once at the end of the shift sequence
+                          if (originalMatrixRef.current) {
+                            pushHistory(currentMatrixKey, originalMatrixRef.current);
+                            originalMatrixRef.current = null;
+                          }
+                          document.removeEventListener('mouseup', handleMouseUpOnce);
+                        }
+                      };
+                      document.addEventListener('mouseup', handleMouseUpOnce);
+                    }
+                    
+                    // Perform the actual shift
+                    if (currentKeyboardKeyRef.current === "ControlLeft") {
+                      shiftLeft(oledMatrix);
+                    } else {
+                      shiftLeftWrapped(oledMatrix);
+                    }
+                  }}
+                  tooltip={["shift left", "Press `Ctrl` for No Wrap shift"]}
+                  classes={currentKeyboardKey === "ControlLeft" ? "scale-110 text-yellow-400" : ""}
+                ></ToolMainFrame>
 
 
                 <ToolMainFrame
-                  Icon={TiArrowUpOutline}
-                  target="brushUp"
-                  onClick={handleBrushSizeUp}
-                  shortCutKey="Equal"
-                  tooltip={["Draw Size Up"]}
-                  classes="size-4"
+                  Icon={GrRotateLeft}
+                  target="rotateLeft"
+                  onClick={() => setOledMatrix(prev => rotateLeftFrame(prev, currentMatrixKey))}
+                  tooltip={["rotate left"]}
+
                 ></ToolMainFrame>
 
                 <ToolMainFrame
-                  Icon={TiArrowDownOutline}
-                  target="brushDown"
-                  tooltip={["Draw size Down"]}
-                  classes="size-4"
-                  shortCutKey="Minus"
-                  onClick={handleBrushSizeDown}
+                  Icon={PiFlipHorizontalFill}
+                  target="flipHorizontal"
+                  onClick={() => setOledMatrix(prev => flipHorizontalFrame(prev, currentMatrixKey))}
+                  tooltip={["Flip horizontally"]}
 
                 ></ToolMainFrame>
+
+
+                <ToolMainFrame
+                  Icon={PiFlipVerticalFill}
+                  target="flipVertical"
+                  onClick={() => setOledMatrix(prev => flipVerticalFrame(prev, currentMatrixKey))}
+                  tooltip={["Flip Vertically"]}
+
+                ></ToolMainFrame>
+
+                <ToolMainFrame
+                  Icon={GrRotateRight}
+                  target="rotateRight"
+                  onClick={handleRotateRight}
+                  tooltip={["rotate Right"]}
+
+                ></ToolMainFrame>
+
+                <ToolMainFrame
+                  Icon={MdKeyboardDoubleArrowRight}
+                  target="shiftRight"
+                  shortCutKey="ControlLeft"
+                  toggleKey="ControlLeft"
+                  interval={shiftSpeed} // Use the shift speed for the interval
+                  onHold={() => {
+                    // Track the start of a shift sequence for history
+                    if (!isShiftingRef.current) {
+                      isShiftingRef.current = true;
+                      // Save the original state for the history
+                      const currentMatrix = oledMatrix.find(m => m.key === currentMatrixKey);
+                      if (currentMatrix) {
+                        originalMatrixRef.current = JSON.parse(JSON.stringify(currentMatrix.matrix));
+                      }
+                      
+                      // Set up cleanup when mouse is released
+                      const handleMouseUpOnce = () => {
+                        if (isShiftingRef.current) {
+                          isShiftingRef.current = false;
+                          
+                          // Add to history only once at the end of the shift sequence
+                          if (originalMatrixRef.current) {
+                            pushHistory(currentMatrixKey, originalMatrixRef.current);
+                            originalMatrixRef.current = null;
+                          }
+                          document.removeEventListener('mouseup', handleMouseUpOnce);
+                        }
+                      };
+                      document.addEventListener('mouseup', handleMouseUpOnce);
+                    }
+                    
+                    // Perform the actual shift
+                    if (currentKeyboardKeyRef.current === "ControlLeft") {
+                      shiftRight(oledMatrix);
+                    } else {
+                      shiftRightWrapped(oledMatrix);
+                    }
+                  }}
+                  tooltip={["shift Right", "Press `Ctrl` for No Wrap shift"]}
+                  classes={currentKeyboardKey === "ControlLeft" ? "scale-110 text-yellow-400" : ""}
+                ></ToolMainFrame>
+
+
               </div>
+              <div className='flex w-full justify-center space-x-3'>
+                {
+                  currentKeyboardKey === "KeyD" ?
+                    <ToolMainFrame
+                      Icon={BsFillEraserFill}
+                      target="erase"
+                      onClick={() => dispatch(setToKeyboardKey("KeyNone"))}
+                      tooltip={["Erase.", "ShortCut: D"]}
+                      classes={"scale-125 text-teal-300 hover:cursor-pointer  outline-green-300 outline-solid outline-1 "}
+
+                    ></ToolMainFrame>
+                    :
+                    <ToolMainFrame
+                      Icon={BsFillEraserFill}
+                      target="erase"
+                      onClick={() => dispatch(setToKeyboardKey("KeyD"))}
+                      tooltip={["Erase.", "ShortCut: D"]}
+
+
+                    ></ToolMainFrame>
+
+                }
+                <Tool
+                  Icon={FaRegPenToSquare}
+                  target="resetStamp"
+                  onClick={resetToDefaultBrush}
+                  tooltip={["Reset to Default Brush", "Clear stamp selection"]}
+                  classes={"size-6"}
+                ></Tool>
+                <StampPicker onSelect={setStampSymbol}></StampPicker>
+
+                <div className=''>
+
+
+                  <ToolMainFrame
+                    Icon={TiArrowUpOutline}
+                    target="brushUp"
+                    onClick={handleBrushSizeUp}
+                    shortCutKey="Equal"
+                    tooltip={["Draw Size Up"]}
+                    classes="size-4"
+                  ></ToolMainFrame>
+
+                  <ToolMainFrame
+                    Icon={TiArrowDownOutline}
+                    target="brushDown"
+                    tooltip={["Draw size Down"]}
+                    classes="size-4"
+                    shortCutKey="Minus"
+                    onClick={handleBrushSizeDown}
+
+                  ></ToolMainFrame>
+
+                  {/* Add the new reset to default brush tool here */}
+
+                </div>
+
+
+              </div>
+
+
+
             </div>
 
 
@@ -1054,7 +1141,7 @@ void displayFrame(const bool matrix[8][8]) {
               setOledMatrix={setOledMatrix}
               brushSize={brushSize}
               onStrokeEnd={matrix => pushHistory(currentMatrixKey, matrix)}
-
+              stampSymbol={stampSymbol}
             ></Oled128x64>
 
 
@@ -1080,8 +1167,9 @@ void displayFrame(const bool matrix[8][8]) {
                 className='flex text-[0.8em] font-bold p-1 text-iconColor items-center space-x-1 bg-slate-900 rounded-md outline outline-slate-700 cursor-pointer'
 
               >
-                <div>Show Shortcuts</div>
+                <div>Shortcuts</div>
                 <BsPatchQuestion className='size-5 text-pink-700' />
+
               </div>
 
               <WiringGuide></WiringGuide>
@@ -1250,7 +1338,7 @@ void displayFrame(const bool matrix[8][8]) {
               <span>Paste Frame: Ctrl + V</span>
               <span>Undo: Ctrl + Z</span>
               <span>Draw Straight Line: Shift</span>
-              <span>Draw Horizontal, Vertical or Diagonal Line: Ctrl + Shift</span>
+              <span>Draw Horizontal or Vertical Line: Shift + Ctrl</span>
               <span>Erase : D</span>
             </div>
           </>

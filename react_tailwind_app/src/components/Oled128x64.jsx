@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { useSelector, useDispatch } from 'react-redux';
 import { setToKeyboardKey } from '../reducers/currentKeyboardKey';
 import { generate_oled_code_RLE } from "./generatedCodeTemplates";
-
+import PIXEL_FONT_7x7 from "./pixelFont7x7";
+import UNICODE_SYMBOLS from "./unicodeSymbols";
 const WIDTH = 128;
 const HEIGHT = 64;
 
@@ -13,8 +14,11 @@ function getPixelSize() {
   return 2.5;
 }
 
+
 export default function Oled128x64(props) {
   const [pixelSize, setPixelSize] = useState(getPixelSize());
+  const [isShiftPressed, setIsShiftPressed] = useState(false);
+  const [lineStartPoint, setLineStartPoint] = useState(null);
 
   useEffect(() => {
     function handleResize() {
@@ -71,6 +75,14 @@ export default function Oled128x64(props) {
 
   useEffect(() => {
     const handleGlobalMouseUp = (event) => {
+      // Don't set lastReleasePoint in the global handler when we've already set it during Shift+Ctrl drawing
+      if (isShiftPressed) {
+        setIsDrawing(false);
+        prevMousePosRef.current = { x: null, y: null };
+        return;
+      }
+      
+      // Normal release point handling for non-shift drawing
       setIsDrawing(false);
       prevMousePosRef.current = { x: null, y: null };
 
@@ -84,11 +96,13 @@ export default function Oled128x64(props) {
         }
       }
 
-      if (props.onStrokeEnd) {
+      // Call stroke end callback to record history after a complete draw operation
+      if (props.onStrokeEnd && didDragRef.current) {
         const matrixObj = props.oledMatrix.find(obj => obj.key === currentMatrixKey);
         if (matrixObj) {
           props.onStrokeEnd(structuredClone(matrixObj.matrix));
         }
+        didDragRef.current = false;
       }
     };
 
@@ -96,7 +110,7 @@ export default function Oled128x64(props) {
     return () => {
       window.removeEventListener("mouseup", handleGlobalMouseUp);
     };
-  }, [props.onStrokeEnd, props.oledMatrix, currentMatrixKey, pixelSize]);
+  }, [isShiftPressed, props.setOledMatrix, currentMatrixKey, pixelSize, isErasing, props.onStrokeEnd]);
 
   const drawCanvas = () => {
     const canvas = canvasRef.current;
@@ -114,41 +128,166 @@ export default function Oled128x64(props) {
     });
   };
 
+  // Modify the handleCanvasMouseDown function to fix stamp history tracking
   const handleCanvasMouseDown = (event) => {
     const { x, y } = getMousePosition(event);
-    if (x === null || y === null) return;
-
-    const shift = event.shiftKey;
-    const ctrl = event.ctrlKey || event.metaKey;
-
-    if (shift && lastReleasePoint) {
-      let [x0, y0] = [lastReleasePoint.x, lastReleasePoint.y];
-      let [x1, y1] = [x, y];
-      if (ctrl) {
-        [x1, y1] = constrainLine(x0, y0, x1, y1);
+    
+    // Handle stamp drawing first
+    if (props.stampSymbol && x !== null && y !== null) {
+      // Get current matrix before modification
+      const currentMatrix = props.oledMatrix.find(obj => obj.key === currentMatrixKey);
+      if (!currentMatrix) return;
+      
+      // Save current state for history ONLY ONCE before making changes
+      if (props.onStrokeEnd) {
+        props.onStrokeEnd(structuredClone(currentMatrix.matrix));
       }
+      
+      // Then apply the stamp (rest of the existing code)
       props.setOledMatrix((prev) => {
         const newMatrix = structuredClone(prev);
         const matrixObj = newMatrix.find(obj => obj.key === currentMatrixKey);
         if (!matrixObj) return prev;
-        drawInterpolatedLine(matrixObj.matrix, x0, y0, x1, y1, !isErasing);
+        
+        // Get the stamp pattern (no changes to this part)
+        let stampMatrix = null;
+        if (PIXEL_FONT_7x7[props.stampSymbol]) {
+          stampMatrix = PIXEL_FONT_7x7[props.stampSymbol];
+        } else if (/^[A-Za-z0-9.]$/.test(props.stampSymbol)) {
+          // Fallback for alphanumerics using canvas rendering
+          const size = 7;
+          const canvas = document.createElement("canvas");
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext("2d");
+          ctx.clearRect(0, 0, size, size);
+          ctx.font = "normal 7px Arial, monospace";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillStyle = "#06b6d4";
+          ctx.fillText(props.stampSymbol, size / 2, size / 2 + 0.5);
+
+          const data = ctx.getImageData(0, 0, size, size).data;
+          stampMatrix = [];
+          for (let y = 0; y < size; y++) {
+            const row = [];
+            for (let x = 0; x < size; x++) {
+              row.push(data[(y * size + x) * 4 + 3] > 120);
+            }
+            stampMatrix.push(row);
+          }
+        } else {
+          // Default single pixel for unknown symbols
+          stampMatrix = Array(7).fill(0).map(() => Array(7).fill(0));
+          stampMatrix[3][3] = 1;
+        }
+        
+        // Apply the stamp to the matrix
+        const rows = stampMatrix.length;
+        const cols = stampMatrix[0].length;
+        
+        for (let sy = 0; sy < rows; sy++) {
+          for (let sx = 0; sx < cols; sx++) {
+            const targetX = x - Math.floor(cols / 2) + sx;
+            const targetY = y - Math.floor(rows / 2) + sy;
+            
+            if (targetX >= 0 && targetX < WIDTH && targetY >= 0 && targetY < HEIGHT) {
+              if (stampMatrix[sy][sx]) {
+                matrixObj.matrix[targetY][targetX] = !isErasing;
+              }
+            }
+          }
+        }
+        
         return newMatrix;
       });
-      setLastReleasePoint({ x: x1, y: y1 });
-    } else {
-      // Normal brush
+      
+      // Update last release point for next operation
+      setLastReleasePoint({ x, y });
+      return;
+    }
+    
+    // Handle shift + mouse down to draw a line from last position
+    if (isShiftPressed && x !== null && y !== null) {
+      // Get the starting point - either last release point or current position
+      const startPoint = lastReleasePoint || { x, y };
+      let endX = x;
+      let endY = y;
+      
+      // Check if Ctrl key is pressed
+      const isCtrlPressed = event.ctrlKey || currentKeyboardKey === "ControlLeft";
+      
+      // If Ctrl is pressed, constrain the line direction
+      if (isCtrlPressed) {
+        const dx = Math.abs(endX - startPoint.x);
+        const dy = Math.abs(endY - startPoint.y);
+        
+        // Constrain to horizontal, vertical, or 45° diagonal
+        if (dx > dy) {
+          // Horizontal line
+          endY = startPoint.y;
+        } else if (dy > dx) {
+          // Vertical line
+          endX = startPoint.x;
+        } else {
+          // Diagonal (45 degree)
+          const signX = endX > startPoint.x ? 1 : -1;
+          const signY = endY > startPoint.y ? 1 : -1;
+          const min = Math.min(dx, dy);
+          endX = startPoint.x + signX * min;
+          endY = startPoint.y + signY * min;
+        }
+      }
+      
+      // Get current matrix before modification
+      const currentMatrix = props.oledMatrix.find(obj => obj.key === currentMatrixKey);
+      if (!currentMatrix) return;
+      
+      // Save current state for history ONLY ONCE before making changes
+      if (props.onStrokeEnd) {
+        props.onStrokeEnd(structuredClone(currentMatrix.matrix));
+      }
+      
+      // Draw the line (rest of the existing code)
       props.setOledMatrix((prev) => {
         const newMatrix = structuredClone(prev);
         const matrixObj = newMatrix.find(obj => obj.key === currentMatrixKey);
         if (!matrixObj) return prev;
+        
+        // Draw the line
+        drawInterpolatedLine(
+          matrixObj.matrix, 
+          startPoint.x, 
+          startPoint.y, 
+          endX, 
+          endY, 
+          !isErasing
+        );
+        
+        return newMatrix;
+      });
+      
+      // Update for next line segment
+      setLastReleasePoint({ x: endX, y: endY });
+      return;
+    }
+    
+    // Normal drawing mode - no changes needed here
+    setIsDrawing(true);
+    
+    // Initial point for normal drawing
+    if (x !== null && y !== null) {
+      props.setOledMatrix((prev) => {
+        const newMatrix = structuredClone(prev);
+        const matrixObj = newMatrix.find(obj => obj.key === currentMatrixKey);
+        if (!matrixObj) return prev;
+        
         drawBrush(matrixObj.matrix, x, y, !isErasing);
         return newMatrix;
       });
+      
+      prevMousePosRef.current = { x, y };
     }
-
-    prevMousePosRef.current = { x, y };
-    setIsDrawing(true);
-    didDragRef.current = false;
   };
 
   function drawBrush(matrix, x, y, value) {
@@ -192,7 +331,13 @@ export default function Oled128x64(props) {
 
   const handleCanvasMouseMove = (event) => {
     const { x, y } = getMousePosition(event);
-    setCursorPos({ x, y }); // Always update cursor position
+    setCursorPos({ x, y });
+
+    // If shift is pressed, we'll draw a line from last release point or last drawn point
+    if (isShiftPressed && (lastReleasePoint || prevMousePosRef.current.x !== null)) {
+      // We're just updating the cursor - actual drawing happens on mouse down or up
+      return;
+    }
 
     if (!isDrawing) return;
     didDragRef.current = true;
@@ -209,7 +354,7 @@ export default function Oled128x64(props) {
       if (prevX !== null && prevY !== null) {
         drawInterpolatedLine(matrixObj.matrix, prevX, prevY, x, y, !isErasing);
       } else {
-        matrixObj.matrix[y][x] = !isErasing;
+        drawBrush(matrixObj.matrix, x, y, !isErasing);
       }
 
       return newMatrix;
@@ -266,6 +411,29 @@ export default function Oled128x64(props) {
     }
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Shift') {
+        setIsShiftPressed(true);
+      }
+    };
+    
+    const handleKeyUp = (e) => {
+      if (e.key === 'Shift') {
+        setIsShiftPressed(false);
+        setLineStartPoint(null);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
+
   return (
     <>
       <div style={{ position: "relative", width: WIDTH * pixelSize, height: HEIGHT * pixelSize }}>
@@ -274,7 +442,7 @@ export default function Oled128x64(props) {
           width={WIDTH * pixelSize}
           height={HEIGHT * pixelSize}
           style={{ display: "block" }}
-          className="border border-slate-700 cursor-none "
+          className="border border-slate-700 cursor-none"
           onMouseMove={handleCanvasMouseMove}
           onMouseLeave={handleCanvasMouseLeave}
           onMouseEnter={handleCanvasMouseEnter}
@@ -282,20 +450,91 @@ export default function Oled128x64(props) {
         />
         {/* Cursor indicator */}
         {isCursorOver && cursorPos.x !== null && cursorPos.y !== null && (
-          <div
-            style={{
-              position: "absolute",
-              pointerEvents: "none",
-              left: (cursorPos.x - Math.floor(brushSize / 2)) * pixelSize,
-              top: (cursorPos.y - Math.floor(brushSize / 2)) * pixelSize,
-              width: brushSize * pixelSize + 1,
-              height: brushSize * pixelSize + 1,
-              border: "2px solid #55c7f4", // blue-500
-              background: "rgba(59, 130, 246, 0.15)", // semi-transparent blue
-              boxSizing: "border-box",
-              zIndex: 10,
-            }}
-          />
+          props.stampSymbol ? (
+            (() => {
+              const isLetterOrNumber = /^[A-Za-z0-9.]$/.test(props.stampSymbol);
+              let matrix = null;
+
+              if (PIXEL_FONT_7x7[props.stampSymbol]) {
+                // Use custom pixel font for any supported symbol
+                matrix = PIXEL_FONT_7x7[props.stampSymbol];
+              } else if (/^[A-Za-z0-9.]$/.test(props.stampSymbol)) {
+                // Fallback: render to 7x7 canvas and threshold for unsupported alphanumerics
+                const size = 7;
+                const canvas = document.createElement("canvas");
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext("2d");
+                ctx.clearRect(0, 0, size, size);
+                ctx.font = "normal 7px Arial, monospace";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillStyle = "#06b6d4";
+                ctx.fillText(props.stampSymbol, size / 2, size / 2 + 0.5);
+
+                const data = ctx.getImageData(0, 0, size, size).data;
+                matrix = [];
+                for (let y = 0; y < size; y++) {
+                  const row = [];
+                  for (let x = 0; x < size; x++) {
+                    row.push(data[(y * size + x) * 4 + 3] > 120);
+                  }
+                  matrix.push(row);
+                }
+              } else {
+                // For emoji/symbols: fallback to font rendering as a single pixel in the center
+                matrix = Array(7).fill(0).map(() => Array(7).fill(0));
+                matrix[3][3] = 1;
+              }
+
+              const rows = matrix.length;
+              const cols = matrix[0].length;
+
+              return (
+                <div
+                  style={{
+                    position: "absolute",
+                    pointerEvents: "none",
+                    left: (cursorPos.x - Math.floor(cols / 2)) * pixelSize,
+                    top: (cursorPos.y - Math.floor(rows / 2)) * pixelSize,
+                    width: cols * pixelSize,
+                    height: rows * pixelSize,
+                    zIndex: 20,
+                    display: "grid",
+                    gridTemplateRows: `repeat(${rows}, ${pixelSize}px)`,
+                    gridTemplateColumns: `repeat(${cols}, ${pixelSize}px)`,
+                    background: "rgba(0,0,0,0.08)",
+                  }}
+                >
+                  {matrix.flat().map((on, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        width: pixelSize,
+                        height: pixelSize,
+                        background: on ? "#06b6d4" : "transparent",
+                      }}
+                    />
+                  ))}
+                </div>
+              );
+            })()
+          ) : (
+            <div
+              style={{
+                position: "absolute",
+                pointerEvents: "none",
+                left: (cursorPos.x - Math.floor(brushSize / 2)) * pixelSize,
+                top: (cursorPos.y - Math.floor(brushSize / 2)) * pixelSize,
+                width: brushSize * pixelSize + 1,
+                height: brushSize * pixelSize + 1,
+                border: "2px solid #55c7f4",
+                background: "rgba(59, 130, 246, 0.15)",
+                boxSizing: "border-box",
+                zIndex: 10,
+              }}
+            />
+          )
         )}
       </div>
     </>

@@ -173,7 +173,7 @@ ${cs === "none" ? "" : `#define OLED_CS ${cs}// Not connected (optional)`}
 // Create display object
 
 ${cs === "none" ?
-      "Adafruit_SSD1306 display(128, 64, &SPI, OLED_DC, OLED_RESET);" :
+      "Adafruit_SSD1306 display(128, 64, &SPI, OLED_DC, OLED_RESET,-1);" :
       `Adafruit_SSD1306 display(128, 64, &SPI, OLED_DC, OLED_RESET, OLED_CS);`
     }
 

@@ -1,18 +1,20 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { twMerge } from 'tailwind-merge';
-import { setToPlaying, setToStopped } from '../reducers/isAnimationPlaying'
-import { useSelector, useDispatch } from 'react-redux'
+import { setToPlaying, setToStopped } from '../reducers/isAnimationPlaying';
+import { useSelector, useDispatch } from 'react-redux';
 import { Tooltip as ReactTooltip } from "react-tooltip";
 
-function ToolMainFrame({ Icon, onClick, target, tooltip = [""], classes = '', onHold, interval = 300, shortCutKey }) {
-    const intervalRef = React.useRef(null);
-    let currentKeyboardKey = useSelector((state) => state.currentKeyboardKey.value)
+function ToolMainFrame({ Icon, onClick, target, tooltip = [""], classes = '', onHold, interval = 100, shortCutKey }) {
+    const buttonRef = useRef(null);
+    const intervalRef = useRef(null);
+    const isHoldingRef = useRef(false);
+    let currentKeyboardKey = useSelector((state) => state.currentKeyboardKey.value);
 
     React.useEffect(() => {
         const handleKeyDown = (e) => {
             // Find the shortcut key and onClick for this Tool instance
             if (shortCutKey && isClickable && e.code === shortCutKey) {
-                console.log("Shortcut triggered", { shortCutKey, val:e.code });
+                console.log("Shortcut triggered", { shortCutKey, val: e.code });
                 onClick && onClick();
             }
         };
@@ -21,58 +23,77 @@ function ToolMainFrame({ Icon, onClick, target, tooltip = [""], classes = '', on
         // Only run once on mount/unmount
     }, []);
 
-    const startHold = () => {
+    // Add continuous action on mouse hold
+    useEffect(() => {
+        if (!onHold) return;
 
-        if (!onHold) return
-        if (intervalRef.current) return; // Prevent multiple intervals
-        onHold(); // Trigger once immediately
-        intervalRef.current = setInterval(onHold, interval);
-    };
+        const handleMouseDown = () => {
+            isHoldingRef.current = true;
+            
+            // Immediate action
+            onHold();
+            
+            // Continuous action
+            intervalRef.current = setInterval(() => {
+                if (isHoldingRef.current) {
+                    onHold();
+                }
+            }, interval);
+        };
 
-    const stopHold = () => {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-    };
+        const handleMouseUp = () => {
+            isHoldingRef.current = false;
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+            }
+        };
 
-    let isAnimationPlaying = useSelector((state) => state.isAnimationPlaying.value)
-    const tooltip_data_target = `tooltip-${target}`
-    const default_tool_class = 'active:scale-110 active:text-[#0763a4] focus:outline-none hover:scale-125 hover:text-iconColorHover rounded-full  text-iconColor hover:cursor-pointer size-5'
+        // Add event listeners to the actual DOM element, not the Icon component
+        const button = buttonRef.current;
+        if (button) {
+            button.addEventListener('mousedown', handleMouseDown);
+            document.addEventListener('mouseup', handleMouseUp); // Use document for mouseup to catch all cases
+        }
+
+        return () => {
+            if (button) {
+                button.removeEventListener('mousedown', handleMouseDown);
+            }
+            document.removeEventListener('mouseup', handleMouseUp);
+            
+            // Clear any active interval on unmount
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+            }
+        };
+    }, [onHold, interval]);
+
+    let isAnimationPlaying = useSelector((state) => state.isAnimationPlaying.value);
+    const tooltip_data_target = `tooltip-${target}`;
+    const default_tool_class = 'active:scale-110 active:text-[#0763a4] focus:outline-none hover:scale-125 hover:text-iconColorHover rounded-full text-iconColor hover:cursor-pointer size-5';
 
     const isClickable =
         (target === 'stop' && isAnimationPlaying) ||
         (target !== 'stop' && !isAnimationPlaying);
 
-    const mergeClasses = isClickable ? classes : twMerge(classes, 'hover:cursor-default hover:scale-100 hover:text-slate-500 text-slate-500')
+    const mergeClasses = isClickable ? classes : twMerge(classes, 'hover:cursor-default hover:scale-100 hover:text-slate-500 text-slate-500');
 
     const handleClick = isClickable ? onClick : undefined;
 
-
     return (
         <>
-
-
-            {/* 
-            <div id={tooltip_data_target} role="tooltip" className="grid capitalize absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[300ms] bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
-                {tooltip.map((tip, index) => <span key={index}>{tip}</span>)}
-                <div className="tooltip-arrow" data-popper-arrow></div>
-            </div> */}
-
-            <div className='flex'>
-
+            <div 
+                className='flex' 
+                ref={buttonRef} // Apply ref to the div, not the Icon
+            >
                 <Icon
-
-                    onMouseDown={startHold}
-                    onMouseUp={stopHold}
-                    onMouseLeave={stopHold}
-                    onTouchStart={startHold}
-                    onTouchEnd={stopHold}
-                    // data-tooltip-target={tooltip_data_target}
                     data-tooltip-id={`my-tooltip-${target}`}
                     className={twMerge(default_tool_class, mergeClasses)}
                     onClick={handleClick}
                 />
             </div>
-
 
             <ReactTooltip
                 id={`my-tooltip-${target}`}
@@ -80,7 +101,6 @@ function ToolMainFrame({ Icon, onClick, target, tooltip = [""], classes = '', on
                 delayShow={interval}
                 delayHide={45}
                 style={{ backgroundColor: "#374151" }}
-
                 className='capitalize z-50'
                 content={
                     <>
@@ -91,12 +111,10 @@ function ToolMainFrame({ Icon, onClick, target, tooltip = [""], classes = '', on
                             </React.Fragment>
                         ))}
                     </>
-
                 }
             />
         </>
-
     );
 }
 
-export default ToolMainFrame
+export default ToolMainFrame;
