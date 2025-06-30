@@ -4,10 +4,9 @@ import { setToPlaying, setToStopped } from '../reducers/isAnimationPlaying';
 import { useSelector, useDispatch } from 'react-redux';
 import { Tooltip as ReactTooltip } from "react-tooltip";
 
-function ToolMainFrame({ Icon, onClick, target, tooltip = [""], classes = '', onHold, interval = 100, shortCutKey }) {
+function ToolMainFrame({ Icon, onClick, target, tooltip = [""], classes = '', onHold, interval = 10, shortCutKey }) {
     const buttonRef = useRef(null);
     const intervalRef = useRef(null);
-    const isHoldingRef = useRef(false);
     let currentKeyboardKey = useSelector((state) => state.currentKeyboardKey.value);
 
     React.useEffect(() => {
@@ -23,52 +22,40 @@ function ToolMainFrame({ Icon, onClick, target, tooltip = [""], classes = '', on
         // Only run once on mount/unmount
     }, []);
 
-    // Add continuous action on mouse hold
-    useEffect(() => {
+    // Functions to handle continuous action on hold
+    const startHold = () => {
         if (!onHold) return;
-
-        const handleMouseDown = () => {
-            isHoldingRef.current = true;
-            
-            // Immediate action
-            onHold();
-            
-            // Continuous action
-            intervalRef.current = setInterval(() => {
-                if (isHoldingRef.current) {
-                    onHold();
-                }
-            }, interval);
-        };
-
-        const handleMouseUp = () => {
-            isHoldingRef.current = false;
-            if (intervalRef.current) {
-                clearInterval(intervalRef.current);
-                intervalRef.current = null;
-            }
-        };
-
-        // Add event listeners to the actual DOM element, not the Icon component
-        const button = buttonRef.current;
-        if (button) {
-            button.addEventListener('mousedown', handleMouseDown);
-            document.addEventListener('mouseup', handleMouseUp); // Use document for mouseup to catch all cases
+        
+        // Execute immediately
+        onHold();
+        
+        // Clear any existing interval first to prevent duplicates
+        if (intervalRef.current) {
+            clearInterval(intervalRef.current);
         }
+        
+        // Set up interval for continuous action
+        intervalRef.current = setInterval(() => {
+            onHold();
+        }, interval);
+    };
 
+    const stopHold = () => {
+        if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+        }
+    };
+
+    // Clean up on unmount
+    useEffect(() => {
         return () => {
-            if (button) {
-                button.removeEventListener('mousedown', handleMouseDown);
-            }
-            document.removeEventListener('mouseup', handleMouseUp);
-            
-            // Clear any active interval on unmount
             if (intervalRef.current) {
                 clearInterval(intervalRef.current);
                 intervalRef.current = null;
             }
         };
-    }, [onHold, interval]);
+    }, []);
 
     let isAnimationPlaying = useSelector((state) => state.isAnimationPlaying.value);
     const tooltip_data_target = `tooltip-${target}`;
@@ -85,13 +72,18 @@ function ToolMainFrame({ Icon, onClick, target, tooltip = [""], classes = '', on
     return (
         <>
             <div 
-                className='flex' 
-                ref={buttonRef} // Apply ref to the div, not the Icon
+                className='flex'
+                ref={buttonRef}
             >
                 <Icon
                     data-tooltip-id={`my-tooltip-${target}`}
                     className={twMerge(default_tool_class, mergeClasses)}
                     onClick={handleClick}
+                    onMouseDown={isClickable && onHold ? startHold : undefined}
+                    onMouseUp={isClickable && onHold ? stopHold : undefined}
+                    onMouseLeave={isClickable && onHold ? stopHold : undefined}
+                    onTouchStart={isClickable && onHold ? startHold : undefined}
+                    onTouchEnd={isClickable && onHold ? stopHold : undefined}
                 />
             </div>
 

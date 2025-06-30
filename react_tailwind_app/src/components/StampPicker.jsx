@@ -48,13 +48,13 @@ export default function StampPicker({ onSelect }) {
       <button
         ref={buttonRef}
         type="button" // Explicitly set type to "button"
-        className="bg-slate-900 text-teal-400 px-2 py-1 rounded shadow outline outline-1 outline-teal-400"
+        className="bg-slate-900  rounded shadow  text-iconColor hover:scale-125 hover:text-iconColorHover "
         onClick={(e) => {
           e.preventDefault(); // Prevent default behavior
           open ? setOpen(false) : handleOpen();
         }}
       >
-        <FaStamp></FaStamp>
+        <FaStamp className="size-5"></FaStamp>
       </button>
       {open && ReactDOM.createPortal(
         <>

@@ -43,6 +43,11 @@ import { SiArduino } from "react-icons/si";
 import StampPicker from "./StampPicker";
 import { FaStamp } from "react-icons/fa6";
 import { FaRegPenToSquare } from "react-icons/fa6";
+
+import { TbPencilMinus } from "react-icons/tb";
+
+import { TbPencilPlus } from "react-icons/tb";
+
 function OledPage() {
   const location = useLocation();
   const currentMatrixKey = useSelector((state) => state.currentMatrixKey.value)
@@ -943,9 +948,9 @@ void displayFrame(const bool matrix[8][8]) {
             onMouseUp={() => setIsMouseDown(false)}
 
           >
-            <div className=' w-full justify-between   mb-2 '>
+            <div className=' w-full flex flex-wrap  mb-2 space-x-2 '>
 
-              <div className='flex w-full justify-evenly mb-2'>
+              <div className='flex items-center  gap-3 mb-2 max-420:w-full max-420:justify-center max-420:gap-7'>
                 <ToolMainFrame
                   Icon={MdKeyboardDoubleArrowLeft}
                   target="shiftleft"
@@ -1007,7 +1012,11 @@ void displayFrame(const bool matrix[8][8]) {
 
 
               </div>
-              <div className='flex w-full justify-center space-x-3'>
+              <div className='flex items-center gap-3  max-420:w-full max-420:justify-center max-420:gap-7'>
+
+
+                <StampPicker onSelect={setStampSymbol}></StampPicker>
+
                 {
                   currentKeyboardKey === "KeyD" ?
                     <ToolMainFrame
@@ -1034,27 +1043,25 @@ void displayFrame(const bool matrix[8][8]) {
                   target="resetStamp"
                   onClick={resetToDefaultBrush}
                   tooltip={["Reset to Default Brush", "Clear stamp selection"]}
-                  classes={"size-6"}
+                  classes={"size-5"}
                 ></Tool>
-                <StampPicker onSelect={setStampSymbol}></StampPicker>
-
                 <div className=''>
 
 
                   <ToolMainFrame
-                    Icon={TiArrowUpOutline}
+                    Icon={TbPencilPlus}
                     target="brushUp"
                     onClick={handleBrushSizeUp}
                     shortCutKey="Equal"
                     tooltip={["Draw Size Up"]}
-                    classes="size-4"
+                    classes="size-5"
                   ></ToolMainFrame>
 
                   <ToolMainFrame
-                    Icon={TiArrowDownOutline}
+                    Icon={TbPencilMinus}
                     target="brushDown"
                     tooltip={["Draw size Down"]}
-                    classes="size-4"
+                    classes="size-5"
                     shortCutKey="Minus"
                     onClick={handleBrushSizeDown}
 
