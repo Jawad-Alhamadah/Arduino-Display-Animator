@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React from 'react'
 import FrameDurationInput from './FrameDurationInput';
 import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd';
 import { BsPlayFill, BsFillEraserFill } from "react-icons/bs";
@@ -774,9 +774,6 @@ void displayFrame(const bool matrix[8][8]) {
     setIsCodeGenerated(true)
   }
   const [stampSymbol, setStampSymbol] = React.useState(null);
-  const [shiftSpeed, setShiftSpeed] = useState(100); // milliseconds between shifts
-  const isShiftingRef = useRef(false);
-  const originalMatrixRef = useRef(null);
   return (
     <div className="theme-blue w-screen text-center flex justify-center flex-col items-center "
 
@@ -954,42 +951,14 @@ void displayFrame(const bool matrix[8][8]) {
                   target="shiftleft"
                   shortCutKey="ControlLeft"
                   toggleKey="ControlLeft"
-                  interval={shiftSpeed} // Use the shift speed for the interval
-                  onHold={() => {
-                    // Track the start of a shift sequence for history
-                    if (!isShiftingRef.current) {
-                      isShiftingRef.current = true;
-                      // Save the original state for the history
-                      const currentMatrix = oledMatrix.find(m => m.key === currentMatrixKey);
-                      if (currentMatrix) {
-                        originalMatrixRef.current = JSON.parse(JSON.stringify(currentMatrix.matrix));
-                      }
-                      
-                      // Set up cleanup when mouse is released
-                      const handleMouseUpOnce = () => {
-                        if (isShiftingRef.current) {
-                          isShiftingRef.current = false;
-                          
-                          // Add to history only once at the end of the shift sequence
-                          if (originalMatrixRef.current) {
-                            pushHistory(currentMatrixKey, originalMatrixRef.current);
-                            originalMatrixRef.current = null;
-                          }
-                          document.removeEventListener('mouseup', handleMouseUpOnce);
-                        }
-                      };
-                      document.addEventListener('mouseup', handleMouseUpOnce);
-                    }
-                    
-                    // Perform the actual shift
-                    if (currentKeyboardKeyRef.current === "ControlLeft") {
-                      shiftLeft(oledMatrix);
-                    } else {
-                      shiftLeftWrapped(oledMatrix);
-                    }
-                  }}
+                  onHold={() =>
+                    currentKeyboardKeyRef.current === "ControlLeft" ? shiftLeft(oledMatrix)
+                      : shiftLeftWrapped(oledMatrix)}
+                  oledMatrix={oledMatrix}
+
                   tooltip={["shift left", "Press `Ctrl` for No Wrap shift"]}
                   classes={currentKeyboardKey === "ControlLeft" ? "scale-110 text-yellow-400" : ""}
+
                 ></ToolMainFrame>
 
 
@@ -1029,42 +998,9 @@ void displayFrame(const bool matrix[8][8]) {
                 <ToolMainFrame
                   Icon={MdKeyboardDoubleArrowRight}
                   target="shiftRight"
-                  shortCutKey="ControlLeft"
-                  toggleKey="ControlLeft"
-                  interval={shiftSpeed} // Use the shift speed for the interval
-                  onHold={() => {
-                    // Track the start of a shift sequence for history
-                    if (!isShiftingRef.current) {
-                      isShiftingRef.current = true;
-                      // Save the original state for the history
-                      const currentMatrix = oledMatrix.find(m => m.key === currentMatrixKey);
-                      if (currentMatrix) {
-                        originalMatrixRef.current = JSON.parse(JSON.stringify(currentMatrix.matrix));
-                      }
-                      
-                      // Set up cleanup when mouse is released
-                      const handleMouseUpOnce = () => {
-                        if (isShiftingRef.current) {
-                          isShiftingRef.current = false;
-                          
-                          // Add to history only once at the end of the shift sequence
-                          if (originalMatrixRef.current) {
-                            pushHistory(currentMatrixKey, originalMatrixRef.current);
-                            originalMatrixRef.current = null;
-                          }
-                          document.removeEventListener('mouseup', handleMouseUpOnce);
-                        }
-                      };
-                      document.addEventListener('mouseup', handleMouseUpOnce);
-                    }
-                    
-                    // Perform the actual shift
-                    if (currentKeyboardKeyRef.current === "ControlLeft") {
-                      shiftRight(oledMatrix);
-                    } else {
-                      shiftRightWrapped(oledMatrix);
-                    }
-                  }}
+                  onHold={() =>
+                    currentKeyboardKeyRef.current === "ControlLeft" ? shiftRight(oledMatrix)
+                      : shiftRightWrapped(oledMatrix)}
                   tooltip={["shift Right", "Press `Ctrl` for No Wrap shift"]}
                   classes={currentKeyboardKey === "ControlLeft" ? "scale-110 text-yellow-400" : ""}
                 ></ToolMainFrame>
