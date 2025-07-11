@@ -1,42 +1,21 @@
 import React, { useState, useRef } from "react";
 import ReactDOM from "react-dom";
 import UNICODE_SYMBOLS from "./unicodeSymbols";
-import { FaStamp } from "react-icons/fa6";
+import { FaStamp } from "react-icons/fa";
+import PIXEL_FONT_7x7 from "./pixelFont7x7";
 
 export default function StampPicker({ onSelect }) {
   const [open, setOpen] = useState(false);
   const panelRef = useRef();
   const buttonRef = useRef();
-  const [panelStyle, setPanelStyle] = useState({});
-
-  const calculatePosition = () => {
-    if (!buttonRef.current) return null;
-
-    const btnRect = buttonRef.current.getBoundingClientRect();
-    let width = Math.min(window.innerWidth - 32, 600);
-    if (window.innerWidth < 400) width = window.innerWidth - 16;
-
-    let left = btnRect.left;
-    if (left + width > window.innerWidth - 8) left = window.innerWidth - width - 8;
-    if (left < 8) left = 8;
-
-    return {
-      position: "fixed",
-      top: btnRect.bottom + 6,
-      left,
-      width,
-      minWidth: 180,
-      maxWidth: 600,
-      zIndex: 9999,
-    };
-  };
+  
+  // Get all icon stamps (entries with non-null icon property)
+  const iconStamps = Object.keys(PIXEL_FONT_7x7).filter(
+    key => PIXEL_FONT_7x7[key] && PIXEL_FONT_7x7[key].icon !== null
+  );
 
   const handleOpen = () => {
-    const position = calculatePosition();
-    if (position) {
-      setPanelStyle(position);
-      setOpen(true);
-    }
+    setOpen(true);
   };
 
   const handleMouseLeave = (e) => {
@@ -47,10 +26,10 @@ export default function StampPicker({ onSelect }) {
     <div className="relative inline-block">
       <button
         ref={buttonRef}
-        type="button" // Explicitly set type to "button"
-        className="bg-slate-900  rounded shadow  text-iconColor hover:scale-125 hover:text-iconColorHover "
+        type="button"
+        className="bg-slate-900 rounded shadow text-iconColor hover:scale-125 hover:text-iconColorHover"
         onClick={(e) => {
-          e.preventDefault(); // Prevent default behavior
+          e.preventDefault();
           open ? setOpen(false) : handleOpen();
         }}
       >
@@ -68,16 +47,48 @@ export default function StampPicker({ onSelect }) {
             max-w-[500px] min-w-[280px]
             max-h-[80vh] overflow-y-auto
             grid auto-rows-auto gap-2
-            border border-slate-700"
+            border border-slate-700 text-yellow-500"
             style={{
               gridTemplateColumns: 'repeat(auto-fill, minmax(32px, 1fr))',
             }}
           >
+            {/* React Icons Section */}
+            {iconStamps && iconStamps.length > 0 && (
+              <div className="col-span-full mb-2">
+                <div className="text-xs text-gray-400 mb-1">Icons:</div>
+                <div className="grid grid-cols-6 sm:grid-cols-8 gap-2">
+                  {iconStamps.map((key) => (
+                    <button
+                      key={`icon-${key}`}
+                      className="text-yellow-400 w-8 h-8 flex items-center justify-center hover:bg-slate-800 rounded"
+                      onClick={() => {
+                        // Pass the key, not the matrix directly
+                        onSelect && onSelect(key);
+                        setOpen(false);
+                      }}
+                      tabIndex={-1}
+                      type="button"
+                    >
+                      {PIXEL_FONT_7x7[key].icon}
+                    </button>
+                  ))}
+                </div>
+                <div className="border-b border-slate-700 mt-2 mb-2"></div>
+              </div>
+            )}
+            
+            {/* Unicode Symbols */}
+            <div className="col-span-full mb-1">
+              <div className="text-xs text-gray-400">Unicode Symbols:</div>
+            </div>
             {UNICODE_SYMBOLS.map((sym, i) => (
               <button
                 key={i}
-                className="text-teal-400 text-xs w-5 h-5 flex items-center justify-center hover:bg-slate-800 rounded"
-                onClick={() => { onSelect && onSelect(sym); setOpen(false); }}
+                className="text-iconColor text-xs w-5 h-5 flex items-center justify-center hover:bg-slate-800 rounded"
+                onClick={() => { 
+                  onSelect && onSelect(sym); 
+                  setOpen(false); 
+                }}
                 tabIndex={-1}
                 type="button"
               >

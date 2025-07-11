@@ -6,7 +6,7 @@ const cpp_functions_object = {
   "sparse": "drawSparsePixels"
 }
 
-export function generate_oled_template(cpp_data_objects, frameDuration) {
+export function generate_oled_template(cpp_data_objects, frameDuration, isSingleFrame = false) {
   let frames = []
 
   let images_data_list = cpp_data_objects.map((frame, index) => {
@@ -110,15 +110,19 @@ ${frames}
 void setup() {
 display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
 
+${isSingleFrame? ` display.clearDisplay();
+    frames[currentFrame].strategy(frames[currentFrame].data, frames[currentFrame].length);
+    display.display();` : ``}
 }
 
-void loop() {
+void playAnimation(){
+
  unsigned long currentMillis = millis();
 
   if (currentMillis - previousMillis >= interval) {
     previousMillis = currentMillis;
 
-    display.clearDisplay();
+     display.clearDisplay();
     frames[currentFrame].strategy(frames[currentFrame].data, frames[currentFrame].length);
     display.display();
 
@@ -130,12 +134,36 @@ void loop() {
 
 }
 
+void displaySingleFrame(int index){
+    frames[index].strategy(frames[index].data, frames[index].length);
+}
+
+
+void setup() {
+display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+
+${isSingleFrame? ` display.clearDisplay();
+    frames[currentFrame].strategy(frames[currentFrame].data, frames[currentFrame].length);
+    display.display();` : ``}
+
+}
+
+
+void loop() {
+${isSingleFrame? "" : `
+ 
+  playAnimation();
+  
+  `}
+
+
+}
 
 `
   // ${frame_calls_strings.reduce((prev, curr) => prev + "\n \n" + curr)}
 }
 
-export function generate_oled_template_SPI(cpp_data_objects, frameDuration, cs = "none", reset = 11, dc = 12, board = "nano") {
+export function generate_oled_template_SPI(cpp_data_objects, frameDuration, cs = "none", reset = 11, dc = 12 , isSingleFrame = false) {
   let frames = []
 
 
@@ -253,17 +281,15 @@ void drawBitPacked(const uint8_t* data, uint16_t length) {
 Frame frames[] = {
 ${frames}
 };
-void setup() {
-display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
 
-}
+void playAnimation(){
 
-void loop() {
  unsigned long currentMillis = millis();
 
   if (currentMillis - previousMillis >= interval) {
     previousMillis = currentMillis;
 
+    
     display.clearDisplay();
     frames[currentFrame].strategy(frames[currentFrame].data, frames[currentFrame].length);
     display.display();
@@ -273,6 +299,30 @@ void loop() {
       currentFrame = 0; // loop back to first frame
     }
   }
+
+}
+
+void displaySingleFrame(int index){
+    frames[index].strategy(frames[index].data, frames[index].length);
+}
+
+void setup() {
+display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+
+${isSingleFrame? ` display.clearDisplay();
+    frames[currentFrame].strategy(frames[currentFrame].data, frames[currentFrame].length);
+    display.display();` : ``}
+
+}
+
+
+void loop() {
+${isSingleFrame? "" : `
+ 
+  playAnimation();
+ 
+  `}
+
 
 }
 

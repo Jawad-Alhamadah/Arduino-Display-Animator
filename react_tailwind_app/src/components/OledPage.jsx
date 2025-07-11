@@ -47,6 +47,7 @@ import { FaRegPenToSquare } from "react-icons/fa6";
 import { TbPencilMinus } from "react-icons/tb";
 
 import { TbPencilPlus } from "react-icons/tb";
+import pako from 'pako'; // For compression (install with: npm install pako)
 
 function OledPage() {
   const location = useLocation();
@@ -158,10 +159,166 @@ function OledPage() {
 
   const oledMatrixCurrentRef = React.useRef(oledMatrix)
 
+
+//   const updateURL = () => {
+//   const compressed = encodeMatrixForURL(oledMatrix);
+//   const url = new URL(window.location.href);
+//   url.searchParams.set('matrix', compressed);
+//   window.history.pushState({}, '', url);
+// };
+
+// const updateURL = () => {
+//   const compressed = encodeMatrixForURL(oledMatrix);
+//   const url = new URL(window.location.href);
+//   url.searchParams.set('matrix', compressed);
+//   window.history.pushState({}, '', url);
+// };
+
+const updateURL = () => {
+  const encoded = encodeMatrixForURL(oledMatrix);
+  window.history.replaceState({}, '', `?matrix=${encoded}`);
+};
+
+// Load from URL on mount
+React.useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const matrixParam = params.get('matrix');
+  
+  if (matrixParam) {
+    const decoded = decodeMatrixFromURL(matrixParam);
+    console.log(decoded)
+    if (decoded) setOledMatrix(decoded);
+    setCurrentMatrixByKey(decoded[0].key)
+  }
+}, []);
+// Load state from URL on initial render
+// React.useEffect(() => {
+//   const params = new URLSearchParams(window.location.search);
+//   const matrixParam = params.get('matrix');
+  
+//   console.log(matrixParam)
+//   if (matrixParam) {
+//     const decoded = decodeMatrixFromURL(matrixParam);
+//     console.log(decoded)
+//     if (decoded) setOledMatrix(decoded);
+//   }
+// }, []);
+
+
   React.useEffect(() => {
     oledMatrixCurrentRef.current = oledMatrix
   }, [oledMatrix])
 
+
+const matrixToBinaryString = (oledMatrix) => {
+  let binaryStr = '';
+  for (const frame of oledMatrix) {
+    for (let row of frame.matrix) {
+      for (let cell of row) {
+        binaryStr += cell ? '1' : '0';
+      }
+    }
+  }
+  return binaryStr;
+};
+
+// const encodeMatrixForURL = (oledMatrix) => {
+//   // 1. Convert to binary string
+//   const binaryStr = matrixToBinaryString(oledMatrix);
+  
+//   // 2. Pack binary string into bytes
+//   const bytes = new Uint8Array(Math.ceil(binaryStr.length / 8));
+//   for (let i = 0; i < bytes.length; i++) {
+//     const byteStr = binaryStr.substr(i * 8, 8).padEnd(8, '0');
+//     bytes[i] = parseInt(byteStr, 2);
+//   }
+  
+//   // 3. Compress with zlib (great for binary data)
+//   const compressed = pako.deflate(bytes);
+  
+//   // 4. Convert to Base64 (URL-safe)
+//   return btoa(String.fromCharCode(...compressed))
+//     .replace(/\+/g, '-') // Replace URL-unsafe characters
+//     .replace(/\//g, '_')
+//     .replace(/=+$/, '');
+// };
+
+
+
+const matrixToEncodedString = (oledMatrix) => {
+  let output = '';
+  
+  for (const frame of oledMatrix) {
+    // Add frame key (with special delimiter)
+    output += `[${frame.key}]`;
+    
+    // Add binary matrix data
+    for (let row of frame.matrix) {
+      for (let cell of row) {
+        output += cell ? '1' : '0';
+      }
+    }
+  }
+  
+  return output;
+};
+
+// Main encoding function
+
+const encodeMatrixForURL = (oledMatrix) => {
+  // 1. Create a structured object with keys and binary data
+  const dataToEncode = {
+    frames: oledMatrix.map(frame => ({
+      key: frame.key,  // Preserve original key
+      data: frame.matrix.flatMap(row => 
+        row.map(cell => cell ? '1' : '0')).join('')
+    }))
+  };
+
+  // 2. Convert to JSON string
+  const jsonString = JSON.stringify(dataToEncode);
+
+  // 3. Compress with zlib
+  const compressed = pako.deflate(jsonString);
+
+  // 4. Convert to Base64 (URL-safe)
+  return btoa(String.fromCharCode(...compressed))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+};
+const decodeMatrixFromURL = (base64) => {
+  try {
+    // 1. Restore Base64 to compressed bytes
+    const binaryStr = atob(base64
+      .replace(/-/g, '+')
+      .replace(/_/g, '/'));
+    const compressed = new Uint8Array(binaryStr.length);
+    for (let i = 0; i < binaryStr.length; i++) {
+      compressed[i] = binaryStr.charCodeAt(i);
+    }
+
+    // 2. Decompress
+    const jsonString = pako.inflate(compressed, { to: 'string' });
+
+    // 3. Parse JSON
+    const { frames } = JSON.parse(jsonString);
+
+    // 4. Reconstruct oledMatrix with original keys
+    return frames.map(({ key, data }) => {
+      const matrix = [];
+      for (let row = 0; row < 64; row++) {
+        const start = row * 128;
+        const rowData = data.slice(start, start + 128);
+        matrix.push(Array.from(rowData).map(bit => bit === '1'));
+      }
+      return { key, matrix };  // Preserve original key
+    });
+  } catch (e) {
+    console.error("Failed to decode matrix:", e);
+    return null;
+  }
+};
   const handleBrushSizeUp = React.useCallback(() => {
     setBrushSize(prev => {
       if (prev === 1) return 2;
@@ -552,13 +709,13 @@ function OledPage() {
 
     // let matrixObject = oledMatrix.find(obj => obj.key=== currentMatrixKey)
 
-    let list_of_frames = oledMatrix.map((frame, index) => generateMostEfficientCppArray(frame.matrix, index))
+    let list_of_frames_cpp = oledMatrix.map((frame, index) => generateMostEfficientCppArray(frame.matrix, index))
 
 
     //let frames_cpp = list_of_frames.map((frame,index) =>code_generation_templates[frame.strategy](frame.cpp,index))
     //  let cpp_data = generateMostEfficientCppArray(matrixObject.matrix) 
-    if (oledType === "I2C") { setGeneratedCode(generate_oled_template(list_of_frames, frameDuration)) }
-    if (oledType === "SPI") { setGeneratedCode(generate_oled_template_SPI(list_of_frames, frameDuration, pinCS, pinReset, pinDC)) }
+    if (oledType === "I2C") { setGeneratedCode(generate_oled_template(list_of_frames_cpp, frameDuration)) }
+    if (oledType === "SPI") { setGeneratedCode(generate_oled_template_SPI(list_of_frames_cpp, frameDuration, pinCS, pinReset, pinDC)) }
     //setGeneratedCode(generate_oled_template(list_of_frames, frameDuration))
     setIsCodeGenerated(true)
     setCodeCopied(false)
@@ -595,7 +752,8 @@ function OledPage() {
         return prev;
       });
     });
-  }, [oledMatrix]);
+    setTimeout(updateURL, 0);
+  }, [oledMatrix,updateURL]);
 
   function clearFrame() {
     setOledMatrix(prev => {
@@ -712,71 +870,22 @@ function OledPage() {
 
   function generateCodeOneFrame() {
 
-    let rMatrices = flipAll(oledMatrix);
-    //console.log(rMatrices.map(matrix=>matrix.dotmatrix))
-    // let stringMatrices = JSON.stringify(rMatrices.map(matrix=>matrix.dotmatrix))
-    let frame = rMatrices[rMatrices.findIndex(matrix => matrix.key === currentMatrixKey)].dotmatrix
-    let dotMatrixString = JSON.stringify(frame)
-    let dotMatrixFormatted = dotMatrixString.replace(/[\[\]]/g, match => match === "[" ? "{" : "}")
-    console.log(`const bool frame[8][8] = ${dotMatrixFormatted}`)
 
-    setGeneratedCode(`
     
-const int DIN = ${pinDIN};
-const int CS = ${pinCS};
-const int CLK = ${pinCLK};
+    // let matrixObject = oledMatrix.find(obj => obj.key=== currentMatrixKey)
+
+    let single_frame = oledMatrix.filter (mat => mat.key ===currentMatrixKeyRef.current)
+    let single_frame_cpp = generateMostEfficientCppArray(single_frame[0].matrix, 0)
 
 
-// Define the frame data (matrix list)
-
-const bool frame[8][8] = ${dotMatrixFormatted};
-
-void setup() {
-  // Set pin modes
-  pinMode(DIN, OUTPUT);
-  pinMode(CLK, OUTPUT);
-  pinMode(CS, OUTPUT);
-
-  // Initialize MAX7219
-  digitalWrite(CS, HIGH);
-  sendCommand(0x0F, 0x00); // Display test off
-  sendCommand(0x09, 0x00); // Decode mode off
-  sendCommand(0x0B, 0x07); // Scan limit = 8 LEDs
-  sendCommand(0x0A, 0x08); // Brightness = medium
-  sendCommand(0x0C, 0x01); // Shutdown register = normal operation
-  clearDisplay();
-  displayFrame(frame);
-}
-
-void loop() {
-   
-}
-
-void sendCommand(byte command, byte data) {
-  digitalWrite(CS, LOW);
-  shiftOut(DIN, CLK, MSBFIRST, command);
-  shiftOut(DIN, CLK, MSBFIRST, data);
-  digitalWrite(CS, HIGH);
-}
-
-void clearDisplay() {
-  for (int i = 0; i < 8; i++) {
-    sendCommand(i + 1, 0);
-  }
-}
-
-void displayFrame(const bool matrix[8][8]) {
-  for (int row = 0; row < 8; row++) {
-    byte rowData = 0;
-    for (int col = 0; col < 8; col++) {
-      if (matrix[row][col]) {
-        rowData |= (1 << col);
-      }
-    }
-    sendCommand(row + 1, rowData);
-  }
-}`)
+    //let frames_cpp = list_of_frames.map((frame,index) =>code_generation_templates[frame.strategy](frame.cpp,index))
+    //  let cpp_data = generateMostEfficientCppArray(matrixObject.matrix) 
+    if (oledType === "I2C") { setGeneratedCode(generate_oled_template([single_frame_cpp], frameDuration,true)) }
+    if (oledType === "SPI") { setGeneratedCode(generate_oled_template_SPI([single_frame_cpp], frameDuration, pinCS, pinReset, pinDC,true)) }
+    //setGeneratedCode(generate_oled_template(list_of_frames, frameDuration))
     setIsCodeGenerated(true)
+    setCodeCopied(false)
+    notifyUser("Code Generation Sucessful!", toast.success)
   }
   const [stampSymbol, setStampSymbol] = React.useState(null);
   return (
@@ -1116,6 +1225,7 @@ void displayFrame(const bool matrix[8][8]) {
               </div>
 
               <WiringGuide></WiringGuide>
+             
               {/* <div data-tooltip-target="tooltip_guide" className='flex space-x-1 outline outline-slate-700 rounded-md bg-slate-900 outline-offset-2 items-center '>
                 <SiArduino className='size-7 text-cyan-600' />
                 <FaHireAHelper className='size-5 text-cyan-600  '></FaHireAHelper >
@@ -1197,11 +1307,24 @@ void displayFrame(const bool matrix[8][8]) {
 
               className={
                 isGenerateDisabled ?
+                  'mb-2 bg-slate-900 text-gray-600 outline outline-gray-600 py-1 px-2 rounded-sm'
+                  :
+                  'mb-2 hover:bg-[#33566bbe] hover:text-white bg-slate-900 text-accentText  py-1 px-2 rounded-sm cursor-pointer'
+              }
+              onClick={isGenerateDisabled ? () => { } : () => generateCodeOneFrame()}>Generate One Frame</div>
+
+                <div
+              type="button" //Needed to prevent form page refresh
+
+              className={
+                isGenerateDisabled ?
                   'bg-slate-900 text-gray-600 outline outline-gray-600 py-1 px-2 rounded-sm'
                   :
                   'hover:bg-[#33566bbe] hover:text-white bg-slate-900 text-accentText  py-1 px-2 rounded-sm cursor-pointer'
               }
               onClick={isGenerateDisabled ? () => { } : () => generateCode()}>Generate animation code</div>
+
+              
 
           </form>
         </div>

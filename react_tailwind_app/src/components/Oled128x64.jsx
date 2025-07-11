@@ -117,7 +117,8 @@ export default function Oled128x64(props) {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, WIDTH * pixelSize, HEIGHT * pixelSize);
-
+    console.log(props.oledMatrix)
+    console.log(currentMatrixKey)
     props.oledMatrix.find(obj => obj.key === currentMatrixKey).matrix.forEach((row, y) => {
       row.forEach((pixel, x) => {
         if (pixel) {
@@ -143,18 +144,26 @@ export default function Oled128x64(props) {
         props.onStrokeEnd(structuredClone(currentMatrix.matrix));
       }
       
-      // Then apply the stamp (rest of the existing code)
+      // Then apply the stamp
       props.setOledMatrix((prev) => {
         const newMatrix = structuredClone(prev);
         const matrixObj = newMatrix.find(obj => obj.key === currentMatrixKey);
         if (!matrixObj) return prev;
         
-        // Get the stamp pattern (no changes to this part)
+        // Get the stamp pattern
         let stampMatrix = null;
-        if (PIXEL_FONT_7x7[props.stampSymbol]) {
-          stampMatrix = PIXEL_FONT_7x7[props.stampSymbol];
-        } else if (/^[A-Za-z0-9.]$/.test(props.stampSymbol)) {
-          // Fallback for alphanumerics using canvas rendering
+        
+        // If it's a key in PIXEL_FONT_7x7 (including our icon stamps)
+        if (props.stampSymbol && PIXEL_FONT_7x7[props.stampSymbol] && PIXEL_FONT_7x7[props.stampSymbol].matrix) {
+          stampMatrix = PIXEL_FONT_7x7[props.stampSymbol].matrix;
+        } 
+        // If it's an array directly (matrix passed directly)
+        else if (Array.isArray(props.stampSymbol) && props.stampSymbol.length > 0) {
+          stampMatrix = props.stampSymbol;
+        }
+        // Fallback for regular characters
+        else if (typeof props.stampSymbol === 'string' && /^[A-Za-z0-9.]$/.test(props.stampSymbol)) {
+          // Render to canvas and get pixel data
           const size = 7;
           const canvas = document.createElement("canvas");
           canvas.width = size;
@@ -176,10 +185,18 @@ export default function Oled128x64(props) {
             }
             stampMatrix.push(row);
           }
-        } else {
-          // Default single pixel for unknown symbols
-          stampMatrix = Array(7).fill(0).map(() => Array(7).fill(0));
+        } 
+        // Default fallback - single pixel
+        else {
+          stampMatrix = Array(7).fill().map(() => Array(7).fill(0));
           stampMatrix[3][3] = 1;
+        }
+        
+        // Safety check
+        if (!stampMatrix || !Array.isArray(stampMatrix)) {
+          stampMatrix = Array(7).fill().map(() => Array(7).fill(0));
+          stampMatrix[3][3] = 1;
+          return prev;
         }
         
         // Apply the stamp to the matrix
@@ -434,6 +451,39 @@ export default function Oled128x64(props) {
     };
   }, []);
 
+  // Look for the drawStamp function or similar and update it:
+
+  const drawStamp = (x, y, symbol) => {
+    if (!symbol) return;
+    
+    let matrix;
+    
+    // If it's a key in PIXEL_FONT_7x7 (including our icon stamps)
+    if (PIXEL_FONT_7x7[symbol] && PIXEL_FONT_7x7[symbol].matrix) {
+      matrix = PIXEL_FONT_7x7[symbol].matrix;
+    } 
+    // If it's an array directly (matrix passed directly)
+    else if (Array.isArray(symbol) && symbol.length > 0) {
+      matrix = symbol;
+    }
+    // If nothing worked, exit early
+    if (!matrix || !Array.isArray(matrix) || !matrix.length) {
+      return;
+    }
+
+    // Now draw the matrix
+    const h = matrix.length;
+    const w = matrix[0].length;
+    
+    for (let i = 0; i < h; i++) {
+      for (let j = 0; j < w; j++) {
+        if (matrix[i][j]) {
+          drawPixel(x + j, y + i);
+        }
+      }
+    }
+  };
+
   return (
     <>
       <div style={{ position: "relative", width: WIDTH * pixelSize, height: HEIGHT * pixelSize }}>
@@ -452,14 +502,19 @@ export default function Oled128x64(props) {
         {isCursorOver && cursorPos.x !== null && cursorPos.y !== null && (
           props.stampSymbol ? (
             (() => {
-              const isLetterOrNumber = /^[A-Za-z0-9.]$/.test(props.stampSymbol);
               let matrix = null;
 
-              if (PIXEL_FONT_7x7[props.stampSymbol]) {
-                // Use custom pixel font for any supported symbol
-                matrix = PIXEL_FONT_7x7[props.stampSymbol];
-              } else if (/^[A-Za-z0-9.]$/.test(props.stampSymbol)) {
-                // Fallback: render to 7x7 canvas and threshold for unsupported alphanumerics
+              // If it's a key in PIXEL_FONT_7x7 (including our icon stamps)
+              if (props.stampSymbol && PIXEL_FONT_7x7[props.stampSymbol] && PIXEL_FONT_7x7[props.stampSymbol].matrix) {
+                matrix = PIXEL_FONT_7x7[props.stampSymbol].matrix;
+              } 
+              // If it's an array directly (matrix passed directly)
+              else if (Array.isArray(props.stampSymbol) && props.stampSymbol.length > 0) {
+                matrix = props.stampSymbol;
+              }
+              // Fallback for regular characters
+              else if (typeof props.stampSymbol === 'string' && /^[A-Za-z0-9.]$/.test(props.stampSymbol)) {
+                // Render to 7x7 canvas and threshold for alphanumerics
                 const size = 7;
                 const canvas = document.createElement("canvas");
                 canvas.width = size;
@@ -481,8 +536,15 @@ export default function Oled128x64(props) {
                   }
                   matrix.push(row);
                 }
-              } else {
-                // For emoji/symbols: fallback to font rendering as a single pixel in the center
+              } 
+              // Default fallback - single pixel
+              else {
+                matrix = Array(7).fill(0).map(() => Array(7).fill(0));
+                matrix[3][3] = 1;
+              }
+
+              // Safety check
+              if (!matrix || !Array.isArray(matrix)) {
                 matrix = Array(7).fill(0).map(() => Array(7).fill(0));
                 matrix[3][3] = 1;
               }
