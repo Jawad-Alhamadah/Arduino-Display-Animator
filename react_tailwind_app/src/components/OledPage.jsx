@@ -27,7 +27,7 @@ import { ToastContainer } from 'react-toastify';
 import ToolMainFrame from "./ToolMainFrame"
 import { MdOutlineHelpCenter } from "react-icons/md";
 import { CgScreen } from "react-icons/cg";
-import WiringGuide from './wiringGuide';
+import WiringGuide from './WiringGuide';
 import Tool from './Tool';
 import { notifyUser } from './toastifyFunctions';
 import { TbNavigationQuestion } from "react-icons/tb";
