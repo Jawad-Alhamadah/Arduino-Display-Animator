@@ -2,6 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer utilities {
+  @keyframes ping-border {
+    0% {
+      transform:  scale(0.5);
+      opacity: 1;
+    }
+    75% {
+      transform: scale(2.5);
+      opacity: 0;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  .animate-ping-border {
+    animation: ping-border 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+}
 
 
 .glow-on-hover:before {
@@ -44,3 +63,34 @@
   50% { background-position: 400% 0; }
   100% { background-position: 0 0; }
 }
+
+
+::-webkit-scrollbar {
+background-color: transparent;
+width: 10px;
+}
+::-webkit-scrollbar-thumb{
+background:linear-gradient( #21d4fd,#b721ff);
+border-radius: 10px;
+
+}
+
+body {
+  overflow-x: hidden;
+}
+/* body {
+  cursor: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 32 32'>\
+<path d='M2,1 L2,28 L8,20 L12,27 L14,26 L9,19 L17,19 Z' \
+fill='black' stroke='%23ff00ff' stroke-width='2' stroke-linejoin='round'/>\
+</svg>") 2 2, auto;
+}
+
+
+body, a, button {
+  cursor: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 32 32'>\
+<path d='M10,10 L10,5 A1,1 0 0 1 12,5 L12,12 L13,12 L13,6 A1,1 0 0 1 15,6 L15,13 L16,13 L16,7 A1,1 0 0 1 18,7 L18,16 L19,16 L19,10 A1,1 0 0 1 21,10 L21,20 Q21,24 17,24 H16 Q13,24 12,22 L10,18 Z' \
+fill='black' stroke='%23ff00ff' stroke-width='2' stroke-linejoin='round'/>\
+</svg>") 4 4, pointer;
+} */

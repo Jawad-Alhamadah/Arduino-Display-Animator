@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { setCurrentMatrixByKey } from '../reducers/currentMatrixSlice';
 import { setToKeyboardKey } from '../reducers/currentKeyboardKey';
 import { setToPlaying, setToStopped } from '../reducers/isAnimationPlaying';
+import { setFrameDuration } from '../reducers/frameDurationSlice';
 import EightByEightFrame from './EightByEightFrame';
 import EightByEightMain from './EightByEightMain';
 import Max7219IC from './Max7219IC';
@@ -16,12 +17,15 @@ import { MdAdd, MdKeyboardDoubleArrowRight, MdKeyboardDoubleArrowLeft, MdOutline
 import { GrRotateLeft, GrRotateRight } from "react-icons/gr";
 import { MdDeleteForever } from "react-icons/md";
 import { FaClipboardCheck } from "react-icons/fa6";
-
-import { ToastContainer, toast, Flip } from 'react-toastify';
-
+import { TbFileDownload } from "react-icons/tb";
+import { ToastContainer, toast } from 'react-toastify';
+import { notifyUser } from "./toastifyFunctions"
 import ToolMainFrame from './ToolMainFrame';
 import { useNavigate } from 'react-router-dom'
 import Tool from "./Tool"
+import FrameDurationInput from './FrameDurationInput';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 
 function Max7219Page() {
@@ -42,7 +46,9 @@ function Max7219Page() {
   const [pinCS, setPinCS] = React.useState('none');
   const [pinCLK, setPinCLK] = React.useState('none');
   const [pinDIN, setPinDIN] = React.useState('none');
-  const [frameDuration, setFrameDuration] = React.useState('200');
+  let [board, setBoard] = React.useState("")
+
+  // const [frameDuration, setFrameDuration] = React.useState('200');
   const [isGenerateDisabled, setIsGenerateDisabled] = React.useState(true);
   const [isCodeGenerated, setIsCodeGenerated] = React.useState(false);
   const [isDragging, setIsDragging] = React.useState(false);
@@ -55,6 +61,7 @@ function Max7219Page() {
   const currentMatrixKey = useSelector((state) => state.currentMatrixKey.value)
   let currentKeyboardKey = useSelector((state) => state.currentKeyboardKey.value)
   let isAnimationPlaying = useSelector((state) => state.isAnimationPlaying.value)
+  let frameDuration = useSelector((state) => state.frameDuration.value)
   const navigate = useNavigate();
 
   const dispatch = useDispatch()
@@ -82,16 +89,20 @@ function Max7219Page() {
   )
 
 
-  const [oledMatrix, setOledMatrix] = React.useState(
-    [
-      {
-        key: 1, oledmatrix: Array.from({ length: 64 }, () => Array(128).fill(false))
-      },
+  // const [oledMatrix, setOledMatrix] = React.useState(
+  //   [
+  //     {
+  //       key: 1, oledmatrix: Array.from({ length: 64 }, () => Array(128).fill(false))
+  //     },
 
-    ]
-  )
+  //   ]
+  // )
 
+  function handleBoardChange(event) {
+    console.log(event)
+    setBoard(event.target.value)
 
+  }
   function shiftMatrixRightNoWrap(matrixKey) {
     setDotMatrixDivs(prev =>
       prev.map(matrix => {
@@ -150,19 +161,19 @@ function Max7219Page() {
     );
   }
 
-  function notifyUser(message, notificationFunction) {
-    notificationFunction(message, {
-      position: "top-right",
-      autoClose: 5000,
-      hideProgressBar: false,
-      closeOnClick: false,
-      pauseOnHover: true,
-      draggable: true,
-      progress: undefined,
-      theme: "dark",
-      transition: Flip,
-    });
-  }
+  // function notifyUser(message, notificationFunction) {
+  //   notificationFunction(message, {
+  //     position: "top-right",
+  //     autoClose: 5000,
+  //     hideProgressBar: false,
+  //     closeOnClick: false,
+  //     pauseOnHover: true,
+  //     draggable: true,
+  //     progress: undefined,
+  //     theme: "dark",
+  //     transition: Flip,
+  //   });
+  // }
 
   React.useEffect(() => {
     // Global mouseup listener to reset dragging state
@@ -227,24 +238,24 @@ function Max7219Page() {
     navigate(value)
 
   }
-  function frameDurationBlurHandle() {
+  // function frameDurationBlurHandle() {
 
-    const num = Number(frameDuration);
-    if (num < 10) {
-      notifyUser("Duration can't be lower than 10", toast.warning)
-      setFrameDuration(10)
-    }
+  //   const num = Number(frameDuration);
+  //   if (num < 10) {
+  //     notifyUser("Duration can't be lower than 10", toast.warning)
+  //     setFrameDuration(10)
+  //   }
 
-  }
-  function frameDurationChangeHandle(e) {
-    let val = e.target.value
-    if (/^\d*$/.test(val)) {
-      setFrameDuration(val);
+  // }
+  // function frameDurationChangeHandle(e) {
+  //   let val = e.target.value
+  //   if (/^\d*$/.test(val)) {
+  //     setFrameDuration(val);
 
-    }
+  //   }
 
 
-  }
+  // }
   function flipAll() {
     let reversedMatrix = [[], [], [], [], [], [], [], []];
     let rMatrices = [];
@@ -666,7 +677,7 @@ void displayFrame(const bool matrix[8][8]) {
     setIsCodeGenerated(true)
   }
   return (
-    <div className="w-screen text-center flex justify-center flex-col items-center">
+    <div className="theme-green w-screen text-center flex justify-center flex-col items-center">
       <ToastContainer />
 
       <DragDropContext onDragEnd={onDragEnd}>
@@ -739,7 +750,7 @@ void displayFrame(const bool matrix[8][8]) {
                   <RxRotateCounterClockwise className='hover:text-teal-200 hover:cursor-pointer mx-2 transform scale-x-[-1] size-5 rounded-full  text-green-400' onClick={() => flipOneRight(currentMatrix)}>Flip right</RxRotateCounterClockwise>
                   <PiFlipHorizontalFill className='hover:text-teal-200 hover:cursor-pointer mx-2  size-5 rounded-full  text-green-500' onClick={() => flipHorizontal(currentMatrix)}>Flip vert</PiFlipHorizontalFill>
                   <PiFlipVerticalFill className='hover:text-teal-200 hover:cursor-pointer mx-2  size-5 rounded-full  text-green-500' onClick={() => flipVertical(currentMatrix)}>Flip horx</PiFlipVerticalFill   > */}
-                  <div className='flex w-[15em] bg-slate-800 rounded-sm text-green-500 '>
+                  {/* <div className='flex w-[15em] bg-slate-800 rounded-sm text-green-500 '>
 
                     <span className='text-[0.8em] px-1'>Frame duration </span>
                     <input
@@ -756,7 +767,8 @@ void displayFrame(const bool matrix[8][8]) {
 
                     <span className='text-[0.8em] px-1'>ms </span>
 
-                  </div>
+                  </div> */}
+                  <FrameDurationInput></FrameDurationInput>
                 </div>
               </div>
 
@@ -822,10 +834,10 @@ void displayFrame(const bool matrix[8][8]) {
       </DragDropContext>
 
       {/* Other parts of your app */}
-      <div className='flex shadow-xl shadow-[#282828]'>
+      <div className='flex shadow-xl shadow-[#1a1a1a] bg-[#093710] max-500:w-[95%] max-750:w-[85%] md:w-[80%] lg:w-[35em] justify-between'>
 
         <div className=' relative 
-      shadow-sm max-sm:w-[85%] w-[19em] max-h-[40em] bg-[#093710] flex flex-col justify-center items-center pt-5'
+      shadow-sm max-sm:w-[85%] w-[70%] lg:w-[25em] max-h-[40em] bg-[#093710] flex flex-col justify-center items-center pt-5'
           onMouseDown={() => setIsMouseDown(true)}
           onMouseUp={() => setIsMouseDown(false)}
 
@@ -916,7 +928,7 @@ void displayFrame(const bool matrix[8][8]) {
                 onClick={() =>
                   currentKeyboardKey === "ControlLeft" ? shiftMatrixRightNoWrap(currentMatrixKey)
                     : shiftMatrixRight(currentMatrixKey)}
-                tooltip={["shift Right","Press `Ctrl` for No Wrap shift"]}
+                tooltip={["shift Right", "Press `Ctrl` for No Wrap shift"]}
 
               ></ToolMainFrame>
 
@@ -932,6 +944,7 @@ void displayFrame(const bool matrix[8][8]) {
             ></Oled128x64> */}
             {/* <ExampleMatrix></ExampleMatrix> */}
             <EightByEightMain
+
 
               dotMatrixDivs={dotMatrixDivs}
               // currentMatrix={currentMatrix}
@@ -965,40 +978,67 @@ void displayFrame(const bool matrix[8][8]) {
 
 
         </div>
-        <div className='flex flex-col'>
-          <form class="max-w-sm mx-auto  bg-[#093710] p-4 relative">
+        <div className='flex w-[60%] '>
+          <form class="w-full  bg-[#093710] p-4 flex flex-col ">
 
-            <select className="block w-full pl-2 border rounded px-2 py-1 rounded-md bg-slate-700 text-white mb-3"
+            <select className="block  self-center max-500:w-full w-[90%] border border-transparent  ring-0 focus:ring-0 focus:border-transparent outline-none focus:outline-none justify-self-center pl-2 border rounded px-2 py-1 rounded-md bg-slate-700 text-white mb-3"
               onChange={handleSelectScreen}
             >
-              <option selected value="/">Max 7219</option>
+              <option selected value="/max">Max 7219</option>
               <option value="/Oled">Olex matrix 128x64</option>
 
             </select>
-            <PinSelector label="DIN Pin : " pinRef={pinDINRef} pinSetter={setPinDIN} pinhighlightSetter={setDinPinHighlight}></PinSelector>
-            <PinSelector label="CS Pin : " pinRef={pinCSRef} pinSetter={setPinCS} pinhighlightSetter={setCsPinHighlight}></PinSelector>
-            <PinSelector label="CLK Pin : " pinRef={pinCLKRef} pinSetter={setPinCLK} pinhighlightSetter={setClkPinHighlight}></PinSelector>
-            <div
-              type="button" //Needed to prevent form page refresh
 
-              className={
-                isGenerateDisabled ?
-                  'bg-slate-900 text-gray-600 outline outline-gray-600 py-1 px-2 rounded-sm'
-                  :
-                  'bg-slate-900 text-green-600 outline outline-green-600 py-1 px-2 rounded-sm cursor-pointer'
-              }
-              onClick={isGenerateDisabled ? () => { } : () => generateCode()}>Generate animation code</div>
+            <select className=" block self-center max-500:w-full w-[90%]  border border-transparent ring-0 focus:ring-0 focus:border-transparent outline-none focus:outline-none justify-self-center pl-2 border rounded px-2 py-1 rounded-md bg-slate-700 text-white mb-3"
+              onChange={handleBoardChange}
+            >
 
-            <div
-              type="button" //Needed to prevent form page refresh
+              <option selected
 
-              className={
-                isGenerateDisabled ?
-                  'bg-slate-900 text-gray-600 outline outline-gray-600 py-1 px-2 rounded-sm mt-5'
-                  :
-                  'bg-slate-900 text-green-600 outline outline-green-600 py-1 px-2 rounded-sm mt-5 cursor-pointer'
-              }
-              onClick={isGenerateDisabled ? () => { } : () => generateCodeOneFrame()}>Generate frame code</div>
+              >Pick a Board</option>
+              <option value="nano">Nano/Uno</option>
+              <option value="mega">Mega</option>
+              <option value="micro">Leonardo/micro</option>
+              <option value="every">Every</option>
+
+            </select>
+            <div className='flex max-500:grid max-750:grid gap-1 w-full '>
+             
+              <PinSelector board={board} label="DIN" pinRef={pinDINRef} pinSetter={setPinDIN} pinhighlightSetter={setDinPinHighlight}></PinSelector>
+              <PinSelector board={board} label="CS" pinRef={pinCSRef} pinSetter={setPinCS} pinhighlightSetter={setCsPinHighlight}></PinSelector>
+              <PinSelector board={board} label="CLK" pinRef={pinCLKRef} pinSetter={setPinCLK} pinhighlightSetter={setClkPinHighlight}></PinSelector>
+
+            </div>
+
+            <div className='flex flex-col mt-auto space-y-1'>
+
+              <div
+                type="button" //Needed to prevent form page refresh
+
+                className={
+                  isGenerateDisabled ?
+                    ' bg-slate-900 text-gray-600   py-1 px-2 rounded-sm mt-auto'
+                    :
+                    ' bg-slate-900 text-green-600  py-1 px-2 rounded-sm  mt-auto cursor-pointer'
+                }
+                onClick={isGenerateDisabled ? () => { } : () => generateCodeOneFrame()}>Generate frame
+              </div>
+              <div
+                type="button" //Needed to prevent form page refresh
+
+                className={
+                  isGenerateDisabled ?
+                    ' bg-slate-900 text-gray-600  py-1 px-2 rounded-sm flex justify-center align-middle items-center '
+                    :
+                    'bg-slate-900 text-green-600  py-1 px-2 rounded-sm cursor-pointer flex justify-center align-middle items-center'
+                }
+                onClick={isGenerateDisabled ? () => { } : () => generateCode()}>Generate animation
+
+              </div>
+
+
+
+            </div>
 
           </form>
         </div>
@@ -1034,7 +1074,23 @@ void displayFrame(const bool matrix[8][8]) {
           }
 
         </button>
-        <code>{generatedCode}</code>
+        {isCodeGenerated && (
+          <SyntaxHighlighter
+            language="cpp"
+            style={vscDarkPlus}
+            customStyle={{
+              backgroundColor: "#282c34",
+              borderRadius: "0.5rem",
+              fontSize: "0.9rem",
+              padding: "1rem",
+              marginTop: "2rem",
+              width: "95%",
+              textAlign: "left"
+            }}
+          >
+            {generatedCode}
+          </SyntaxHighlighter>
+        )}
       </pre> : <></>}
 
 

@@ -1,5 +1,59 @@
+
 body{
-    background-color: #444444;
+  background-color: #1c1f2a;
+    /* 
+    background-image: url("bg3.jpg");
+    background-repeat: no-repeat;
+    background-size: cover;
+    height: 100vh;     */
+    /* backdrop-filter: brightness(0.4); */
+    
+  
+}
+
+
+.theme-blue {
+  
+  --color-cardOutline: #6fa5e7;
+  --color-accentText: #0ca3d5;
+  --color-Icon: #089bc3;
+  --color-IconHover: #04f7fb;
+}
+
+.theme-green {
+  
+  --color-cardOutline: #6fe77b;
+  --color-accentText: #0cd552;
+  --color-Icon: #08c349;
+  --color-IconHover: #04fb0c;
+}
+
+
+.ping-circle {
+  
+ 
+  width: 20px;
+  height: 20px;
+  background-color: yellow;
+  border-radius: 9999px;
+  transform: translate(-50%, -50%);
+  z-index: 0;
+  animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+  opacity: 0.7;
+}
+
+@keyframes ping {
+  0% {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 0.7;
+  }
+  75% {
+    transform: translate(-50%, -50%) scale(2.5);
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 progress {

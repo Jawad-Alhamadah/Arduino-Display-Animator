@@ -16,12 +16,12 @@ const router = createBrowserRouter([
         element: <Max7219ICPage/>
     },
     {
-        path: "/max7219",
+        path: "/max",
         element: <Max7219ICPage/>
     },
     {
         path:"/oled",
-        element: <UnderConstruction/>
+        element: <OledPage/>
 
     },
   

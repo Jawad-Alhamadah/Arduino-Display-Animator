@@ -2,13 +2,42 @@ import React from 'react'
 import { useEffect, useRef, useState } from "react";
 import { useSelector, useDispatch } from 'react-redux';
 import { setToKeyboardKey } from '../reducers/currentKeyboardKey';
-
+import { setCurrentMatrixByKey } from '../reducers/currentMatrixSlice';
 function OledFrame(props) {
 const currentMatrixKey = useSelector((state) => state.currentMatrixKey.value)
+const dispatch = useDispatch()
     const WIDTH = 128;
     const HEIGHT = 64;
     const PIXEL_SIZE = 1; // Controls how large each pixel appears
     
+
+      const drawCanvasinit = () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, WIDTH * PIXEL_SIZE, HEIGHT * PIXEL_SIZE);
+       // console.log( "current matrix: "+currentMatrixKey+" key: "+ props.matrix.key)
+        
+        // Draw pixels efficiently
+       
+     
+        props.oledMatrix.find(obj => obj.key ===  props.matrix.key).matrix.forEach((row, y) => {
+          row.forEach((pixel, x) => {
+            if (pixel) {
+              ctx.fillStyle = "#06b6d4"; // cyan-300 in Tailwind
+              ctx.fillRect(x * PIXEL_SIZE, y * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
+            }
+          });
+        });
+      };
+
+        React.useEffect(() => {
+       
+            drawCanvasinit();
+       
+      }, []); // Redraw canvas when matrix changes
+    
+
      React.useEffect(() => {
         if(currentMatrixKey===props.matrix.key){
             drawCanvas();
@@ -21,12 +50,12 @@ const currentMatrixKey = useSelector((state) => state.currentMatrixKey.value)
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext("2d");
-        //ctx.clearRect(0, 0, WIDTH * PIXEL_SIZE, HEIGHT * PIXEL_SIZE);
-        console.log( "current matrix: "+currentMatrixKey+" key: "+ props.matrix.key)
+        ctx.clearRect(0, 0, WIDTH * PIXEL_SIZE, HEIGHT * PIXEL_SIZE);
+       // console.log( "current matrix: "+currentMatrixKey+" key: "+ props.matrix.key)
         
         // Draw pixels efficiently
        
-        console.log(  currentMatrixKey)
+     
         props.oledMatrix.find(obj => obj.key === currentMatrixKey).matrix.forEach((row, y) => {
           row.forEach((pixel, x) => {
             if (pixel) {
@@ -36,6 +65,9 @@ const currentMatrixKey = useSelector((state) => state.currentMatrixKey.value)
           });
         });
       };
+
+     
+     
     return (
         <div
           data-frame={props.matrix.key}
@@ -51,7 +83,7 @@ const currentMatrixKey = useSelector((state) => state.currentMatrixKey.value)
             "outline-red-700 outline-2 outline-dashed relative p-2" :
             "outline-slate-700 hover:outline-2 hover:outline-dashed relative p-2"
           }
-          onClick={() => props.setCurrentMatrix(props.matrix.key)}
+          onClick={() => dispatch(setCurrentMatrixByKey(props.matrix.key))}
     
         >
     
