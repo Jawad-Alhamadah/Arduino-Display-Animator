@@ -14,6 +14,7 @@
     "@hello-pangea/dnd": "^17.0.0",
     "@reduxjs/toolkit": "^2.8.2",
     "axios": "^1.7.7",
+    "lodash": "^4.17.21",
     "lzma": "^2.3.2",
     "lzma-web": "^3.0.1",
     "pako": "^2.1.0",

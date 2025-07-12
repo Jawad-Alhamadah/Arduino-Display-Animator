@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import React from 'react'
 import FrameDurationInput from './FrameDurationInput';
 import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd';
 import { BsPlayFill, BsFillEraserFill } from "react-icons/bs";
@@ -45,10 +45,8 @@ import { FaStamp } from "react-icons/fa6";
 import { FaRegPenToSquare } from "react-icons/fa6";
 
 import { TbPencilMinus } from "react-icons/tb";
-import { LZMA } from 'lzma-web'
+
 import { TbPencilPlus } from "react-icons/tb";
-import pako from 'pako'; // For compression (install with: npm install pako)
-import { debounce } from 'lodash';
 
 function OledPage() {
   const location = useLocation();
@@ -160,2077 +158,1166 @@ function OledPage() {
 
   const oledMatrixCurrentRef = React.useRef(oledMatrix)
 
-
-   const [isSaving, setIsSaving] = React.useState(false);
-  
-  // Memoized compression function
-
-  function binaryStringToBytes(binaryStr) {
-  const byteCount = Math.ceil(binaryStr.length / 8);
-  const bytes = new Uint8Array(byteCount);
-  
-  for (let i = 0; i < byteCount; i++) {
-    const byteStr = binaryStr.substr(i * 8, 8).padEnd(8, '0');
-    bytes[i] = parseInt(byteStr, 2);
-  }
-  
-  return bytes;
-}
-
-function bytesToBase64(bytes) {
-  return btoa(String.fromCharCode(...bytes));
-}
-
-  const compressAndSave = React.useCallback(async (matrix) => {
-    setIsSaving(true);
-    try {
-      const binary = matrixToBinaryString(matrix);
-      const bytes = binaryStringToBytes(binary);
-      const compressed = await LZMA.compress(bytes);
-      const base64 = bytesToBase64(compressed);
-      const urlSafe = base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-      
-      window.history.replaceState({}, '', `?matrix=${urlSafe}`);
-    } catch (error) {
-      console.error("Auto-save failed:", error);
-    } finally {
-      setIsSaving(false);
-    }
-  }, []);
-
-
-//   const updateURL = () => {
-//   const compressed = encodeMatrixForURL(oledMatrix);
-//   const url = new URL(window.location.href);
-//   url.searchParams.set('matrix', compressed);
-//   window.history.pushState({}, '', url);
-// };
-
-// const updateURL = () => {
-//   const compressed = encodeMatrixForURL(oledMatrix);
-//   const url = new URL(window.location.href);
-//   url.searchParams.set('matrix', compressed);
-//   window.history.pushState({}, '', url);
-// };
-
-const updateURL = () => {
-compressToTinyURL(oledMatrix)
-  .then(compressed => {
-    window.history.pushState({}, '', `?matrix=${compressed}`);
-  })
-  .catch(error => {
-    console.error("Failed to compress:", error);
-  });
-};
-
-async function getCompressedURL(oledMatrix) {
-  try {
-    // 1. Compress the data (returns a Promise)
-    const compressed = await compressToTinyURL(oledMatrix);
-    
-    // 2. Return the full URL string
-    return `?matrix=${compressed}`;
-  } catch (error) {
-    console.error("Compression failed:", error);
-    return ""; // Return empty string or handle error appropriately
-  }
-}
-// Load from URL on mount
-React.useEffect(() => {
-    async function loadFromURL() {
-      const params = new URLSearchParams(window.location.search);
-      const matrixParam = params.get('matrix');
-      
-      if (matrixParam) {
-        const decoded = await decompressFromTinyURL(matrixParam);
-        if (decoded) {
-          setOledMatrix(decoded);
-          // Update Redux with first frame's key
-          dispatch(setCurrentMatrixByKey(decoded[0].key));
-        }
-      }
-    }
-    
-    loadFromURL();
-  }, []);
-
-// Load state from URL on initial render
-// React.useEffect(() => {
-//   const params = new URLSearchParams(window.location.search);
-//   const matrixParam = params.get('matrix');
-  
-//   console.log(matrixParam)
-//   if (matrixParam) {
-//     const decoded = decodeMatrixFromURL(matrixParam);
-//     console.log(decoded)
-//     if (decoded) setOledMatrix(decoded);
-//   }
-// }, []);
-
-
   React.useEffect(() => {
     oledMatrixCurrentRef.current = oledMatrix
   }, [oledMatrix])
 
-
-const matrixToBinaryString = (oledMatrix) => {
-  let binaryStr = '';
-  for (const frame of oledMatrix) {
-    for (let row of frame.matrix) {
-      for (let cell of row) {
-        binaryStr += cell ? '1' : '0';
-      }
-    }
-  }
-  return binaryStr;
-};
-
-// const encodeMatrixForURL = (oledMatrix) => {
-//   // 1. Convert to binary string
-//   const binaryStr = matrixToBinaryString(oledMatrix);
-  
-//   // 2. Pack binary string into bytes
-//   const bytes = new Uint8Array(Math.ceil(binaryStr.length / 8));
-//   for (let i = 0; i < bytes.length; i++) {
-//     const byteStr = binaryStr.substr(i * 8, 8).padEnd(8, '0');
-//     bytes[i] = parseInt(byteStr, 2);
-//   }
-  
-//   // 3. Compress with zlib (great for binary data)
-//   const compressed = pako.deflate(bytes);
-  
-//   // 4. Convert to Base64 (URL-safe)
-//   return btoa(String.fromCharCode(...compressed))
-//     .replace(/\+/g, '-') // Replace URL-unsafe characters
-//     .replace(/\//g, '_')
-//     .replace(/=+$/, '');
-// };
-
-
-
-const matrixToEncodedString = (oledMatrix) => {
-  let output = '';
-  
-  for (const frame of oledMatrix) {
-    // Add frame key (with special delimiter)
-    output += `[${frame.key}]`;
-    
-    // Add binary matrix data
-    for (let row of frame.matrix) {
-      for (let cell of row) {
-        output += cell ? '1' : '0';
-      }
-    }
-  }
-  
-  return output;
-};
-
-// Main encoding function
-
-// const encodeMatrixForURL = (oledMatrix) => {
-//   // 1. Create a structured object with keys and binary data
-//   const dataToEncode = {
-//     frames: oledMatrix.map(frame => ({
-//       key: frame.key,  // Preserve original key
-//       data: frame.matrix.flatMap(row => 
-//         row.map(cell => cell ? '1' : '0')).join('')
-//     }))
-//   };
-
-//   // 2. Convert to JSON string
-//   const jsonString = JSON.stringify(dataToEncode);
-
-//   // 3. Compress with zlib
-//   const compressed = pako.deflate(jsonString);
-
-//   // 4. Convert to Base64 (URL-safe)
-//   return btoa(String.fromCharCode(...compressed))
-//     .replace(/\+/g, '-')
-//     .replace(/\//g, '_')
-//     .replace(/=+$/, '');
-// };
-
-
-
-
-async function compressToTinyURL(oledMatrix) {
-  try {
-    // 1. Create structured data with frame keys preserved
-    const structuredData = {
-      version: 1,
-      frameCount: oledMatrix.length,
-      frames: oledMatrix.map(frame => ({
-        key: frame.key,
-        matrix: frame.matrix.flat().map(cell => cell ? 1 : 0)
-      }))
-    };
-
-    // 2. Convert to JSON string
-    const jsonString = JSON.stringify(structuredData);
-    
-    // 3. Convert to bytes for compression
-    const bytes = new TextEncoder().encode(jsonString);
-    
-    // 4. LZMA compress
-    const compressed = await LZMA.compress(bytes, 1);
-    
-    // 5. Convert to URL-safe Base64
-    const base64 = btoa(String.fromCharCode(...compressed));
-    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-    
-  } catch (error) {
-    console.error('Compression failed:', error);
-    // Fallback to simpler compression
-    const fallbackData = JSON.stringify(oledMatrix.map(f => ({
-      key: f.key,
-      data: f.matrix.flat().map(c => c ? 1 : 0)
-    })));
-    return btoa(fallbackData).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  }
-}
-
-// Improved decompression function
-async function decompressFromTinyURL(encoded) {
-  try {
-    // 1. Convert from URL-safe Base64
-    const base64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
-    const binaryString = atob(base64);
-    const compressed = new Uint8Array(binaryString.length);
-    
-    for (let i = 0; i < binaryString.length; i++) {
-      compressed[i] = binaryString.charCodeAt(i);
-    }
-    
-    // 2. LZMA decompress
-    const decompressed = await LZMA.decompress(compressed);
-    
-    // 3. Convert bytes back to string
-    const jsonString = new TextDecoder().decode(decompressed);
-    
-    // 4. Parse JSON
-    const data = JSON.parse(jsonString);
-    
-    // 5. Reconstruct matrix format
-    if (data.version === 1) {
-      return data.frames.map(frame => ({
-        key: frame.key,
-        matrix: Array.from({ length: 64 }, (_, row) =>
-          Array.from({ length: 128 }, (_, col) =>
-            frame.matrix[row * 128 + col] === 1
-          )
-        )
-      }));
-    }
-    
-    // Handle legacy format
-    return data.map(frame => ({
-      key: frame.key,
-      matrix: Array.from({ length: 64 }, (_, row) =>
-        Array.from({ length: 128 }, (_, col) =>
-          frame.data[row * 128 + col] === 1
-        )
-      )
-    }));
-    
-  } catch (error) {
-    console.error('Decompression failed:', error);
-    
-    // Try fallback decompression
-    try {
-      const fallbackData = JSON.parse(atob(encoded.replace(/-/g, '+').replace(/_/g, '/')));
-      return fallbackData.map(frame => ({
-        key: frame.key,
-        matrix: Array.from({ length: 64 }, (_, row) =>
-          Array.from({ length: 128 }, (_, col) =>
-            frame.data[row * 128 + col] === 1
-          )
-        )
-      }));
-    } catch (fallbackError) {
-      console.error('Fallback decompression also failed:', fallbackError);
-      return null;
-    }
-  }
-}
-
-// Auto-save hook with debouncing
-const useAutoSave = (oledMatrix, dispatch) => {
-  const [isSaving, setIsSaving] = React.useState(false);
-  
-  const saveToURL = React.useCallback(async (matrix) => {
-    if (!matrix || matrix.length === 0) return;
-    
-    setIsSaving(true);
-    try {
-      const compressed = await compressToTinyURL(matrix);
-      const url = new URL(window.location.href);
-      url.searchParams.set('matrix', compressed);
-      window.history.replaceState({}, '', url);
-      console.log('Auto-saved to URL');
-    } catch (error) {
-      console.error('Auto-save failed:', error);
-    } finally {
-      setIsSaving(false);
-    }
+  const handleBrushSizeUp = React.useCallback(() => {
+    setBrushSize(prev => {
+      if (prev === 1) return 2;
+      if (prev === 2) return 4;
+      return 4; // stays at 4 if already 4 or above
+    });
   }, []);
-  
-  const debouncedSave = React.useMemo(
-    () => debounce(saveToURL, 2000), // 2 second delay
-    [saveToURL]
-  );
-  
+
+  const handleBrushSizeDown = React.useCallback(() => {
+    setBrushSize(prev => {
+      if (prev === 4) return 2;
+      if (prev === 2) return 1;
+      return 1; // stays at 1 if already 1 or below
+    });
+  }, []);
   React.useEffect(() => {
-    if (oledMatrix.length > 0) {
-      debouncedSave(oledMatrix);
-    }
-    
-    return () => {
-      debouncedSave.cancel();
+
+    setDisplay(location.pathname)
+
+
+    let cs = localStorage.getItem('CS')
+    let dc = localStorage.getItem('DC')
+    let reset = localStorage.getItem('Reset')
+
+    if (cs) setPinCS(cs)
+    if (dc) setPinDC(dc)
+    if (reset) setPinReset(reset)
+
+  }, [])
+
+  React.useEffect(() => {
+    // Global mouseup listener to reset dragging state
+
+    currentKeyboardKeyRef.current = currentKeyboardKey;
+    const handleMouseUp = () => {
+      setIsDragging(false);
     };
-  }, [oledMatrix, debouncedSave]);
-  
-  return { isSaving };
-};
 
-// Load from URL function
-const loadFromURL = async (dispatch) => {
-  const params = new URLSearchParams(window.location.search);
-  const matrixParam = params.get('matrix');
-  
-  if (matrixParam) {
-    try {
-      const decoded = await decompressFromTinyURL(matrixParam);
-      if (decoded && decoded.length > 0) {
-        console.log('Loaded from URL:', decoded);
-        return {
-          matrix: decoded,
-          firstFrameKey: decoded[0].key
-        };
+    const handleMouseDown = () => {
+      setIsDragging(true);
+    };
+
+    document.addEventListener("mouseup", handleMouseUp);
+    document.addEventListener("mousedown", handleMouseDown);
+
+    const handleKeyDown = (event) => {
+
+      dispatch(setToKeyboardKey(event.code))
+
+    };
+
+    const handleKeyUp = (event) => {
+
+      dispatch(setToKeyboardKey("KeyNone"))
+
+
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      // Cleanup listener on unmount
+      window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("mousedown", handleKeyUp);
+    };
+
+
+
+  }, []);
+
+  function deleteFrame() {
+    const oled = oledMatrixCurrentRef.current
+    if (oled.length <= 1) return;
+
+    const filteredMatrix = oled.filter(matrix => matrix.key !== currentMatrixKeyRef.current);
+    if (filteredMatrix.length > 0) {
+      dispatch(setCurrentMatrixByKey(filteredMatrix[filteredMatrix.length - 1].key));
+    }
+    setOledMatrix(filteredMatrix);
+  }
+  function pushHistory(frameKey, matrix) {
+    setOledHistory(prev => {
+      const prevArr = prev[frameKey] || [];
+      // Only push if different from last
+      if (prevArr.length && JSON.stringify(prevArr[prevArr.length - 1]) === JSON.stringify(matrix)) {
+        return prev;
       }
-    } catch (error) {
-      console.error('Failed to load from URL:', error);
-    }
+      return {
+        ...prev,
+        [frameKey]: [...prevArr, structuredClone(matrix)].slice(-50) // limit to 50
+      };
+    });
   }
-  return null;
-};
 
-// In your main OledPage function, add this after your existing state declarations:
-const { isSaving } = useAutoSave(oledMatrix, dispatch);
+  const OUTER_SIZE = 128;
+  const DISPLAY_WIDTH = 128;
+  const DISPLAY_HEIGHT = 64;
 
-// Replace your existing URL loading useEffect with this:
-React.useEffect(() => {
-  async function initializeFromURL() {
-    const urlData = await loadFromURL(dispatch);
-    if (urlData) {
-      setOledMatrix(urlData.matrix);
-      // This is the key fix - properly sync Redux state
-      dispatch(setCurrentMatrixByKey(urlData.firstFrameKey));
+  /**
+   * Ensures a 128x128 outer matrix with the original content centered.
+   */
+  function expandToOuterMatrix(matrix) {
+    const outer = Array.from({ length: OUTER_SIZE }, () =>
+      Array(OUTER_SIZE).fill(0)
+    );
+
+    const height = matrix.length;
+    const width = matrix[0].length;
+    const yOffset = Math.floor((OUTER_SIZE - height) / 2);
+    const xOffset = Math.floor((OUTER_SIZE - width) / 2);
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        outer[y + yOffset][x + xOffset] = matrix[y][x];
+      }
     }
+
+    return outer;
   }
-  
-  initializeFromURL();
-}, [dispatch]);
 
-  const handleRotateRight = React.useCallback(() => {
+  /**
+   * Clips a 128x128 matrix back to the central 128x64 area.
+   */
+  function clipOuterMatrix(matrix) {
+    const yOffset = Math.floor((OUTER_SIZE - DISPLAY_HEIGHT) / 2);
+    return matrix.slice(yOffset, yOffset + DISPLAY_HEIGHT);
+  }
 
-    const rotateRightFrame = (oledMatrix, currentKey) => {
-      return oledMatrix.map(frame => {
-        if (frame.key !== currentKey) return frame;
+  /**
+   * Rotates the outer matrix 90° to the right.
+   */
+  function rotateMatrixRight(matrix) {
+    const height = matrix.length;
+    const width = matrix[0].length;
+    const rotated = Array.from({ length: width }, () => Array(height).fill(0));
 
-        const baseMatrix = frame.outerMatrix ?? expandToOuterMatrix(frame.matrix);
-        const rotated = rotateMatrixRight(baseMatrix);
-
-        return {
-          ...frame,
-          matrix: clipOuterMatrix(rotated),
-          outerMatrix: rotated,
-        };
-      });
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        rotated[x][height - 1 - y] = matrix[y][x];
+      }
     }
 
+    return rotated;
+  }
 
-    setOledMatrix(prev => rotateRightFrame(prev, currentMatrixKey))
+  React.useEffect(() => {
+    const handleUndo = (e) => {
+      if (e.ctrlKey && e.key === "z") {
+        setOledHistory(prev => {
+          const arr = prev[currentMatrixKey] || [];
+          if (arr.length < 2) return prev; // nothing to undo
+          const newArr = arr.slice(0, -1);
+          const prevMatrix = newArr[newArr.length - 1];
+          setOledMatrix(matrices =>
+            matrices.map(frame =>
+              frame.key === currentMatrixKey
+                ? { ...frame, matrix: structuredClone(prevMatrix) }
+                : frame
+            )
+          );
+          return { ...prev, [currentMatrixKey]: newArr };
+        });
+      }
+    };
+    window.addEventListener("keydown", handleUndo);
+    return () => window.removeEventListener("keydown", handleUndo);
   }, [currentMatrixKey]);
 
-
-  function handleBoardChange(event) {
-    console.log(event)
-    setBoard(event.target.value)
-
-  }
-  let frameDuration = useSelector((state) => state.frameDuration.value)
-  const navigate = useNavigate();
-  const dispatch = useDispatch()
-
-  const WIDTH = 128;
-  const HEIGHT = 64;
-
-  const newMatrix = {
-    key: 0, matrix:
-      [
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-      ]
-
-  }
-
-  const [oledMatrix, setOledMatrix] = React.useState(
-    [
-      {
-        key: currentMatrixKey, matrix: Array.from({ length: 64 }, () => Array(128).fill(false))
-      },
-
-    ]
-  )
-
-  const oledMatrixCurrentRef = React.useRef(oledMatrix)
-
-
-   const [isSaving, setIsSaving] = React.useState(false);
-  
-  // Memoized compression function
-
-  function binaryStringToBytes(binaryStr) {
-  const byteCount = Math.ceil(binaryStr.length / 8);
-  const bytes = new Uint8Array(byteCount);
-  
-  for (let i = 0; i < byteCount; i++) {
-    const byteStr = binaryStr.substr(i * 8, 8).padEnd(8, '0');
-    bytes[i] = parseInt(byteStr, 2);
-  }
-  
-  return bytes;
-}
-
-function bytesToBase64(bytes) {
-  return btoa(String.fromCharCode(...bytes));
-}
-
-  const compressAndSave = React.useCallback(async (matrix) => {
-    setIsSaving(true);
-    try {
-      const binary = matrixToBinaryString(matrix);
-      const bytes = binaryStringToBytes(binary);
-      const compressed = await LZMA.compress(bytes);
-      const base64 = bytesToBase64(compressed);
-      const urlSafe = base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-      
-      window.history.replaceState({}, '', `?matrix=${urlSafe}`);
-    } catch (error) {
-      console.error("Auto-save failed:", error);
-    } finally {
-      setIsSaving(false);
-    }
-  }, []);
-
-
-//   const updateURL = () => {
-//   const compressed = encodeMatrixForURL(oledMatrix);
-//   const url = new URL(window.location.href);
-//   url.searchParams.set('matrix', compressed);
-//   window.history.pushState({}, '', url);
-// };
-
-// const updateURL = () => {
-//   const compressed = encodeMatrixForURL(oledMatrix);
-//   const url = new URL(window.location.href);
-//   url.searchParams.set('matrix', compressed);
-//   window.history.pushState({}, '', url);
-// };
-
-const updateURL = () => {
-compressToTinyURL(oledMatrix)
-  .then(compressed => {
-    window.history.pushState({}, '', `?matrix=${compressed}`);
-  })
-  .catch(error => {
-    console.error("Failed to compress:", error);
-  });
-};
-
-async function getCompressedURL(oledMatrix) {
-  try {
-    // 1. Compress the data (returns a Promise)
-    const compressed = await compressToTinyURL(oledMatrix);
-    
-    // 2. Return the full URL string
-    return `?matrix=${compressed}`;
-  } catch (error) {
-    console.error("Compression failed:", error);
-    return ""; // Return empty string or handle error appropriately
-  }
-}
-// Load from URL on mount
-React.useEffect(() => {
-    async function loadFromURL() {
-      const params = new URLSearchParams(window.location.search);
-      const matrixParam = params.get('matrix');
-      
-      if (matrixParam) {
-        const decoded = await decompressFromTinyURL(matrixParam);
-        if (decoded) {
-          setOledMatrix(decoded);
-          // Update Redux with first frame's key
-          dispatch(setCurrentMatrixByKey(decoded[0].key));
+  React.useEffect(() => {
+    const handleCopyPaste = (e) => {
+      // Ctrl+C: Copy current frame
+      if (e.ctrlKey && e.key.toLowerCase() === "c") {
+        const frame = oledMatrix.find(f => f.key === currentMatrixKey);
+        if (frame) {
+          setCopiedFrame(structuredClone(frame.matrix));
         }
       }
-    }
-    
-    loadFromURL();
-  }, []);
-
-// Load state from URL on initial render
-// React.useEffect(() => {
-//   const params = new URLSearchParams(window.location.search);
-//   const matrixParam = params.get('matrix');
-  
-//   console.log(matrixParam)
-//   if (matrixParam) {
-//     const decoded = decodeMatrixFromURL(matrixParam);
-//     console.log(decoded)
-//     if (decoded) setOledMatrix(decoded);
-//   }
-// }, []);
-
-
-  React.useEffect(() => {
-    oledMatrixCurrentRef.current = oledMatrix
-  }, [oledMatrix])
-
-
-const matrixToBinaryString = (oledMatrix) => {
-  let binaryStr = '';
-  for (const frame of oledMatrix) {
-    for (let row of frame.matrix) {
-      for (let cell of row) {
-        binaryStr += cell ? '1' : '0';
+      // Ctrl+V: Paste as new frame
+      if (e.ctrlKey && e.key.toLowerCase() === "v") {
+        if (copiedFrame) {
+          const newMat = {
+            key: generateId(),
+            matrix: structuredClone(copiedFrame)
+          };
+          setOledMatrix(prev => [...prev, newMat]);
+          dispatch(setCurrentMatrixByKey(newMat.key));
+        }
       }
-    }
-  }
-  return binaryStr;
-};
-
-// const encodeMatrixForURL = (oledMatrix) => {
-//   // 1. Convert to binary string
-//   const binaryStr = matrixToBinaryString(oledMatrix);
-  
-//   // 2. Pack binary string into bytes
-//   const bytes = new Uint8Array(Math.ceil(binaryStr.length / 8));
-//   for (let i = 0; i < bytes.length; i++) {
-//     const byteStr = binaryStr.substr(i * 8, 8).padEnd(8, '0');
-//     bytes[i] = parseInt(byteStr, 2);
-//   }
-  
-//   // 3. Compress with zlib (great for binary data)
-//   const compressed = pako.deflate(bytes);
-  
-//   // 4. Convert to Base64 (URL-safe)
-//   return btoa(String.fromCharCode(...compressed))
-//     .replace(/\+/g, '-') // Replace URL-unsafe characters
-//     .replace(/\//g, '_')
-//     .replace(/=+$/, '');
-// };
-
-
-
-const matrixToEncodedString = (oledMatrix) => {
-  let output = '';
-  
-  for (const frame of oledMatrix) {
-    // Add frame key (with special delimiter)
-    output += `[${frame.key}]`;
-    
-    // Add binary matrix data
-    for (let row of frame.matrix) {
-      for (let cell of row) {
-        output += cell ? '1' : '0';
-      }
-    }
-  }
-  
-  return output;
-};
-
-// Main encoding function
-
-// const encodeMatrixForURL = (oledMatrix) => {
-//   // 1. Create a structured object with keys and binary data
-//   const dataToEncode = {
-//     frames: oledMatrix.map(frame => ({
-//       key: frame.key,  // Preserve original key
-//       data: frame.matrix.flatMap(row => 
-//         row.map(cell => cell ? '1' : '0')).join('')
-//     }))
-//   };
-
-//   // 2. Convert to JSON string
-//   const jsonString = JSON.stringify(dataToEncode);
-
-//   // 3. Compress with zlib
-//   const compressed = pako.deflate(jsonString);
-
-//   // 4. Convert to Base64 (URL-safe)
-//   return btoa(String.fromCharCode(...compressed))
-//     .replace(/\+/g, '-')
-//     .replace(/\//g, '_')
-//     .replace(/=+$/, '');
-// };
-
-
-
-
-async function compressToTinyURL(oledMatrix) {
-  try {
-    // 1. Create structured data with frame keys preserved
-    const structuredData = {
-      version: 1,
-      frameCount: oledMatrix.length,
-      frames: oledMatrix.map(frame => ({
-        key: frame.key,
-        matrix: frame.matrix.flat().map(cell => cell ? 1 : 0)
-      }))
     };
+    window.addEventListener("keydown", handleCopyPaste);
+    return () => window.removeEventListener("keydown", handleCopyPaste);
+  }, [oledMatrix, currentMatrixKey, copiedFrame, dispatch]);
 
-    // 2. Convert to JSON string
-    const jsonString = JSON.stringify(structuredData);
-    
-    // 3. Convert to bytes for compression
-    const bytes = new TextEncoder().encode(jsonString);
-    
-    // 4. LZMA compress
-    const compressed = await LZMA.compress(bytes, 1);
-    
-    // 5. Convert to URL-safe Base64
-    const base64 = btoa(String.fromCharCode(...compressed));
-    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-    
-  } catch (error) {
-    console.error('Compression failed:', error);
-    // Fallback to simpler compression
-    const fallbackData = JSON.stringify(oledMatrix.map(f => ({
-      key: f.key,
-      data: f.matrix.flat().map(c => c ? 1 : 0)
-    })));
-    return btoa(fallbackData).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  /**
+   * Rotates the outer matrix 90° to the left.
+   */
+  function rotateMatrixLeft(matrix) {
+    const height = matrix.length;
+    const width = matrix[0].length;
+    const rotated = Array.from({ length: width }, () => Array(height).fill(0));
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        rotated[width - 1 - x][y] = matrix[y][x];
+      }
+    }
+
+    return rotated;
   }
-}
 
-// Improved decompression function
-async function decompressFromTinyURL(encoded) {
-  try {
-    // 1. Convert from URL-safe Base64
-    const base64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
-    const binaryString = atob(base64);
-    const compressed = new Uint8Array(binaryString.length);
-    
-    for (let i = 0; i < binaryString.length; i++) {
-      compressed[i] = binaryString.charCodeAt(i);
-    }
-    
-    // 2. LZMA decompress
-    const decompressed = await LZMA.decompress(compressed);
-    
-    // 3. Convert bytes back to string
-    const jsonString = new TextDecoder().decode(decompressed);
-    
-    // 4. Parse JSON
-    const data = JSON.parse(jsonString);
-    
-    // 5. Reconstruct matrix format
-    if (data.version === 1) {
-      return data.frames.map(frame => ({
-        key: frame.key,
-        matrix: Array.from({ length: 64 }, (_, row) =>
-          Array.from({ length: 128 }, (_, col) =>
-            frame.matrix[row * 128 + col] === 1
-          )
-        )
-      }));
-    }
-    
-    // Handle legacy format
-    return data.map(frame => ({
-      key: frame.key,
-      matrix: Array.from({ length: 64 }, (_, row) =>
-        Array.from({ length: 128 }, (_, col) =>
-          frame.data[row * 128 + col] === 1
-        )
-      )
+  /**
+   * Rotates the selected frame right.
+   */
+
+
+  /**
+   * Rotates the selected frame left.
+   */
+  function rotateLeftFrame(oledMatrix, currentKey) {
+    return oledMatrix.map(frame => {
+      if (frame.key !== currentKey) return frame;
+
+      const baseMatrix = frame.outerMatrix ?? expandToOuterMatrix(frame.matrix);
+      const rotated = rotateMatrixLeft(baseMatrix);
+
+      return {
+        ...frame,
+        matrix: clipOuterMatrix(rotated),
+        outerMatrix: rotated,
+      };
+    });
+  }
+
+  /**
+   * Flips the selected frame horizontally.
+   * Destroys outerMatrix.
+   */
+  function flipHorizontalFrame(oledMatrix, currentKey) {
+    return oledMatrix.map(frame => {
+      if (frame.key !== currentKey) return frame;
+
+      const matrix = frame.matrix.map(row => [...row].reverse());
+      return { ...frame, matrix, outerMatrix: undefined };
+    });
+  }
+
+  /**
+   * Flips the selected frame vertically.
+   * Destroys outerMatrix.
+   */
+  function flipVerticalFrame(oledMatrix, currentKey) {
+    return oledMatrix.map(frame => {
+      if (frame.key !== currentKey) return frame;
+
+      const matrix = [...frame.matrix].reverse();
+      return { ...frame, matrix, outerMatrix: undefined };
+    });
+  }
+
+  /**
+   * Any non-rotation action should reset the outer matrix.
+   */
+  function clearOuterMatrix(oledMatrix) {
+    return oledMatrix.map(frame => ({
+      ...frame,
+      outerMatrix: undefined,
     }));
-    
-  } catch (error) {
-    console.error('Decompression failed:', error);
-    
-    // Try fallback decompression
-    try {
-      const fallbackData = JSON.parse(atob(encoded.replace(/-/g, '+').replace(/_/g, '/')));
-      return fallbackData.map(frame => ({
-        key: frame.key,
-        matrix: Array.from({ length: 64 }, (_, row) =>
-          Array.from({ length: 128 }, (_, col) =>
-            frame.data[row * 128 + col] === 1
-          )
-        )
-      }));
-    } catch (fallbackError) {
-      console.error('Fallback decompression also failed:', fallbackError);
-      return null;
-    }
   }
-}
 
-// Auto-save hook with debouncing
-const useAutoSave = (oledMatrix, dispatch) => {
-  const [isSaving, setIsSaving] = React.useState(false);
-  
-  const saveToURL = React.useCallback(async (matrix) => {
-    if (!matrix || matrix.length === 0) return;
-    
-    setIsSaving(true);
-    try {
-      const compressed = await compressToTinyURL(matrix);
-      const url = new URL(window.location.href);
-      url.searchParams.set('matrix', compressed);
-      window.history.replaceState({}, '', url);
-      console.log('Auto-saved to URL');
-    } catch (error) {
-      console.error('Auto-save failed:', error);
-    } finally {
-      setIsSaving(false);
-    }
-  }, []);
-  
-  const debouncedSave = React.useMemo(
-    () => debounce(saveToURL, 2000), // 2 second delay
-    [saveToURL]
-  );
-  
-  React.useEffect(() => {
-    if (oledMatrix.length > 0) {
-      debouncedSave(oledMatrix);
-    }
-    
-    return () => {
-      debouncedSave.cancel();
-    };
-  }, [oledMatrix, debouncedSave]);
-  
-  return { isSaving };
-};
 
-// Load from URL function
-const loadFromURL = async (dispatch) => {
-  const params = new URLSearchParams(window.location.search);
-  const matrixParam = params.get('matrix');
-  
-  if (matrixParam) {
-    try {
-      const decoded = await decompressFromTinyURL(matrixParam);
-      if (decoded && decoded.length > 0) {
-        console.log('Loaded from URL:', decoded);
-        return {
-          matrix: decoded,
-          firstFrameKey: decoded[0].key
-        };
+  function Duplicate(matrixToDuplicate) {
+    let currMatrixIndex = matrixToDuplicate.findIndex((matrix) => matrix.key == currentMatrixKey) //dotMatrixDivs
+    if (currMatrixIndex === -1) {
+      console.error("Matrix not found!");
+      return;
+    }
+
+
+    let newMatrix = {
+      key: oledMatrix.length + 1,
+      matrix: oledMatrix[currMatrixIndex].matrix.map(row => [...row])
+    }
+    setOledMatrix(prev => {
+      let newState = [...prev];
+      newState.splice(currMatrixIndex + 1, 0, newMatrix)
+
+      return newState
+    })
+
+    dispatch(setCurrentMatrixByKey(newMatrix.key))
+
+  }
+
+
+
+  // function repeatFunction(func, delay, repeat) {
+  //   func(oledMatrix[0].key); //dotMatrixDivs
+  //   let counter = 1;
+
+  //   repeatInterval.current = setInterval(() => {
+
+  //     if (repeat !== counter) {
+  //       func(dotMatrixDivs[counter].key);//dotMatrixDivs
+  //       counter++;
+  //     } else {
+  //       clearInterval(repeatInterval.current)
+  //     }
+  //   }, delay);
+
+  // }
+
+  function startAnimation() {
+    //setIsAnimating(true);
+    if (currentAnimationPlayingRef.current) return stopAnimation()
+    dispatch(setToPlaying())
+    repeatFunction((key) => dispatch(setCurrentMatrixByKey(key)), frameDuration, oledMatrixCurrentRef.current.length)
+  }
+  function repeatFunction(func, delay, repeat,) {
+    const oled = oledMatrixCurrentRef.current
+    console.log(oled)
+    console.log(repeat)
+    console.log(delay)
+    func(oled[0].key); //dotMatrixDivs
+    let counter = 1;
+
+    repeatInterval.current = setInterval(() => {
+
+      if (repeat !== counter) {
+        func(oled[counter].key);//dotMatrixDivs
+        counter++;
+      } else {
+        // setIsAnimating(false);
+        dispatch(setToStopped())
+        clearInterval(repeatInterval.current)
       }
-    } catch (error) {
-      console.error('Failed to load from URL:', error);
+    }, parseInt(delay));
+
+  }
+  function handleSelectScreen(e) {
+    const value = e.target.value;
+    if (!value) return
+
+    navigate(value)
+
+  }
+
+  function stopAnimation() {
+
+    if (repeatInterval.current) {
+      clearInterval(repeatInterval.current);
+      repeatInterval.current = null;
+      dispatch(setCurrentMatrixByKey(oledMatrixCurrentRef.current[0].key))
+      // setIsAnimating(false);
+      dispatch(setToStopped())
     }
   }
-  return null;
-};
 
-// In your main OledPage function, add this after your existing state declarations:
-const { isSaving } = useAutoSave(oledMatrix, dispatch);
 
-// Replace your existing URL loading useEffect with this:
-React.useEffect(() => {
-  async function initializeFromURL() {
-    const urlData = await loadFromURL(dispatch);
-    if (urlData) {
-      setOledMatrix(urlData.matrix);
-      // This is the key fix - properly sync Redux state
-      dispatch(setCurrentMatrixByKey(urlData.firstFrameKey));
-    }
+  const onDragEnd = (result) => {
+    const { source, destination } = result;
+    if (!destination) return;
+
+    const reorderedDivs = Array.from(oledMatrix); //or dotMatrixDivs
+    const [removed] = reorderedDivs.splice(source.index, 1);
+    reorderedDivs.splice(destination.index, 0, removed);
+    setOledMatrix(reorderedDivs); // or setDotMatrixDivs
+  };
+
+
+
+  function addFrame() {
+
+    const newMat = {
+      // key: dotMatrixDivs.length + 1,
+      key: generateId(),
+      dotmatrix: newMatrix.dotmatrix.map(row => [...row])
+    };
+    setDotMatrixDivs(prev => [...prev, newMat])
+
+    // setCurrentMatrix(newMat.key)
+    dispatch(setCurrentMatrixByKey(newMat.key))
+
   }
-  
-  initializeFromURL();
-}, [dispatch]);
 
-  const handleRotateRight = React.useCallback(() => {
+  function generateCode() {
 
-    const rotateRightFrame = (oledMatrix, currentKey) => {
-      return oledMatrix.map(frame => {
-        if (frame.key !== currentKey) return frame;
+    // let matrixObject = oledMatrix.find(obj => obj.key=== currentMatrixKey)
 
-        const baseMatrix = frame.outerMatrix ?? expandToOuterMatrix(frame.matrix);
-        const rotated = rotateMatrixRight(baseMatrix);
+    let list_of_frames = oledMatrix.map((frame, index) => generateMostEfficientCppArray(frame.matrix, index))
 
-        return {
-          ...frame,
-          matrix: clipOuterMatrix(rotated),
-          outerMatrix: rotated,
-        };
+
+    //let frames_cpp = list_of_frames.map((frame,index) =>code_generation_templates[frame.strategy](frame.cpp,index))
+    //  let cpp_data = generateMostEfficientCppArray(matrixObject.matrix) 
+    if (oledType === "I2C") { setGeneratedCode(generate_oled_template(list_of_frames, frameDuration)) }
+    if (oledType === "SPI") { setGeneratedCode(generate_oled_template_SPI(list_of_frames, frameDuration, pinCS, pinReset, pinDC)) }
+    //setGeneratedCode(generate_oled_template(list_of_frames, frameDuration))
+    setIsCodeGenerated(true)
+    setCodeCopied(false)
+    notifyUser("Code Generation Sucessful!", toast.success)
+  }
+  function generateId() {
+    return Math.random().toString(36).substr(2, 9)
+  }
+  function addFrame() {
+
+    const newMat = {
+      // key: dotMatrixDivs.length + 1,
+      key: generateId(),
+      matrix: Array.from({ length: 64 }, () => Array(128).fill(false))
+    };
+    setOledMatrix(prev => [...prev, newMat])
+
+    // setCurrentMatrix(newMat.key)
+    dispatch(setCurrentMatrixByKey(newMat.key))
+
+  }
+
+  React.useEffect(() => {
+    // Ensure every frame has at least one history entry
+    oledMatrix.forEach(frame => {
+      setOledHistory(prev => {
+        const arr = prev[frame.key] || [];
+        if (arr.length === 0) {
+          return {
+            ...prev,
+            [frame.key]: [structuredClone(frame.matrix)]
+          };
+        }
+        return prev;
       });
+    });
+  }, [oledMatrix]);
+
+  function clearFrame() {
+    setOledMatrix(prev => {
+      const newMatrix = prev.map(frame =>
+        frame.key === currentMatrixKey
+          ? { ...frame, matrix: Array.from({ length: 64 }, () => Array(128).fill(false)) }
+          : frame
+      );
+      // Push to history after clearing
+      pushHistory(currentMatrixKey, newMatrix.find(f => f.key === currentMatrixKey).matrix);
+      return newMatrix;
+    });
+  }
+
+  function shiftLeft(oledMatrix) {
+
+    let matrixCopy = [...oledMatrix]
+    let currMatrixIndex = matrixCopy.findIndex((matrix) => matrix.key == currentMatrixKey)
+
+    let matrix = matrixCopy[currMatrixIndex].matrix
+    for (let y = 0; y < matrix.length; y++) {
+      for (let x = 0; x < matrix[y].length - 1; x++) {
+        matrix[y][x] = matrix[y][x + 1];
+      }
+      matrix[y][matrix[y].length - 1] = 0; // Clear rightmost column
+    }
+    setOledMatrix(matrixCopy)
+
+
+  }
+
+  function shiftRight(oledMatrix) {
+    let matrixCopy = [...oledMatrix]
+    let currMatrixIndex = matrixCopy.findIndex((matrix) => matrix.key == currentMatrixKey)
+
+
+    // let matrix  = [...oledMatrix[currMatrixIndex].matrix]
+    //console.log(matrixCopy[currMatrixIndex].matrix) 
+    let matrix = matrixCopy[currMatrixIndex].matrix
+
+
+
+    for (let y = 0; y < matrix.length; y++) {
+      for (let x = matrix[y].length - 1; x > 0; x--) {
+        matrix[y][x] = matrix[y][x - 1];
+      }
+      matrix[y][0] = 0; // Clear leftmost column
+    }
+    setOledMatrix(matrixCopy)
+
+  }
+
+  function shiftLeftWrapped(oledMatrix) {
+    let matrixCopy = [...oledMatrix];
+    let currMatrixIndex = matrixCopy.findIndex(m => m.key === currentMatrixKey);
+    let matrix = matrixCopy[currMatrixIndex].matrix;
+
+    for (let y = 0; y < matrix.length; y++) {
+      const firstPixel = matrix[y][0];
+      for (let x = 0; x < matrix[y].length - 1; x++) {
+        matrix[y][x] = matrix[y][x + 1];
+      }
+      matrix[y][matrix[y].length - 1] = firstPixel; // Wraparound
     }
 
-
-    setOledMatrix(prev => rotateRightFrame(prev, currentMatrixKey))
-  }, [currentMatrixKey]);
-
-
-  function handleBoardChange(event) {
-    console.log(event)
-    setBoard(event.target.value)
-
-  }
-  let frameDuration = useSelector((state) => state.frameDuration.value)
-  const navigate = useNavigate();
-  const dispatch = useDispatch()
-
-  const WIDTH = 128;
-  const HEIGHT = 64;
-
-  const newMatrix = {
-    key: 0, matrix:
-      [
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-      ]
-
+    setOledMatrix(matrixCopy);
   }
 
-  const [oledMatrix, setOledMatrix] = React.useState(
-    [
-      {
-        key: currentMatrixKey, matrix: Array.from({ length: 64 }, () => Array(128).fill(false))
-      },
+  const MemoizedCodeBlock = React.useMemo(() => (
+    <SyntaxHighlighter
+      language="cpp"
+      style={vscDarkPlus}
+      customStyle={{
+        backgroundColor: "#282c34",
+        borderRadius: "0.5rem",
+        fontSize: "0.9rem",
+        padding: "1rem",
+        marginTop: "2rem",
+        width: "95%",
+        textAlign: "left"
+      }}
+    >
+      {generatedCode}
+    </SyntaxHighlighter>
+  ), [generatedCode]);
+  function shiftRightWrapped(oledMatrix) {
+    let matrixCopy = [...oledMatrix];
+    let currMatrixIndex = matrixCopy.findIndex(m => m.key === currentMatrixKey);
+    let matrix = matrixCopy[currMatrixIndex].matrix;
 
-    ]
-  )
-
-  const oledMatrixCurrentRef = React.useRef(oledMatrix)
-
-
-   const [isSaving, setIsSaving] = React.useState(false);
-  
-  // Memoized compression function
-
-  function binaryStringToBytes(binaryStr) {
-  const byteCount = Math.ceil(binaryStr.length / 8);
-  const bytes = new Uint8Array(byteCount);
-  
-  for (let i = 0; i < byteCount; i++) {
-    const byteStr = binaryStr.substr(i * 8, 8).padEnd(8, '0');
-    bytes[i] = parseInt(byteStr, 2);
-  }
-  
-  return bytes;
-}
-
-function bytesToBase64(bytes) {
-  return btoa(String.fromCharCode(...bytes));
-}
-
-  const compressAndSave = React.useCallback(async (matrix) => {
-    setIsSaving(true);
-    try {
-      const binary = matrixToBinaryString(matrix);
-      const bytes = binaryStringToBytes(binary);
-      const compressed = await LZMA.compress(bytes);
-      const base64 = bytesToBase64(compressed);
-      const urlSafe = base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-      
-      window.history.replaceState({}, '', `?matrix=${urlSafe}`);
-    } catch (error) {
-      console.error("Auto-save failed:", error);
-    } finally {
-      setIsSaving(false);
+    for (let y = 0; y < matrix.length; y++) {
+      const lastPixel = matrix[y][matrix[y].length - 1];
+      for (let x = matrix[y].length - 1; x > 0; x--) {
+        matrix[y][x] = matrix[y][x - 1];
+      }
+      matrix[y][0] = lastPixel; // Wraparound
     }
-  }, []);
+
+    setOledMatrix(matrixCopy);
+  }
 
 
-//   const updateURL = () => {
-//   const compressed = encodeMatrixForURL(oledMatrix);
-//   const url = new URL(window.location.href);
-//   url.searchParams.set('matrix', compressed);
-//   window.history.pushState({}, '', url);
-// };
+  function resetToDefaultBrush() {
+    // Only reset the stamp selection without affecting keyboard-based drawing functionality
+    setStampSymbol(null);
 
-// const updateURL = () => {
-//   const compressed = encodeMatrixForURL(oledMatrix);
-//   const url = new URL(window.location.href);
-//   url.searchParams.set('matrix', compressed);
-//   window.history.pushState({}, '', url);
-// };
+    // Don't need to change the current keyboard state at all
+    // The Shift and Ctrl+Shift functionality for line drawing will remain intact
+    // as it's handled separately in the Oled128x64 component
 
-const updateURL = () => {
-compressToTinyURL(oledMatrix)
-  .then(compressed => {
-    window.history.pushState({}, '', `?matrix=${compressed}`);
-  })
-  .catch(error => {
-    console.error("Failed to compress:", error);
-  });
-};
+    // Optional: Add a subtle notification
+    // notifyUser("Switched to drawing brush", toast.info);
+  }
 
-async function getCompressedURL(oledMatrix) {
-  try {
-    // 1. Compress the data (returns a Promise)
-    const compressed = await compressToTinyURL(oledMatrix);
+  function generateCodeOneFrame() {
+
+    let rMatrices = flipAll(oledMatrix);
+    //console.log(rMatrices.map(matrix=>matrix.dotmatrix))
+    // let stringMatrices = JSON.stringify(rMatrices.map(matrix=>matrix.dotmatrix))
+    let frame = rMatrices[rMatrices.findIndex(matrix => matrix.key === currentMatrixKey)].dotmatrix
+    let dotMatrixString = JSON.stringify(frame)
+    let dotMatrixFormatted = dotMatrixString.replace(/[\[\]]/g, match => match === "[" ? "{" : "}")
+    console.log(`const bool frame[8][8] = ${dotMatrixFormatted}`)
+
+    setGeneratedCode(`
     
-    // 2. Return the full URL string
-    return `?matrix=${compressed}`;
-  } catch (error) {
-    console.error("Compression failed:", error);
-    return ""; // Return empty string or handle error appropriately
+const int DIN = ${pinDIN};
+const int CS = ${pinCS};
+const int CLK = ${pinCLK};
+
+
+// Define the frame data (matrix list)
+
+const bool frame[8][8] = ${dotMatrixFormatted};
+
+void setup() {
+  // Set pin modes
+  pinMode(DIN, OUTPUT);
+  pinMode(CLK, OUTPUT);
+  pinMode(CS, OUTPUT);
+
+  // Initialize MAX7219
+  digitalWrite(CS, HIGH);
+  sendCommand(0x0F, 0x00); // Display test off
+  sendCommand(0x09, 0x00); // Decode mode off
+  sendCommand(0x0B, 0x07); // Scan limit = 8 LEDs
+  sendCommand(0x0A, 0x08); // Brightness = medium
+  sendCommand(0x0C, 0x01); // Shutdown register = normal operation
+  clearDisplay();
+  displayFrame(frame);
+}
+
+void loop() {
+   
+}
+
+void sendCommand(byte command, byte data) {
+  digitalWrite(CS, LOW);
+  shiftOut(DIN, CLK, MSBFIRST, command);
+  shiftOut(DIN, CLK, MSBFIRST, data);
+  digitalWrite(CS, HIGH);
+}
+
+void clearDisplay() {
+  for (int i = 0; i < 8; i++) {
+    sendCommand(i + 1, 0);
   }
 }
-// Load from URL on mount
-React.useEffect(() => {
-    async function loadFromURL() {
-      const params = new URLSearchParams(window.location.search);
-      const matrixParam = params.get('matrix');
-      
-      if (matrixParam) {
-        const decoded = await decompressFromTinyURL(matrixParam);
-        if (decoded) {
-          setOledMatrix(decoded);
-          // Update Redux with first frame's key
-          dispatch(setCurrentMatrixByKey(decoded[0].key));
+
+void displayFrame(const bool matrix[8][8]) {
+  for (int row = 0; row < 8; row++) {
+    byte rowData = 0;
+    for (int col = 0; col < 8; col++) {
+      if (matrix[row][col]) {
+        rowData |= (1 << col);
+      }
+    }
+    sendCommand(row + 1, rowData);
+  }
+}`)
+    setIsCodeGenerated(true)
+  }
+  const [stampSymbol, setStampSymbol] = React.useState(null);
+  return (
+    <div className="theme-blue w-screen text-center flex justify-center flex-col items-center "
+
+    >
+      <ToastContainer />
+
+      <DragDropContext onDragEnd={onDragEnd}>
+        <Droppable direction="horizontal" droppableId="oledMatrix" type="MATRIX">
+          {(provided) => (
+            <div
+              className=" shadow-2xl  py-3 max-500:w-[85%]  md:min-w-[80%]  lg:min-w-[70%] rounded-md  bg-gray-800 max-500:max-h-[200px] max-h-[170px] overflow-y-hidden gap-2 m-5 px-3  max-w-[90%]  scroll-content  relative"
+              ref={provided.innerRef}
+              {...provided.droppableProps}
+            >
+              <div className=' max-500:grid max-500:justify-center w-full flex flex-wrap justify-between max-sm:grid max-sm: '>
+                {/* <div className='flex space-x-3'>
+                  <MdAdd
+                    className='bg-slate-900 cursor-pointer hover:bg-green-600 hover:text-green-200 size-5 rounded-full outline outline-offset-2 outline-2 outline-green-500 text-green-500'
+                    onClick={addFrame}
+                
+                  />
+
+                  <TiMediaStop className='bg-slate-900  hover:bg-green-600 hover:text-green-200 cursor-pointer  size-5 rounded-full outline outline-offset-2 outline-2 outline-green-500 text-green-500' onClick={() => stopRepeat()}>stop</TiMediaStop >
+                
+
+                  <button disabled={true} onClick={
+                    isAnimating&& repeatFunction((key) => dispatch(setCurrentMatrixByKey(key)), frameDuration, oledMatrix.length, oledMatrix)
+
+                  }>
+                    <BsPlayFill className='bg-slate-900  hover:bg-green-600 hover:text-green-200 cursor-pointer   size-5 rounded-full outline outline-offset-2 outline-2 outline-green-500 text-green-500'
+
+                    />
+                  </button>
+
+                  <LuCopy
+                    onClick={() => Duplicate(oledMatrix)}
+                    className='bg-slate-900  hover:bg-green-600 hover:text-green-200 cursor-pointer  size-5 rounded-full outline outline-offset-2 outline-2 outline-green-500 text-green-500' />
+                </div> */}
+
+                <div className='flex gap-x-4 max-500:justify-center  '>
+
+                  <Tool
+                    Icon={MdAdd}
+                    target="add"
+                    onClick={addFrame}
+                    tooltip={["Add Frame"]}
+                  ></Tool>
+
+                  {
+                    isAnimationPlaying ?
+
+                      <Tool
+                        Icon={TiMediaStop}
+                        target="stop"
+                        onClick={stopAnimation}
+                        tooltip={["Stop Animation"]}
+                        classes={"scale-110 hover:bg-red-600 hover:text-red-200 ring-2 ring-offset-2 ring-[#ff0000] text-[#ff0000]"}
+                      // shortCutKey="Space"
+                      ></Tool>
+
+                      :
+
+                      <Tool
+                        Icon={BsPlayFill}
+                        target="play"
+                        onClick={startAnimation}
+                        tooltip={["Play"]}
+                        shortCutKey="Space"
+                      ></Tool>
+                  }
+
+                  <Tool
+                    Icon={LuCopyPlus}
+                    target="duplicate"
+                    onClick={() => Duplicate(oledMatrix)}
+                    tooltip={["Duplicate Frame", "ctrl + c, ctrl + v"]}
+                  ></Tool>
+
+                  <Tool
+                    Icon={CgScreen}
+                    target="clear"
+                    onClick={clearFrame}
+                    tooltip={["Clear Frame"]}
+                  ></Tool>
+
+                  <Tool
+                    Icon={MdDeleteForever}
+                    target="delete"
+                    onClick={deleteFrame}
+                    tooltip={["Delete Frame"]}
+                    classes={" hover:text-red-200 rounded-full  text-red-600"}
+                    shortCutKey="Delete"
+                  ></Tool>
+
+
+                </div>
+
+                <div className='flex flex-wrap max-500:mt-3 '>
+
+                  <FrameDurationInput></FrameDurationInput>
+                </div>
+              </div>
+
+              <div className=' mt-3  bg-gray-900 rounded-md pb-3 overflow-x-auto pt-2 px-3 '>
+
+
+                <div className='flex '
+                  onMouseDown={e => e.preventDefault()}
+                  draggable="false"
+                >
+
+
+                  {
+                    //8x8 frames
+
+                    oledMatrix.map((matrix, index) => (
+                      <Draggable key={matrix.key} draggableId={String(matrix.key)} index={index}>
+                        {(provided) => (<>
+
+
+                          <OledFrame
+                            currentMatrix={currentMatrixKey}
+                            // setCurrentMatrix={setCurrentMatrix}
+                            oledMatrix={oledMatrix}
+                            setOledMatrix={setOledMatrix}
+                            width={WIDTH}
+                            height={HEIGHT}
+                            matrix={matrix}
+                            provided={provided}
+                            framesRef={framesRef}
+                            index={index}
+                          ></OledFrame>
+
+                        </>
+                        )
+
+                        }
+                      </Draggable>
+                    ))}
+                </div>
+
+              </div>
+
+              {provided.placeholder}
+            </div>
+
+          )}
+
+        </Droppable>
+
+      </DragDropContext>
+
+      {/* Other parts of your app */}
+
+      <div className='flex shadow-2xl  max-420:w-[95%] max-650:w-[80%]  max-650:grid bg-gray-800  rounded-lg pb-3 '>
+
+        <div className=' relative 
+      shadow-sm  w-[25em]   max-h-[40em] max-600:w-[19em] flex flex-col items-center justify-center  py-10 justify-self-center '
+          onMouseDown={() => setIsMouseDown(true)}
+          onMouseUp={() => setIsMouseDown(false)}
+
+        >
+
+
+          <div className='   bg-gray-900 p-3 shadow-md drop-shadow-sm shadow-slate-900 '
+            onMouseDown={() => setIsMouseDown(true)}
+            onMouseUp={() => setIsMouseDown(false)}
+
+          >
+            <div className=' w-full flex flex-wrap  mb-2 space-x-2 '>
+
+              <div className='flex items-center  gap-3 mb-2 max-420:w-full max-420:justify-center max-420:gap-7'>
+                <ToolMainFrame
+                  Icon={MdKeyboardDoubleArrowLeft}
+                  target="shiftleft"
+                  shortCutKey="ControlLeft"
+                  toggleKey="ControlLeft"
+                  onHold={() =>
+                    currentKeyboardKeyRef.current === "ControlLeft" ? shiftLeft(oledMatrix)
+                      : shiftLeftWrapped(oledMatrix)}
+                  oledMatrix={oledMatrix}
+
+                  tooltip={["shift left", "Press `Ctrl` for No Wrap shift"]}
+                  classes={currentKeyboardKey === "ControlLeft" ? "scale-110 text-yellow-400" : ""}
+
+                ></ToolMainFrame>
+
+
+                <ToolMainFrame
+                  Icon={GrRotateLeft}
+                  target="rotateLeft"
+                  onClick={() => setOledMatrix(prev => rotateLeftFrame(prev, currentMatrixKey))}
+                  tooltip={["rotate left"]}
+
+                ></ToolMainFrame>
+
+                <ToolMainFrame
+                  Icon={PiFlipHorizontalFill}
+                  target="flipHorizontal"
+                  onClick={() => setOledMatrix(prev => flipHorizontalFrame(prev, currentMatrixKey))}
+                  tooltip={["Flip horizontally"]}
+
+                ></ToolMainFrame>
+
+
+                <ToolMainFrame
+                  Icon={PiFlipVerticalFill}
+                  target="flipVertical"
+                  onClick={() => setOledMatrix(prev => flipVerticalFrame(prev, currentMatrixKey))}
+                  tooltip={["Flip Vertically"]}
+
+                ></ToolMainFrame>
+
+                <ToolMainFrame
+                  Icon={GrRotateRight}
+                  target="rotateRight"
+                  onClick={handleRotateRight}
+                  tooltip={["rotate Right"]}
+
+                ></ToolMainFrame>
+
+                <ToolMainFrame
+                  Icon={MdKeyboardDoubleArrowRight}
+                  target="shiftRight"
+                  onHold={() =>
+                    currentKeyboardKeyRef.current === "ControlLeft" ? shiftRight(oledMatrix)
+                      : shiftRightWrapped(oledMatrix)}
+                  tooltip={["shift Right", "Press `Ctrl` for No Wrap shift"]}
+                  classes={currentKeyboardKey === "ControlLeft" ? "scale-110 text-yellow-400" : ""}
+                ></ToolMainFrame>
+
+
+              </div>
+              <div className='flex items-center gap-3  max-420:w-full max-420:justify-center max-420:gap-7'>
+
+
+                <StampPicker onSelect={setStampSymbol}></StampPicker>
+
+                {
+                  currentKeyboardKey === "KeyD" ?
+                    <ToolMainFrame
+                      Icon={BsFillEraserFill}
+                      target="erase"
+                      onClick={() => dispatch(setToKeyboardKey("KeyNone"))}
+                      tooltip={["Erase.", "ShortCut: D"]}
+                      classes={"scale-125 text-teal-300 hover:cursor-pointer  outline-green-300 outline-solid outline-1 "}
+
+                    ></ToolMainFrame>
+                    :
+                    <ToolMainFrame
+                      Icon={BsFillEraserFill}
+                      target="erase"
+                      onClick={() => dispatch(setToKeyboardKey("KeyD"))}
+                      tooltip={["Erase.", "ShortCut: D"]}
+
+
+                    ></ToolMainFrame>
+
+                }
+                <Tool
+                  Icon={FaRegPenToSquare}
+                  target="resetStamp"
+                  onClick={resetToDefaultBrush}
+                  tooltip={["Reset to Default Brush", "Clear stamp selection"]}
+                  classes={"size-5"}
+                ></Tool>
+                <div className=''>
+
+
+                  <ToolMainFrame
+                    Icon={TbPencilPlus}
+                    target="brushUp"
+                    onClick={handleBrushSizeUp}
+                    shortCutKey="Equal"
+                    tooltip={["Draw Size Up"]}
+                    classes="size-5"
+                  ></ToolMainFrame>
+
+                  <ToolMainFrame
+                    Icon={TbPencilMinus}
+                    target="brushDown"
+                    tooltip={["Draw size Down"]}
+                    classes="size-5"
+                    shortCutKey="Minus"
+                    onClick={handleBrushSizeDown}
+
+                  ></ToolMainFrame>
+
+                  {/* Add the new reset to default brush tool here */}
+
+                </div>
+
+
+              </div>
+
+
+
+            </div>
+
+
+            <Oled128x64
+              oledMatrix={oledMatrix}
+              setOledMatrix={setOledMatrix}
+              brushSize={brushSize}
+              onStrokeEnd={matrix => pushHistory(currentMatrixKey, matrix)}
+              stampSymbol={stampSymbol}
+            ></Oled128x64>
+
+
+
+          </div>
+
+
+        </div>
+        <div className='flex flex-col '>
+          <form className="max-w-sm mx-auto  p-4 relative max-500:m-0">
+
+            <div className='flex justify-end space-x-2 pb-2  items-center'>
+
+
+
+
+
+
+
+              <div
+                data-tooltip-id="tooltip_shortcuts"
+                data-tooltip-place="top"
+                className='flex text-[0.8em] font-bold p-1 text-iconColor items-center space-x-1 bg-slate-900 rounded-md outline outline-slate-700 cursor-pointer'
+
+              >
+                <div>Shortcuts</div>
+                <BsPatchQuestion className='size-5 text-pink-700' />
+
+              </div>
+
+              <WiringGuide></WiringGuide>
+              {/* <div data-tooltip-target="tooltip_guide" className='flex space-x-1 outline outline-slate-700 rounded-md bg-slate-900 outline-offset-2 items-center '>
+                <SiArduino className='size-7 text-cyan-600' />
+                <FaHireAHelper className='size-5 text-cyan-600  '></FaHireAHelper >
+              </div>
+ */}
+
+
+
+
+              {isWarningActive ?
+                <BsExclamationCircle onMouseEnter={
+                  () => {
+                    localStorage.setItem("warnActive", false)
+                    setIsWarningActive(false)
+
+                  }
+
+                } data-tooltip-id="tooltip_warning" className="animate-pulse text-yellow-400  size-5 " />
+                :
+                <BsExclamationCircle data-tooltip-id="tooltip_warning" className="  text-slate-600  size-5 " />
+              }
+
+            </div>
+
+
+
+            <select className=" block w-full pl-2 border border-transparent px-2 py-1 rounded-md bg-slate-700 text-iconColor mb-3 
+             outline-none focus:outline-none ring-0 focus:ring-0 focus:border-transparent focus:shadow-none"
+              onChange={handleSelectScreen}
+              value={display}
+            >
+              <option value="/max">Max 7219</option>
+              <option value="/Oled">Oled matrix 128x64</option>
+
+            </select>
+            <select className=" block w-full pl-2 border border-transparent px-2 py-1 rounded-md bg-slate-700 text-iconColor mb-3 
+             outline-none focus:outline-none ring-0 focus:ring-0 focus:border-transparent focus:shadow-none"
+              onChange={(e) => setOledType(e.target.value)}
+              value={oledType}
+            >
+              <option value="I2C">Type: I2C</option>
+              <option value="SPI">Type: SPI</option>
+
+            </select>
+
+            {oledType === "SPI" && <>
+
+              <select className=" block w-full pl-2 border border-transparent px-2 py-1 rounded-md bg-slate-700 text-iconColor mb-3 
+             outline-none focus:outline-none ring-0 focus:ring-0 focus:border-transparent focus:shadow-none"
+                onChange={handleBoardChange}
+              >
+
+                <option selected
+
+                >Pick a Board</option>
+                <option value="nano">Nano/Uno</option>
+                <option value="mega">Mega</option>
+                <option value="micro">Leonardo/micro</option>
+                <option value="every">Every</option>
+
+              </select>
+
+              <
+                div className='flex max-500:grid max-750:grid gap-1 w-full '>
+
+                <PinSelector board={board} label="CS" pinSetter={setPinCS} ></PinSelector>
+                <PinSelector board={board} label="Reset" pinSetter={setPinReset} ></PinSelector>
+                <PinSelector board={board} label="DC" pinSetter={setPinDC} ></PinSelector>
+
+              </div>
+            </>
+            }
+            {/* <PinSelector label="DIN Pin : " pinRef={pinDINRef} pinSetter={setPinDIN} pinhighlightSetter={setDinPinHighlight}></PinSelector>
+            <PinSelector label="CS Pin : " pinRef={pinCSRef} pinSetter={setPinCS} pinhighlightSetter={setCsPinHighlight}></PinSelector>
+            <PinSelector label="CLK Pin : " pinRef={pinCLKRef} pinSetter={setPinCLK} pinhighlightSetter={setClkPinHighlight}></PinSelector> */}
+
+            <div
+              type="button" //Needed to prevent form page refresh
+
+              className={
+                isGenerateDisabled ?
+                  'bg-slate-900 text-gray-600 outline outline-gray-600 py-1 px-2 rounded-sm'
+                  :
+                  'hover:bg-[#33566bbe] hover:text-white bg-slate-900 text-accentText  py-1 px-2 rounded-sm cursor-pointer'
+              }
+              onClick={isGenerateDisabled ? () => { } : () => generateCode()}>Generate animation code</div>
+
+          </form>
+        </div>
+      </div>
+      {isCodeGenerated ? <pre
+        style={{
+          backgroundColor: "#282c34",
+          color: "#f8f8f2",
+          padding: "1rem",
+          borderRadius: "0.5rem",
+          overflowX: "auto",
+          fontFamily: "monospace",
+          fontSize: "0.9rem",
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+          textAlign: "left",
+          boxSizing: "border-box",
+        }}
+        className="overflow-x-hidden mt-10 w-[85%]  rounded-lg outline outline-2 outline-iconColor shadow-2xl shadow-black"
+      >
+        <button
+          onClick={() => {
+            navigator.clipboard.writeText(generatedCode)
+            setCodeCopied(true)
+          }}
+          className=' transition-transform duration-200 glow-on-hover relative ml-auto flex justify-between items-center hover:scale-125 font-semibold  outline outline-2 outline-iconColor rounded-md m-3 p-2 text-iconColor shadow-lg shadow-[#191919]'>
+
+          {
+            codeCopied ?
+              <><span>Copied! </span><FaClipboardCheck class="m-1 size-5" /></>
+
+              :
+              <><span>Copy Code</span><LuClipboardCopy class="m-1 size-5"></LuClipboardCopy></>
+          }
+
+        </button>
+
+        {/* {isCodeGenerated && (
+          <SyntaxHighlighter
+            language="cpp"
+            style={vscDarkPlus}
+            customStyle={{
+              backgroundColor: "#282c34",
+              borderRadius: "0.5rem",
+              fontSize: "0.9rem",
+              padding: "1rem",
+              marginTop: "2rem",
+              width: "95%",
+              textAlign: "left"
+            }}
+          >
+            {generatedCode}
+          </SyntaxHighlighter>
+        )} */}
+        {/* <AnimateText
+        text= {generatedCode}
+        speed={0.05}
+        ></AnimateText > */}
+        <code>
+          {generatedCode}
+        </code>
+        {/* {isCodeGenerated && MemoizedCodeBlock} */}
+      </pre> : <></>}
+
+      <ReactTooltip
+        id="tooltip_shortcuts"
+        place="top"
+        delayShow={30}
+        delayHide={45}
+        portal={true}
+        style={{ backgroundColor: "#374151" }}
+        className='capitalize w-[25em] z-50 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-gray-900 rounded-lg shadow-xs dark:bg-gray-700'
+        content={
+          <>
+            <div className="flex flex-col space-y-1">
+              <span>Copy Frame : Ctrl + C</span>
+              <span>Paste Frame: Ctrl + V</span>
+              <span>Undo: Ctrl + Z</span>
+              <span>Draw Straight Line: Shift</span>
+              <span>Draw Horizontal or Vertical Line: Shift + Ctrl</span>
+              <span>Erase : D</span>
+            </div>
+          </>
         }
-      }
-    }
-    
-    loadFromURL();
-  }, []);
+      >
 
-// Load state from URL on initial render
-// React.useEffect(() => {
-//   const params = new URLSearchParams(window.location.search);
-//   const matrixParam = params.get('matrix');
-  
-//   console.log(matrixParam)
-//   if (matrixParam) {
-//     const decoded = decodeMatrixFromURL(matrixParam);
-//     console.log(decoded)
-//     if (decoded) setOledMatrix(decoded);
-//   }
-// }, []);
+      </ReactTooltip>
 
+      <ReactTooltip
+        id="tooltip_warning"
+        place="top"
+        delayShow={30}
+        delayHide={45}
 
-  React.useEffect(() => {
-    oledMatrixCurrentRef.current = oledMatrix
-  }, [oledMatrix])
+        style={{ backgroundColor: "#374151" }}
+        portal={true}
+
+        className='capitalize w-[25em] grid capitalize absolute z-10   py-2 text-sm font-medium text-white transition-opacity duration-300 delay-[300ms] bg-gray-900 rounded-lg shadow-xs tooltip dark:bg-gray-700'
+        content={
+          <>
+            <span>Oled Displays have multiple Types.</span>
+            <span>If I2C Oled setting fails, try SPI and vice versa</span>
+            <span>wiring Depends on the Board and Oled type.</span>
+            <span className='text-yellow-400 mt-1'> for Quick guide, Hover on icon on the left.</span>
 
 
-const matrixToBinaryString = (oledMatrix) => {
-  let binaryStr = '';
-  for (const frame of oledMatrix) {
-    for (let row of frame.matrix) {
-      for (let cell of row) {
-        binaryStr += cell ? '1' : '0';
-      }
-    }
-  }
-  return binaryStr;
-};
+          </>
 
-// const encodeMatrixForURL = (oledMatrix) => {
-//   // 1. Convert to binary string
-//   const binaryStr = matrixToBinaryString(oledMatrix);
-  
-//   // 2. Pack binary string into bytes
-//   const bytes = new Uint8Array(Math.ceil(binaryStr.length / 8));
-//   for (let i = 0; i < bytes.length; i++) {
-//     const byteStr = binaryStr.substr(i * 8, 8).padEnd(8, '0');
-//     bytes[i] = parseInt(byteStr, 2);
-//   }
-  
-//   // 3. Compress with zlib (great for binary data)
-//   const compressed = pako.deflate(bytes);
-  
-//   // 4. Convert to Base64 (URL-safe)
-//   return btoa(String.fromCharCode(...compressed))
-//     .replace(/\+/g, '-') // Replace URL-unsafe characters
-//     .replace(/\//g, '_')
-//     .replace(/=+$/, '');
-// };
-
-
-
-const matrixToEncodedString = (oledMatrix) => {
-  let output = '';
-  
-  for (const frame of oledMatrix) {
-    // Add frame key (with special delimiter)
-    output += `[${frame.key}]`;
-    
-    // Add binary matrix data
-    for (let row of frame.matrix) {
-      for (let cell of row) {
-        output += cell ? '1' : '0';
-      }
-    }
-  }
-  
-  return output;
-};
-
-// Main encoding function
-
-// const encodeMatrixForURL = (oledMatrix) => {
-//   // 1. Create a structured object with keys and binary data
-//   const dataToEncode = {
-//     frames: oledMatrix.map(frame => ({
-//       key: frame.key,  // Preserve original key
-//       data: frame.matrix.flatMap(row => 
-//         row.map(cell => cell ? '1' : '0')).join('')
-//     }))
-//   };
-
-//   // 2. Convert to JSON string
-//   const jsonString = JSON.stringify(dataToEncode);
-
-//   // 3. Compress with zlib
-//   const compressed = pako.deflate(jsonString);
-
-//   // 4. Convert to Base64 (URL-safe)
-//   return btoa(String.fromCharCode(...compressed))
-//     .replace(/\+/g, '-')
-//     .replace(/\//g, '_')
-//     .replace(/=+$/, '');
-// };
-
-
-
-
-async function compressToTinyURL(oledMatrix) {
-  try {
-    // 1. Create structured data with frame keys preserved
-    const structuredData = {
-      version: 1,
-      frameCount: oledMatrix.length,
-      frames: oledMatrix.map(frame => ({
-        key: frame.key,
-        matrix: frame.matrix.flat().map(cell => cell ? 1 : 0)
-      }))
-    };
-
-    // 2. Convert to JSON string
-    const jsonString = JSON.stringify(structuredData);
-    
-    // 3. Convert to bytes for compression
-    const bytes = new TextEncoder().encode(jsonString);
-    
-    // 4. LZMA compress
-    const compressed = await LZMA.compress(bytes, 1);
-    
-    // 5. Convert to URL-safe Base64
-    const base64 = btoa(String.fromCharCode(...compressed));
-    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-    
-  } catch (error) {
-    console.error('Compression failed:', error);
-    // Fallback to simpler compression
-    const fallbackData = JSON.stringify(oledMatrix.map(f => ({
-      key: f.key,
-      data: f.matrix.flat().map(c => c ? 1 : 0)
-    })));
-    return btoa(fallbackData).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  }
-}
-
-// Improved decompression function
-async function decompressFromTinyURL(encoded) {
-  try {
-    // 1. Convert from URL-safe Base64
-    const base64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
-    const binaryString = atob(base64);
-    const compressed = new Uint8Array(binaryString.length);
-    
-    for (let i = 0; i < binaryString.length; i++) {
-      compressed[i] = binaryString.charCodeAt(i);
-    }
-    
-    // 2. LZMA decompress
-    const decompressed = await LZMA.decompress(compressed);
-    
-    // 3. Convert bytes back to string
-    const jsonString = new TextDecoder().decode(decompressed);
-    
-    // 4. Parse JSON
-    const data = JSON.parse(jsonString);
-    
-    // 5. Reconstruct matrix format
-    if (data.version === 1) {
-      return data.frames.map(frame => ({
-        key: frame.key,
-        matrix: Array.from({ length: 64 }, (_, row) =>
-          Array.from({ length: 128 }, (_, col) =>
-            frame.matrix[row * 128 + col] === 1
-          )
-        )
-      }));
-    }
-    
-    // Handle legacy format
-    return data.map(frame => ({
-      key: frame.key,
-      matrix: Array.from({ length: 64 }, (_, row) =>
-        Array.from({ length: 128 }, (_, col) =>
-          frame.data[row * 128 + col] === 1
-        )
-      )
-    }));
-    
-  } catch (error) {
-    console.error('Decompression failed:', error);
-    
-    // Try fallback decompression
-    try {
-      const fallbackData = JSON.parse(atob(encoded.replace(/-/g, '+').replace(/_/g, '/')));
-      return fallbackData.map(frame => ({
-        key: frame.key,
-        matrix: Array.from({ length: 64 }, (_, row) =>
-          Array.from({ length: 128 }, (_, col) =>
-            frame.data[row * 128 + col] === 1
-          )
-        )
-      }));
-    } catch (fallbackError) {
-      console.error('Fallback decompression also failed:', fallbackError);
-      return null;
-    }
-  }
-}
-
-// Auto-save hook with debouncing
-const useAutoSave = (oledMatrix, dispatch) => {
-  const [isSaving, setIsSaving] = React.useState(false);
-  
-  const saveToURL = React.useCallback(async (matrix) => {
-    if (!matrix || matrix.length === 0) return;
-    
-    setIsSaving(true);
-    try {
-      const compressed = await compressToTinyURL(matrix);
-      const url = new URL(window.location.href);
-      url.searchParams.set('matrix', compressed);
-      window.history.replaceState({}, '', url);
-      console.log('Auto-saved to URL');
-    } catch (error) {
-      console.error('Auto-save failed:', error);
-    } finally {
-      setIsSaving(false);
-    }
-  }, []);
-  
-  const debouncedSave = React.useMemo(
-    () => debounce(saveToURL, 2000), // 2 second delay
-    [saveToURL]
-  );
-  
-  React.useEffect(() => {
-    if (oledMatrix.length > 0) {
-      debouncedSave(oledMatrix);
-    }
-    
-    return () => {
-      debouncedSave.cancel();
-    };
-  }, [oledMatrix, debouncedSave]);
-  
-  return { isSaving };
-};
-
-// Load from URL function
-const loadFromURL = async (dispatch) => {
-  const params = new URLSearchParams(window.location.search);
-  const matrixParam = params.get('matrix');
-  
-  if (matrixParam) {
-    try {
-      const decoded = await decompressFromTinyURL(matrixParam);
-      if (decoded && decoded.length > 0) {
-        console.log('Loaded from URL:', decoded);
-        return {
-          matrix: decoded,
-          firstFrameKey: decoded[0].key
-        };
-      }
-    } catch (error) {
-      console.error('Failed to load from URL:', error);
-    }
-  }
-  return null;
-};
-
-// In your main OledPage function, add this after your existing state declarations:
-const { isSaving } = useAutoSave(oledMatrix, dispatch);
-
-// Replace your existing URL loading useEffect with this:
-React.useEffect(() => {
-  async function initializeFromURL() {
-    const urlData = await loadFromURL(dispatch);
-    if (urlData) {
-      setOledMatrix(urlData.matrix);
-      // This is the key fix - properly sync Redux state
-      dispatch(setCurrentMatrixByKey(urlData.firstFrameKey));
-    }
-  }
-  
-  initializeFromURL();
-}, [dispatch]);
-
-  const handleRotateRight = React.useCallback(() => {
-
-    const rotateRightFrame = (oledMatrix, currentKey) => {
-      return oledMatrix.map(frame => {
-        if (frame.key !== currentKey) return frame;
-
-        const baseMatrix = frame.outerMatrix ?? expandToOuterMatrix(frame.matrix);
-        const rotated = rotateMatrixRight(baseMatrix);
-
-        return {
-          ...frame,
-          matrix: clipOuterMatrix(rotated),
-          outerMatrix: rotated,
-        };
-      });
-    }
-
-
-    setOledMatrix(prev => rotateRightFrame(prev, currentMatrixKey))
-  }, [currentMatrixKey]);
-
-
-  function handleBoardChange(event) {
-    console.log(event)
-    setBoard(event.target.value)
-
-  }
-  let frameDuration = useSelector((state) => state.frameDuration.value)
-  const navigate = useNavigate();
-  const dispatch = useDispatch()
-
-  const WIDTH = 128;
-  const HEIGHT = 64;
-
-  const newMatrix = {
-    key: 0, matrix:
-      [
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-      ]
-
-  }
-
-  const [oledMatrix, setOledMatrix] = React.useState(
-    [
-      {
-        key: currentMatrixKey, matrix: Array.from({ length: 64 }, () => Array(128).fill(false))
-      },
-
-    ]
-  )
-
-  const oledMatrixCurrentRef = React.useRef(oledMatrix)
-
-
-   const [isSaving, setIsSaving] = React.useState(false);
-  
-  // Memoized compression function
-
-  function binaryStringToBytes(binaryStr) {
-  const byteCount = Math.ceil(binaryStr.length / 8);
-  const bytes = new Uint8Array(byteCount);
-  
-  for (let i = 0; i < byteCount; i++) {
-    const byteStr = binaryStr.substr(i * 8, 8).padEnd(8, '0');
-    bytes[i] = parseInt(byteStr, 2);
-  }
-  
-  return bytes;
-}
-
-function bytesToBase64(bytes) {
-  return btoa(String.fromCharCode(...bytes));
-}
-
-  const compressAndSave = React.useCallback(async (matrix) => {
-    setIsSaving(true);
-    try {
-      const binary = matrixToBinaryString(matrix);
-      const bytes = binaryStringToBytes(binary);
-      const compressed = await LZMA.compress(bytes);
-      const base64 = bytesToBase64(compressed);
-      const urlSafe = base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-      
-      window.history.replaceState({}, '', `?matrix=${urlSafe}`);
-    } catch (error) {
-      console.error("Auto-save failed:", error);
-    } finally {
-      setIsSaving(false);
-    }
-  }, []);
-
-
-//   const updateURL = () => {
-//   const compressed = encodeMatrixForURL(oledMatrix);
-//   const url = new URL(window.location.href);
-//   url.searchParams.set('matrix', compressed);
-//   window.history.pushState({}, '', url);
-// };
-
-// const updateURL = () => {
-//   const compressed = encodeMatrixForURL(oledMatrix);
-//   const url = new URL(window.location.href);
-//   url.searchParams.set('matrix', compressed);
-//   window.history.pushState({}, '', url);
-// };
-
-const updateURL = () => {
-compressToTinyURL(oledMatrix)
-  .then(compressed => {
-    window.history.pushState({}, '', `?matrix=${compressed}`);
-  })
-  .catch(error => {
-    console.error("Failed to compress:", error);
-  });
-};
-
-async function getCompressedURL(oledMatrix) {
-  try {
-    // 1. Compress the data (returns a Promise)
-    const compressed = await compressToTinyURL(oledMatrix);
-    
-    // 2. Return the full URL string
-    return `?matrix=${compressed}`;
-  } catch (error) {
-    console.error("Compression failed:", error);
-    return ""; // Return empty string or handle error appropriately
-  }
-}
-// Load from URL on mount
-React.useEffect(() => {
-    async function loadFromURL() {
-      const params = new URLSearchParams(window.location.search);
-      const matrixParam = params.get('matrix');
-      
-      if (matrixParam) {
-        const decoded = await decompressFromTinyURL(matrixParam);
-        if (decoded) {
-          setOledMatrix(decoded);
-          // Update Redux with first frame's key
-          dispatch(setCurrentMatrixByKey(decoded[0].key));
         }
-      }
-    }
-    
-    loadFromURL();
-  }, []);
+      />
+    </div>
 
-// Load state from URL on initial render
-// React.useEffect(() => {
-//   const params = new URLSearchParams(window.location.search);
-//   const matrixParam = params.get('matrix');
-  
-//   console.log(matrixParam)
-//   if (matrixParam) {
-//     const decoded = decodeMatrixFromURL(matrixParam);
-//     console.log(decoded)
-//     if (decoded) setOledMatrix(decoded);
-//   }
-// }, []);
-
-
-  React.useEffect(() => {
-    oledMatrixCurrentRef.current = oledMatrix
-  }, [oledMatrix])
-
-
-const matrixToBinaryString = (oledMatrix) => {
-  let binaryStr = '';
-  for (const frame of oledMatrix) {
-    for (let row of frame.matrix) {
-      for (let cell of row) {
-        binaryStr += cell ? '1' : '0';
-      }
-    }
-  }
-  return binaryStr;
-};
-
-// const encodeMatrixForURL = (oledMatrix) => {
-//   // 1. Convert to binary string
-//   const binaryStr = matrixToBinaryString(oledMatrix);
-  
-//   // 2. Pack binary string into bytes
-//   const bytes = new Uint8Array(Math.ceil(binaryStr.length / 8));
-//   for (let i = 0; i < bytes.length; i++) {
-//     const byteStr = binaryStr.substr(i * 8, 8).padEnd(8, '0');
-//     bytes[i] = parseInt(byteStr, 2);
-//   }
-  
-//   // 3. Compress with zlib (great for binary data)
-//   const compressed = pako.deflate(bytes);
-  
-//   // 4. Convert to Base64 (URL-safe)
-//   return btoa(String.fromCharCode(...compressed))
-//     .replace(/\+/g, '-') // Replace URL-unsafe characters
-//     .replace(/\//g, '_')
-//     .replace(/=+$/, '');
-// };
-
-
-
-const matrixToEncodedString = (oledMatrix) => {
-  let output = '';
-  
-  for (const frame of oledMatrix) {
-    // Add frame key (with special delimiter)
-    output += `[${frame.key}]`;
-    
-    // Add binary matrix data
-    for (let row of frame.matrix) {
-      for (let cell of row) {
-        output += cell ? '1' : '0';
-      }
-    }
-  }
-  
-  return output;
-};
-
-// Main encoding function
-
-// const encodeMatrixForURL = (oledMatrix) => {
-//   // 1. Create a structured object with keys and binary data
-//   const dataToEncode = {
-//     frames: oledMatrix.map(frame => ({
-//       key: frame.key,  // Preserve original key
-//       data: frame.matrix.flatMap(row => 
-//         row.map(cell => cell ? '1' : '0')).join('')
-//     }))
-//   };
-
-//   // 2. Convert to JSON string
-//   const jsonString = JSON.stringify(dataToEncode);
-
-//   // 3. Compress with zlib
-//   const compressed = pako.deflate(jsonString);
-
-//   // 4. Convert to Base64 (URL-safe)
-//   return btoa(String.fromCharCode(...compressed))
-//     .replace(/\+/g, '-')
-//     .replace(/\//g, '_')
-//     .replace(/=+$/, '');
-// };
-
-
-
-
-async function compressToTinyURL(oledMatrix) {
-  try {
-    // 1. Create structured data with frame keys preserved
-    const structuredData = {
-      version: 1,
-      frameCount: oledMatrix.length,
-      frames: oledMatrix.map(frame => ({
-        key: frame.key,
-        matrix: frame.matrix.flat().map(cell => cell ? 1 : 0)
-      }))
-    };
-
-    // 2. Convert to JSON string
-    const jsonString = JSON.stringify(structuredData);
-    
-    // 3. Convert to bytes for compression
-    const bytes = new TextEncoder().encode(jsonString);
-    
-    // 4. LZMA compress
-    const compressed = await LZMA.compress(bytes, 1);
-    
-    // 5. Convert to URL-safe Base64
-    const base64 = btoa(String.fromCharCode(...compressed));
-    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-    
-  } catch (error) {
-    console.error('Compression failed:', error);
-    // Fallback to simpler compression
-    const fallbackData = JSON.stringify(oledMatrix.map(f => ({
-      key: f.key,
-      data: f.matrix.flat().map(c => c ? 1 : 0)
-    })));
-    return btoa(fallbackData).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  }
-}
-
-// Improved decompression function
-async function decompressFromTinyURL(encoded) {
-  try {
-    // 1. Convert from URL-safe Base64
-    const base64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
-    const binaryString = atob(base64);
-    const compressed = new Uint8Array(binaryString.length);
-    
-    for (let i = 0; i < binaryString.length; i++) {
-      compressed[i] = binaryString.charCodeAt(i);
-    }
-    
-    // 2. LZMA decompress
-    const decompressed = await LZMA.decompress(compressed);
-    
-    // 3. Convert bytes back to string
-    const jsonString = new TextDecoder().decode(decompressed);
-    
-    // 4. Parse JSON
-    const data = JSON.parse(jsonString);
-    
-    // 5. Reconstruct matrix format
-    if (data.version === 1) {
-      return data.frames.map(frame => ({
-        key: frame.key,
-        matrix: Array.from({ length: 64 }, (_, row) =>
-          Array.from({ length: 128 }, (_, col) =>
-            frame.matrix[row * 128 + col] === 1
-          )
-        )
-      }));
-    }
-    
-    // Handle legacy format
-    return data.map(frame => ({
-      key: frame.key,
-      matrix: Array.from({ length: 64 }, (_, row) =>
-        Array.from({ length: 128 }, (_, col) =>
-          frame.data[row * 128 + col] === 1
-        )
-      )
-    }));
-    
-  } catch (error) {
-    console.error('Decompression failed:', error);
-    
-    // Try fallback decompression
-    try {
-      const fallbackData = JSON.parse(atob(encoded.replace(/-/g, '+').replace(/_/g, '/')));
-      return fallbackData.map(frame => ({
-        key: frame.key,
-        matrix: Array.from({ length: 64 }, (_, row) =>
-          Array.from({ length: 128 }, (_, col) =>
-            frame.data[row * 128 + col] === 1
-          )
-        )
-      }));
-    } catch (fallbackError) {
-      console.error('Fallback decompression also failed:', fallbackError);
-      return null;
-    }
-  }
-}
-
-// Auto-save hook with debouncing
-const useAutoSave = (oledMatrix, dispatch) => {
-  const [isSaving, setIsSaving] = React.useState(false);
-  
-  const saveToURL = React.useCallback(async (matrix) => {
-    if (!matrix || matrix.length === 0) return;
-    
-    setIsSaving(true);
-    try {
-      const compressed = await compressToTinyURL(matrix);
-      const url = new URL(window.location.href);
-      url.searchParams.set('matrix', compressed);
-      window.history.replaceState({}, '', url);
-      console.log('Auto-saved to URL');
-    } catch (error) {
-      console.error('Auto-save failed:', error);
-    } finally {
-      setIsSaving(false);
-    }
-  }, []);
-  
-  const debouncedSave = React.useMemo(
-    () => debounce(saveToURL, 2000), // 2 second delay
-    [saveToURL]
   );
-  
-  React.useEffect(() => {
-    if (oledMatrix.length > 0) {
-      debouncedSave(oledMatrix);
-    }
-    
-    return () => {
-      debouncedSave.cancel();
-    };
-  }, [oledMatrix, debouncedSave]);
-  
-  return { isSaving };
-};
 
-// Load from URL function
-const loadFromURL = async (dispatch) => {
-  const params = new URLSearchParams(window.location.search);
-  const matrixParam = params.get('matrix');
-  
-  if (matrixParam) {
-    try {
-      const decoded = await decompressFromTinyURL(matrixParam);
-      if (decoded && decoded.length > 0) {
-        console.log('Loaded from URL:', decoded);
-        return {
-          matrix: decoded,
-          firstFrameKey: decoded[0].key
-        };
-      }
-    } catch (error) {
-      console.error('Failed to load from URL:', error);
-    }
-  }
-  return null;
-};
-
-// In your main OledPage function, add this after your existing state declarations:
-const { isSaving } = useAutoSave(oledMatrix, dispatch);
-
-// Replace your existing URL loading useEffect with this:
-React.useEffect(() => {
-  async function initializeFromURL() {
-    const urlData = await loadFromURL(dispatch);
-    if (urlData) {
-      setOledMatrix(urlData.matrix);
-      // This is the key fix - properly sync Redux state
-      dispatch(setCurrentMatrixByKey(urlData.firstFrameKey));
-    }
-  }
-  
-  initializeFromURL();
-}, [dispatch]);
-
-  const handleRotateRight = React.useCallback(() => {
-
-    const rotateRightFrame = (oledMatrix, currentKey) => {
-      return oledMatrix.map(frame => {
-        if (frame.key !== currentKey) return frame;
-
-        const baseMatrix = frame.outerMatrix ?? expandToOuterMatrix(frame.matrix);
-        const rotated = rotateMatrixRight(baseMatrix);
-
-        return {
-          ...frame,
-          matrix: clipOuterMatrix(rotated),
-          outerMatrix: rotated,
-        };
-      });
-    }
-
-
-    setOledMatrix(prev => rotateRightFrame(prev, currentMatrixKey))
-  }, [currentMatrixKey]);
-
-
-  function handleBoardChange(event) {
-    console.log(event)
-    setBoard(event.target.value)
-
-  }
-  let frameDuration = useSelector((state) => state.frameDuration.value)
-  const navigate = useNavigate();
-  const dispatch = useDispatch()
-
-  const WIDTH = 128;
-  const HEIGHT = 64;
-
-  const newMatrix = {
-    key: 0, matrix:
-      [
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, false, false],
-      ]
-
-  }
-
-  const [oledMatrix, setOledMatrix] = React.useState(
-    [
-      {
-        key: currentMatrixKey, matrix: Array.from({ length: 64 }, () => Array(128).fill(false))
-      },
-
-    ]
-  )
-
-  const oledMatrixCurrentRef = React.useRef(oledMatrix)
-
-
-   const [isSaving, setIsSaving] = React.useState(false);
-  
-  // Memoized compression function
-
-  function binaryStringToBytes(binaryStr) {
-  const byteCount = Math.ceil(binaryStr.length / 8);
-  const bytes = new Uint8Array(byteCount);
-  
-  for (let i = 0; i < byteCount; i++) {
-    const byteStr = binaryStr.substr(i * 8, 8).padEnd(8, '0');
-    bytes[i] = parseInt(byteStr, 2);
-  }
-  
-  return bytes;
+  //return (<Router/>)
 }
 
-function bytesToBase64(bytes) {
-  return btoa(String.fromCharCode(...bytes));
-}
 
-  const compressAndSave = React.useCallback(async (matrix) => {
-    setIsSaving(true);
-    try {
-      const binary = matrixToBinaryString(matrix);
-      const bytes = binaryStringToBytes(binary);
-      const compressed = await LZMA.compress(bytes);
-      const base64 = bytesToBase64(compressed);
-      const urlSafe = base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-      
-      window.history.replaceState({}, '', `?matrix=${urlSafe}`);
-    } catch (error) {
-      console.error("Auto-save failed:", error);
-    } finally {
-      setIsSaving(false);
-    }
-  }, []);
-
-
-//   const updateURL = () => {
-//   const compressed = encodeMatrixForURL(oledMatrix);
-//   const url = new URL(window.location.href);
-//   url.searchParams.set('matrix', compressed);
-//   window.history.pushState({}, '', url);
-// };
-
-// const updateURL = () => {
-//   const compressed = encodeMatrixForURL(oledMatrix);
-//   const url = new URL(window.location.href);
-//   url.searchParams.set('matrix', compressed);
-//   window.history.pushState({}, '', url);
-// };
-
-const updateURL = () => {
-compressToTinyURL(oledMatrix)
-  .then(compressed => {
-    window.history.pushState({}, '', `?matrix=${compressed}`);
-  })
-  .catch(error => {
-    console.error("Failed to compress:", error);
-  });
-};
-
-async function getCompressedURL(oledMatrix) {
-  try {
-    // 1. Compress the data (returns a Promise)
-    const compressed = await compressToTinyURL(oledMatrix);
-    
-    // 2. Return the full URL string
-    return `?matrix=${compressed}`;
-  } catch (error) {
-    console.error("Compression failed:", error);
-    return ""; // Return empty string or handle error appropriately
-  }
-}
-// Load from URL on mount
-React.useEffect(() => {
-    async function loadFromURL() {
-      const params = new URLSearchParams(window.location.search);
-      const matrixParam = params.get('matrix');
-      
-      if (matrixParam) {
-        const decoded = await decompressFromTinyURL(matrixParam);
-        if (decoded) {
-          setOledMatrix(decoded);
-          // Update Redux with first frame's key
-          dispatch(setCurrentMatrixByKey(decoded[0].key));
-        }
-      }
-    }
-    
-    loadFromURL();
-  }, []);
-
-// Load state from URL on initial render
-// React.useEffect(() => {
-//   const params = new URLSearchParams(window.location.search);
-//   const matrixParam = params.get('matrix');
-  
-//   console.log(matrixParam)
-//   if (matrixParam) {
-//     const decoded = decodeMatrixFromURL(matrixParam);
-//     console.log(decoded)
-//     if (decoded) setOledMatrix(decoded);
-//   }
-// }, []);
-
-
-  React.useEffect(() => {
-    oledMatrixCurrentRef.current = oledMatrix
-  }, [oledMatrix])
-
-
-const matrixToBinaryString = (oledMatrix) => {
-  let binaryStr = '';
-  for (const frame of oledMatrix) {
-    for (let row of frame.matrix) {
-      for (let cell of row) {
-        binaryStr += cell ? '1' : '0';
-      }
-    }
-  }
-  return binaryStr;
-};
-
-// const encodeMatrixForURL = (oledMatrix) => {
-//   // 1. Convert to binary string
-//   const binaryStr = matrixToBinaryString(oledMatrix);
-  
-//   // 2. Pack binary string into bytes
-//   const bytes = new Uint8Array(Math.ceil(binaryStr.length / 8));
-//   for (let i = 0; i < bytes.length; i++) {
-//     const byteStr = binaryStr.substr(i * 8, 8).padEnd(8, '0');
-//     bytes[i] = parseInt(byteStr, 2);
-//   }
-  
-//   // 3. Compress with zlib (great for binary data)
-//   const compressed = pako.deflate(bytes);
-  
-//   // 4. Convert to Base64 (URL-safe)
-//   return btoa(String.fromCharCode(...compressed))
-//     .replace(/\+/g, '-') // Replace URL-unsafe characters
-//     .replace(/\//g, '_')
-//     .replace(/=+$/, '');
-// };
-
-
-
-const matrixToEncodedString = (oledMatrix) => {
-  let output = '';
-  
-  for (const frame of oledMatrix) {
-    // Add frame key (with special delimiter)
-    output += `[${frame.key}]`;
-    
-    // Add binary matrix data
-    for (let row of frame.matrix) {
-      for (let cell of row) {
-        output += cell ? '1' : '0';
-      }
-    }
-  }
-  
-  return output;
-};
-
-// Main encoding function
-
-// const encodeMatrixForURL = (oledMatrix) => {
-//   // 1. Create a structured object with keys and binary data
-//   const dataToEncode = {
-//     frames: oledMatrix.map(frame => ({
-//       key: frame.key,  // Preserve original key
-//       data: frame.matrix.flatMap(row => 
-//         row.map(cell => cell ? '1' : '0')).join('')
-//     }))
-//   };
-
-//   // 2. Convert to JSON string
-//   const jsonString = JSON.stringify(dataToEncode);
-
-//   // 3. Compress with zlib
-//   const compressed = pako.deflate(jsonString);
-
-//   // 4. Convert to Base64 (URL-safe)
-//   return btoa(String.fromCharCode(...compressed))
-//     .replace(/\+/g, '-')
-//     .replace(/\//g, '_')
-//     .replace(/=+$/, '');
-// };
-
-
-
-
-async function compressToTinyURL(oledMatrix) {
-  try {
-    // 1. Create structured data with frame keys preserved
-    const structuredData = {
-      version: 1,
-      frameCount: oledMatrix.length,
-      frames: oledMatrix.map(frame => ({
-        key: frame.key,
-        matrix: frame.matrix.flat().map(cell => cell ? 1 : 0)
-      }))
-    };
-
-    // 2. Convert to JSON string
-    const jsonString = JSON.stringify(structuredData);
-    
-    // 3. Convert to bytes for compression
-    const bytes = new TextEncoder().encode(jsonString);
-    
-    // 4. LZMA compress
-    const compressed = await LZMA.compress(bytes, 1);
-    
-    // 5. Convert to URL-safe Base64
-    const base64 = btoa(String.fromCharCode(...compressed));
-    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-    
-  } catch (error) {
-    console.error('Compression failed:', error);
-    // Fallback to simpler compression
-    const fallbackData = JSON.stringify(oledMatrix.map(f => ({
-      key: f.key,
-      data: f.matrix.flat().map(c => c ? 1 : 0)
-    })));
-    return btoa(fallbackData).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  }
-}
-
-// Improved decompression function
-async function decompressFromTinyURL(encoded) {
-  try {
-    // 1. Convert from URL-safe Base64
-    const base64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
-    const binaryString = atob(base64);
-    const compressed = new Uint8Array(binaryString.length);
-    
-    for (let i = 0; i < binaryString.length; i++) {
-      compressed[i] = binaryString.charCodeAt(i);
-    }
-    
-    // 2. LZMA decompress
-    const decompressed = await LZMA.decompress(compressed);
-    
-    // 3. Convert bytes back to string
-    const jsonString = new TextDecoder().decode(decompressed);
-    
-    // 4. Parse JSON
-    const data = JSON.parse(jsonString);
-    
-    // 5. Reconstruct matrix format
-    if (data.version === 1) {
-      return data.frames.map(frame => ({
-        key: frame.key,
-        matrix: Array.from({ length: 64 }, (_, row) =>
-          Array.from({ length: 128 }, (_, col) =>
-            frame.matrix[row * 128 + col] === 1
-          )
-        )
-      }));
-    }
-    
-    // Handle legacy format
-    return data.map(frame => ({
-      key: frame.key,
-      matrix: Array.from({ length: 64 }, (_, row) =>
-        Array.from({ length: 128 }, (_, col) =>
-          frame.data[row * 128 + col] === 1
-        )
-      )
-    }));
-    
-  } catch (error) {
-    console.error('Decompression failed:', error);
-    
-    // Try fallback decompression
-    try {
-      const fallbackData = JSON.parse(atob(encoded.replace(/-/g, '+').replace(/_/g, '/')));
-      return fallbackData.map(frame => ({
-        key: frame.key,
-        matrix: Array.from({ length: 64 }, (_, row) =>
-          Array.from({ length: 128 }, (_, col) =>
-            frame.data[row * 128 + col] === 1
-          )
-        )
-      }));
-    } catch (fallbackError) {
-      console.error('Fallback decompression also failed:', fallbackError);
-      return null;
-    }
-  }
-}
-
-// Auto-save hook with debouncing
-const useAutoSave = (oledMatrix, dispatch) => {
-  const [isSaving, setIsSaving] = React.useState(false);
-  
-  const saveToURL = React.useCallback(async (matrix) => {
-    if (!matrix || matrix.length === 0) return;
-    
-    setIsSaving(true);
-    try {
-      const compressed = await compressToTinyURL(matrix);
-      const url = new URL(window.location.href);
-      url.searchParams.set('matrix', compressed);
-      window.history.replaceState({}, '', url);
-      console.log('Auto-saved to URL');
-    } catch (error) {
-      console.error('Auto-save failed:', error);
-    } finally {
-      setIsSaving(false);
-    }
-  }, []);
-  
-  const debouncedSave = React.useMemo(
-    () => debounce(saveToURL, 2000), // 2 second delay
-    [saveToURL]
-  );
-  
-  React.useEffect(() => {
-    if (oledMatrix.length > 0) {
-      debouncedSave(oledMatrix);
-    }
-    
-    return () => {
-      debouncedSave.cancel();
-    };
-  }, [oledMatrix, debouncedSave]);
-  
-  return { isSaving };
-};
-
-// Load from URL function
-const loadFromURL = async (dispatch) => {
-  const params = new URLSearchParams(window.location.search);
-  const matrixParam = params.get('matrix');
-  
-  if (matrixParam) {
-    try {
-      const decoded = await decompressFromTinyURL(matrixParam);
-      if (decoded && decoded.length > 0) {
-        console.log('Loaded from URL:', decoded);
-        return {
-          matrix: decoded,
-          firstFrameKey: decoded[0].key
+export default OledPage
