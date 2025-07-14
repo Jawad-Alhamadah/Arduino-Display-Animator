@@ -3,20 +3,24 @@ import FrameDurationInput from "./FrameDurationInput";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import { BsPlayFill, BsFillEraserFill } from "react-icons/bs";
 import { LuClipboardCopy, LuCopyPlus } from "react-icons/lu";
-import { PiFlipHorizontalFill, PiFlipVerticalFill } from "react-icons/pi";
+import VisitorCounter from "./VisitorCounter"
 import { TiMediaStop } from "react-icons/ti";
 import {
   MdAdd,
   MdKeyboardDoubleArrowRight,
   MdKeyboardDoubleArrowLeft,
 } from "react-icons/md";
+
+import { PiFlipHorizontalFill, PiFlipVerticalFill } from "react-icons/pi";
 import { GrRotateLeft, GrRotateRight } from "react-icons/gr";
-import { MdDeleteForever } from "react-icons/md";
-import { GrHelpBook } from "react-icons/gr";
-import { BsExclamationCircle } from "react-icons/bs";
 import { FaHireAHelper } from "react-icons/fa6";
 import { TiArrowUpOutline } from "react-icons/ti";
 import { TiArrowDownOutline } from "react-icons/ti";
+
+import { MdDeleteForever } from "react-icons/md";
+import { GrHelpBook } from "react-icons/gr";
+import { BsExclamationCircle } from "react-icons/bs";
+
 import OledFrame from "./OledFrame";
 import Oled128x64 from "./Oled128x64";
 import { FaClipboardCheck } from "react-icons/fa6";
@@ -54,6 +58,9 @@ import { FaRegPenToSquare } from "react-icons/fa6";
 import { TbPencilMinus } from "react-icons/tb";
 
 import { TbPencilPlus } from "react-icons/tb";
+import CurrentFrameToolBar from "./CurrentFrameToolBar";
+import CoffeeButton from "./CoffeeButton";
+
 
 function OledPage() {
   const location = useLocation();
@@ -66,8 +73,10 @@ function OledPage() {
   );
   const [oledHistory, setOledHistory] = React.useState({}); // { [frameKey]: [matrix, ...] }
   const [copiedFrame, setCopiedFrame] = React.useState(null);
-  const currentKeyboardKeyRef = React.useRef(currentKeyboardKey);
+
   const [codeCopied, setCodeCopied] = React.useState(false);
+
+  const currentKeyboardKeyRef = React.useRef(currentKeyboardKey);
   React.useEffect(() => {
     currentKeyboardKeyRef.current = currentKeyboardKey;
   }, [currentKeyboardKey]);
@@ -108,25 +117,6 @@ function OledPage() {
   React.useEffect(() => {
     currentAnimationPlayingRef.current = isAnimationPlaying;
   }, [isAnimationPlaying]);
-  const handleRotateRight = React.useCallback(() => {
-    const rotateRightFrame = (oledMatrix, currentKey) => {
-      return oledMatrix.map((frame) => {
-        if (frame.key !== currentKey) return frame;
-
-        const baseMatrix =
-          frame.outerMatrix ?? expandToOuterMatrix(frame.matrix);
-        const rotated = rotateMatrixRight(baseMatrix);
-
-        return {
-          ...frame,
-          matrix: clipOuterMatrix(rotated),
-          outerMatrix: rotated,
-        };
-      });
-    };
-
-    setOledMatrix((prev) => rotateRightFrame(prev, currentMatrixKey));
-  }, [currentMatrixKey]);
 
   function handleBoardChange(event) {
     console.log(event);
@@ -166,21 +156,7 @@ function OledPage() {
     oledMatrixCurrentRef.current = oledMatrix;
   }, [oledMatrix]);
 
-  const handleBrushSizeUp = React.useCallback(() => {
-    setBrushSize((prev) => {
-      if (prev === 1) return 2;
-      if (prev === 2) return 4;
-      return 4; // stays at 4 if already 4 or above
-    });
-  }, []);
 
-  const handleBrushSizeDown = React.useCallback(() => {
-    setBrushSize((prev) => {
-      if (prev === 4) return 2;
-      if (prev === 2) return 1;
-      return 1; // stays at 1 if already 1 or below
-    });
-  }, []);
   React.useEffect(() => {
     setDisplay(location.pathname);
 
@@ -241,22 +217,61 @@ function OledPage() {
     }
     setOledMatrix(filteredMatrix);
   }
-  function pushHistory(frameKey, matrix) {
+  // Updated history function to store complete frame state
+  function pushHistory(frameKey, matrix, outerMatrix = undefined) {
     setOledHistory((prev) => {
       const prevArr = prev[frameKey] || [];
-      // Only push if different from last
-      if (
-        prevArr.length &&
-        JSON.stringify(prevArr[prevArr.length - 1]) === JSON.stringify(matrix)
-      ) {
-        return prev;
+      const newEntry = {
+        matrix: structuredClone(matrix),
+        outerMatrix: outerMatrix ? structuredClone(outerMatrix) : undefined,
+        timestamp: Date.now()
+      };
+      
+      // Only push if different from last entry
+      if (prevArr.length > 0) {
+        const lastEntry = prevArr[prevArr.length - 1];
+        if (JSON.stringify(lastEntry.matrix) === JSON.stringify(matrix)) {
+          return prev;
+        }
       }
+      
       return {
         ...prev,
-        [frameKey]: [...prevArr, structuredClone(matrix)].slice(-50), // limit to 50
+        [frameKey]: [...prevArr, newEntry].slice(-50), // limit to 50
       };
     });
   }
+
+  // Updated undo function to restore complete frame state
+  React.useEffect(() => {
+    const handleUndo = (e) => {
+      if (e.ctrlKey && e.key === "z") {
+        setOledHistory((prev) => {
+          const arr = prev[currentMatrixKey] || [];
+          if (arr.length < 2) return prev;
+          
+          const newArr = arr.slice(0, -1);
+          const prevEntry = newArr[newArr.length - 1];
+          
+          setOledMatrix((matrices) =>
+            matrices.map((frame) => {
+              if (frame.key !== currentMatrixKey) return frame;
+              
+              return {
+                ...frame,
+                matrix: structuredClone(prevEntry.matrix),
+                outerMatrix: prevEntry.outerMatrix ? structuredClone(prevEntry.outerMatrix) : undefined
+              };
+            })
+          );
+          
+          return { ...prev, [currentMatrixKey]: newArr };
+        });
+      }
+    };
+    window.addEventListener("keydown", handleUndo);
+    return () => window.removeEventListener("keydown", handleUndo);
+  }, [currentMatrixKey]);
 
   const OUTER_SIZE = 128;
   const DISPLAY_WIDTH = 128;
@@ -265,50 +280,11 @@ function OledPage() {
   /**
    * Ensures a 128x128 outer matrix with the original content centered.
    */
-  function expandToOuterMatrix(matrix) {
-    const outer = Array.from({ length: OUTER_SIZE }, () =>
-      Array(OUTER_SIZE).fill(0)
-    );
 
-    const height = matrix.length;
-    const width = matrix[0].length;
-    const yOffset = Math.floor((OUTER_SIZE - height) / 2);
-    const xOffset = Math.floor((OUTER_SIZE - width) / 2);
-
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        outer[y + yOffset][x + xOffset] = matrix[y][x];
-      }
-    }
-
-    return outer;
-  }
 
   /**
    * Clips a 128x128 matrix back to the central 128x64 area.
    */
-  function clipOuterMatrix(matrix) {
-    const yOffset = Math.floor((OUTER_SIZE - DISPLAY_HEIGHT) / 2);
-    return matrix.slice(yOffset, yOffset + DISPLAY_HEIGHT);
-  }
-
-  /**
-   * Rotates the outer matrix 90° to the right.
-   */
-  function rotateMatrixRight(matrix) {
-    const height = matrix.length;
-    const width = matrix[0].length;
-    const rotated = Array.from({ length: width }, () => Array(height).fill(0));
-
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        rotated[x][height - 1 - y] = matrix[y][x];
-      }
-    }
-
-    return rotated;
-  }
-
   React.useEffect(() => {
     const handleUndo = (e) => {
       if (e.ctrlKey && e.key === "z") {
@@ -317,12 +293,18 @@ function OledPage() {
           if (arr.length < 2) return prev; // nothing to undo
           const newArr = arr.slice(0, -1);
           const prevMatrix = newArr[newArr.length - 1];
+          
           setOledMatrix((matrices) =>
-            matrices.map((frame) =>
-              frame.key === currentMatrixKey
-                ? { ...frame, matrix: structuredClone(prevMatrix) }
-                : frame
-            )
+            matrices.map((frame) => {
+              if (frame.key !== currentMatrixKey) return frame;
+              
+              return {
+                ...frame, 
+                matrix: structuredClone(prevMatrix),
+                // Keep outerMatrix on undo - this preserves rotation data
+                // outerMatrix: undefined // Remove this line
+              };
+            })
           );
           return { ...prev, [currentMatrixKey]: newArr };
         });
@@ -360,68 +342,6 @@ function OledPage() {
   /**
    * Rotates the outer matrix 90° to the left.
    */
-  function rotateMatrixLeft(matrix) {
-    const height = matrix.length;
-    const width = matrix[0].length;
-    const rotated = Array.from({ length: width }, () => Array(height).fill(0));
-
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        rotated[width - 1 - x][y] = matrix[y][x];
-      }
-    }
-
-    return rotated;
-  }
-
-  /**
-   * Rotates the selected frame right.
-   */
-
-  /**
-   * Rotates the selected frame left.
-   */
-  function rotateLeftFrame(oledMatrix, currentKey) {
-    return oledMatrix.map((frame) => {
-      if (frame.key !== currentKey) return frame;
-
-      const baseMatrix = frame.outerMatrix ?? expandToOuterMatrix(frame.matrix);
-      const rotated = rotateMatrixLeft(baseMatrix);
-
-      return {
-        ...frame,
-        matrix: clipOuterMatrix(rotated),
-        outerMatrix: rotated,
-      };
-    });
-  }
-
-  /**
-   * Flips the selected frame horizontally.
-   * Destroys outerMatrix.
-   */
-  function flipHorizontalFrame(oledMatrix, currentKey) {
-    return oledMatrix.map((frame) => {
-      if (frame.key !== currentKey) return frame;
-
-      const matrix = frame.matrix.map((row) => [...row].reverse());
-      return { ...frame, matrix, outerMatrix: undefined };
-    });
-  }
-
-  /**
-   * Flips the selected frame vertically.
-   * Destroys outerMatrix.
-   */
-  function flipVerticalFrame(oledMatrix, currentKey) {
-    return oledMatrix.map((frame) => {
-      if (frame.key !== currentKey) return frame;
-
-      const matrix = [...frame.matrix].reverse();
-      return { ...frame, matrix, outerMatrix: undefined };
-    });
-  }
-
   function Duplicate(matrixToDuplicate) {
     let currMatrixIndex = matrixToDuplicate.findIndex(
       (matrix) => matrix.key == currentMatrixKey
@@ -501,7 +421,7 @@ function OledPage() {
     setOledMatrix(reorderedDivs); // or setDotMatrixDivs
   };
 
- 
+
 
   function generateCode() {
     let list_of_frames = oledMatrix.map((frame, index) =>
@@ -563,9 +483,9 @@ function OledPage() {
       const newMatrix = prev.map((frame) =>
         frame.key === currentMatrixKey
           ? {
-              ...frame,
-              matrix: Array.from({ length: 64 }, () => Array(128).fill(false)),
-            }
+            ...frame,
+            matrix: Array.from({ length: 64 }, () => Array(128).fill(false)),
+          }
           : frame
       );
       // Push to history after clearing
@@ -575,87 +495,6 @@ function OledPage() {
       );
       return newMatrix;
     });
-  }
-
-  function shiftLeft(oledMatrix) {
-    let matrixCopy = [...oledMatrix];
-    let currMatrixIndex = matrixCopy.findIndex(
-      (matrix) => matrix.key == currentMatrixKey
-    );
-
-    let matrix = matrixCopy[currMatrixIndex].matrix;
-    for (let y = 0; y < matrix.length; y++) {
-      for (let x = 0; x < matrix[y].length - 1; x++) {
-        matrix[y][x] = matrix[y][x + 1];
-      }
-      matrix[y][matrix[y].length - 1] = 0; // Clear rightmost column
-    }
-    setOledMatrix(matrixCopy);
-  }
-
-  function shiftRight(oledMatrix) {
-    let matrixCopy = [...oledMatrix];
-    let currMatrixIndex = matrixCopy.findIndex(
-      (matrix) => matrix.key == currentMatrixKey
-    );
-
-    let matrix = matrixCopy[currMatrixIndex].matrix;
-
-    for (let y = 0; y < matrix.length; y++) {
-      for (let x = matrix[y].length - 1; x > 0; x--) {
-        matrix[y][x] = matrix[y][x - 1];
-      }
-      matrix[y][0] = 0; // Clear leftmost column
-    }
-    setOledMatrix(matrixCopy);
-  }
-
-  function shiftLeftWrapped(oledMatrix) {
-    let matrixCopy = [...oledMatrix];
-    let currMatrixIndex = matrixCopy.findIndex(
-      (m) => m.key === currentMatrixKey
-    );
-    let matrix = matrixCopy[currMatrixIndex].matrix;
-
-    for (let y = 0; y < matrix.length; y++) {
-      const firstPixel = matrix[y][0];
-      for (let x = 0; x < matrix[y].length - 1; x++) {
-        matrix[y][x] = matrix[y][x + 1];
-      }
-      matrix[y][matrix[y].length - 1] = firstPixel; // Wraparound
-    }
-
-    setOledMatrix(matrixCopy);
-  }
-
-  function shiftRightWrapped(oledMatrix) {
-    let matrixCopy = [...oledMatrix];
-    let currMatrixIndex = matrixCopy.findIndex(
-      (m) => m.key === currentMatrixKey
-    );
-    let matrix = matrixCopy[currMatrixIndex].matrix;
-
-    for (let y = 0; y < matrix.length; y++) {
-      const lastPixel = matrix[y][matrix[y].length - 1];
-      for (let x = matrix[y].length - 1; x > 0; x--) {
-        matrix[y][x] = matrix[y][x - 1];
-      }
-      matrix[y][0] = lastPixel; // Wraparound
-    }
-
-    setOledMatrix(matrixCopy);
-  }
-
-  function resetToDefaultBrush() {
-    // Only reset the stamp selection without affecting keyboard-based drawing functionality
-    setStampSymbol(null);
-
-    // Don't need to change the current keyboard state at all
-    // The Shift and Ctrl+Shift functionality for line drawing will remain intact
-    // as it's handled separately in the Oled128x64 component
-
-    // Optional: Add a subtle notification
-    // notifyUser("Switched to drawing brush", toast.info);
   }
 
   function generateCodeOneFrame() {
@@ -733,6 +572,7 @@ void displayFrame(const bool matrix[8][8]) {
   const [stampSymbol, setStampSymbol] = React.useState(null);
   return (
     <div className="theme-blue w-screen text-center flex justify-center flex-col items-center ">
+      <VisitorCounter></VisitorCounter>
       <ToastContainer />
 
       <DragDropContext onDragEnd={onDragEnd}>
@@ -765,7 +605,7 @@ void displayFrame(const bool matrix[8][8]) {
                       classes={
                         "scale-110 hover:bg-red-600 hover:text-red-200 ring-2 ring-offset-2 ring-[#ff0000] text-[#ff0000]"
                       }
-                      // shortCutKey="Space"
+                    // shortCutKey="Space"
                     ></Tool>
                   ) : (
                     <Tool
@@ -860,132 +700,14 @@ void displayFrame(const bool matrix[8][8]) {
             onMouseDown={() => setIsMouseDown(true)}
             onMouseUp={() => setIsMouseDown(false)}
           >
-            <div className=" w-full flex flex-wrap  mb-2 space-x-2 ">
-              <div className="flex items-center  gap-3 mb-2 max-420:w-full max-420:justify-center max-420:gap-7">
-                <ToolMainFrame
-                  Icon={MdKeyboardDoubleArrowLeft}
-                  target="shiftleft"
-                  shortCutKey="ControlLeft"
-                  toggleKey="ControlLeft"
-                  onHold={() =>
-                    currentKeyboardKeyRef.current === "ControlLeft"
-                      ? shiftLeft(oledMatrix)
-                      : shiftLeftWrapped(oledMatrix)
-                  }
-                  oledMatrix={oledMatrix}
-                  tooltip={["shift left", "Press `Ctrl` for No Wrap shift"]}
-                  classes={
-                    currentKeyboardKey === "ControlLeft"
-                      ? "scale-110 text-yellow-400"
-                      : ""
-                  }
-                ></ToolMainFrame>
 
-                <ToolMainFrame
-                  Icon={GrRotateLeft}
-                  target="rotateLeft"
-                  onClick={() =>
-                    setOledMatrix((prev) =>
-                      rotateLeftFrame(prev, currentMatrixKey)
-                    )
-                  }
-                  tooltip={["rotate left"]}
-                ></ToolMainFrame>
-
-                <ToolMainFrame
-                  Icon={PiFlipHorizontalFill}
-                  target="flipHorizontal"
-                  onClick={() =>
-                    setOledMatrix((prev) =>
-                      flipHorizontalFrame(prev, currentMatrixKey)
-                    )
-                  }
-                  tooltip={["Flip horizontally"]}
-                ></ToolMainFrame>
-
-                <ToolMainFrame
-                  Icon={PiFlipVerticalFill}
-                  target="flipVertical"
-                  onClick={() =>
-                    setOledMatrix((prev) =>
-                      flipVerticalFrame(prev, currentMatrixKey)
-                    )
-                  }
-                  tooltip={["Flip Vertically"]}
-                ></ToolMainFrame>
-
-                <ToolMainFrame
-                  Icon={GrRotateRight}
-                  target="rotateRight"
-                  onClick={handleRotateRight}
-                  tooltip={["rotate Right"]}
-                ></ToolMainFrame>
-
-                <ToolMainFrame
-                  Icon={MdKeyboardDoubleArrowRight}
-                  target="shiftRight"
-                  onHold={() =>
-                    currentKeyboardKeyRef.current === "ControlLeft"
-                      ? shiftRight(oledMatrix)
-                      : shiftRightWrapped(oledMatrix)
-                  }
-                  tooltip={["shift Right", "Press `Ctrl` for No Wrap shift"]}
-                  classes={
-                    currentKeyboardKey === "ControlLeft"
-                      ? "scale-110 text-yellow-400"
-                      : ""
-                  }
-                ></ToolMainFrame>
-              </div>
-              <div className="flex items-center gap-3  max-420:w-full max-420:justify-center max-420:gap-7">
-                <StampPicker onSelect={setStampSymbol}></StampPicker>
-
-                {currentKeyboardKey === "KeyD" ? (
-                  <ToolMainFrame
-                    Icon={BsFillEraserFill}
-                    target="erase"
-                    onClick={() => dispatch(setToKeyboardKey("KeyNone"))}
-                    tooltip={["Erase.", "ShortCut: D"]}
-                    classes={
-                      "scale-125 text-teal-300 hover:cursor-pointer  outline-green-300 outline-solid outline-1 "
-                    }
-                  ></ToolMainFrame>
-                ) : (
-                  <ToolMainFrame
-                    Icon={BsFillEraserFill}
-                    target="erase"
-                    onClick={() => dispatch(setToKeyboardKey("KeyD"))}
-                    tooltip={["Erase.", "ShortCut: D"]}
-                  ></ToolMainFrame>
-                )}
-                <Tool
-                  Icon={FaRegPenToSquare}
-                  target="resetStamp"
-                  onClick={resetToDefaultBrush}
-                  tooltip={["Reset to Default Brush", "Clear stamp selection"]}
-                  classes={"size-5"}
-                ></Tool>
-                <div className="">
-                  <ToolMainFrame
-                    Icon={TbPencilPlus}
-                    target="brushUp"
-                    onClick={handleBrushSizeUp}
-                    shortCutKey="Equal"
-                    tooltip={["Draw Size Up"]}
-                    classes="size-5"
-                  ></ToolMainFrame>
-
-                  <ToolMainFrame
-                    Icon={TbPencilMinus}
-                    target="brushDown"
-                    tooltip={["Draw size Down"]}
-                    classes="size-5"
-                    shortCutKey="Minus"
-                    onClick={handleBrushSizeDown}
-                  ></ToolMainFrame>
-                </div>
-              </div>
-            </div>
+            <CurrentFrameToolBar
+              setStampSymbol={setStampSymbol}
+              setOledMatrix={setOledMatrix}
+              oledMatrix={oledMatrix}
+              setBrushSize={setBrushSize}
+              pushHistory={pushHistory}  // Add this line
+            />
 
             <Oled128x64
               oledMatrix={oledMatrix}
@@ -1090,13 +812,14 @@ void displayFrame(const bool matrix[8][8]) {
                   ? "bg-slate-900 text-gray-600 outline outline-gray-600 py-1 px-2 rounded-sm"
                   : "hover:bg-[#33566bbe] hover:text-white bg-slate-900 text-accentText  py-1 px-2 rounded-sm cursor-pointer"
               }
-              onClick={isGenerateDisabled ? () => {} : () => generateCode()}
+              onClick={isGenerateDisabled ? () => { } : () => generateCode()}
             >
               Generate animation code
             </div>
           </form>
         </div>
       </div>
+      <CoffeeButton></CoffeeButton>
       {isCodeGenerated ? (
         <pre
           style={{

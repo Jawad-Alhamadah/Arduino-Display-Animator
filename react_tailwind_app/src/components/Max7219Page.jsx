@@ -26,7 +26,8 @@ import Tool from "./Tool"
 import FrameDurationInput from './FrameDurationInput';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-
+import VisitorCounter from "./VisitorCounter"
+import CoffeeButton from './CoffeeButton';
 
 function Max7219Page() {
 
@@ -1043,6 +1044,7 @@ void displayFrame(const bool matrix[8][8]) {
           </form>
         </div>
       </div>
+       <CoffeeButton></CoffeeButton>
       {isCodeGenerated ? <pre
         style={{
           backgroundColor: "#282c34",
@@ -1074,6 +1076,7 @@ void displayFrame(const bool matrix[8][8]) {
           }
 
         </button>
+       
         {isCodeGenerated && (
           <SyntaxHighlighter
             language="cpp"
