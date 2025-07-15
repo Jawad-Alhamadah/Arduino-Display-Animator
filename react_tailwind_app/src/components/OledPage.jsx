@@ -168,6 +168,22 @@ function OledPage() {
   }, [oledMatrix]);
 
 
+    function handleDrawingModeChange(mode) {
+    setDrawingMode(mode);
+    
+    // Handle mode-specific logic
+    if (mode === 'brush') {
+      setStampSymbol(null);
+      dispatch(setToKeyboardKey("KeyNone"));
+    } else if (mode === 'stamp') {
+      dispatch(setToKeyboardKey("KeyNone"));
+      // stampSymbol will be set by StampPicker
+    } else if (mode === 'eraser') {
+      setStampSymbol(null);
+      dispatch(setToKeyboardKey("KeyD"));
+    }
+  }
+
   React.useEffect(() => {
     setDisplay(location.pathname);
 

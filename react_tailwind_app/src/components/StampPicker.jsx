@@ -4,7 +4,7 @@ import UNICODE_SYMBOLS from "./unicodeSymbols";
 import { FaStamp } from "react-icons/fa";
 import PIXEL_FONT_7x7 from "./pixelFont7x7";
 
-export default function StampPicker({ onSelect }) {
+export default function StampPicker({ onSelect ,classes ,toggleTools, activateToolEnum}) {
   const [open, setOpen] = useState(false);
   const panelRef = useRef();
   const buttonRef = useRef();
@@ -33,7 +33,7 @@ export default function StampPicker({ onSelect }) {
           open ? setOpen(false) : handleOpen();
         }}
       >
-        <FaStamp className="size-5"></FaStamp>
+        <FaStamp className={classes}></FaStamp>
       </button>
       {open && ReactDOM.createPortal(
         <>
@@ -63,8 +63,10 @@ export default function StampPicker({ onSelect }) {
                       className="text-yellow-400 w-8 h-8 flex items-center justify-center hover:bg-slate-800 rounded"
                       onClick={() => {
                         // Pass the key, not the matrix directly
+                        toggleTools(activateToolEnum.stamb)
                         onSelect && onSelect(key);
                         setOpen(false);
+                        
                       }}
                       tabIndex={-1}
                       type="button"
@@ -86,6 +88,7 @@ export default function StampPicker({ onSelect }) {
                 key={i}
                 className="text-iconColor text-xs w-5 h-5 flex items-center justify-center hover:bg-slate-800 rounded"
                 onClick={() => { 
+                  toggleTools(activateToolEnum.stamb)
                   onSelect && onSelect(sym); 
                   setOpen(false); 
                 }}

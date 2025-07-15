@@ -1,5 +1,5 @@
 import { BsFillEraserFill } from "react-icons/bs";
-import React, { useRef } from "react";
+import React, { act, useRef } from "react";
 import {
     MdKeyboardDoubleArrowRight,
     MdKeyboardDoubleArrowLeft,
@@ -27,6 +27,16 @@ function CurrentFrameToolBar(props) {
     const DISPLAY_WIDTH = 128;
     const DISPLAY_HEIGHT = 64;
     const dispatch = useDispatch();
+    const [activeToolsTable, setActiveToolsTable] = useState({
+        "pen": true,
+        "eraser": false,
+        "stamb": false
+    })
+    const [activateToolEnum, setToolsEnum] = useState({
+        pen: "pen",
+        eraser: "eraser",
+        stamb: "stamb"
+    })
 
     const currentOledRef = useRef(props.oledMatrix)
     const currentMatrixKey = useSelector((state) => state.currentMatrixKey.value);
@@ -167,9 +177,9 @@ function CurrentFrameToolBar(props) {
                 if (frame.key !== currentMatrixKey) return frame;
 
                 const matrix = frame.matrix.map(row => [...row].reverse());
-                return { 
-                    ...frame, 
-                    matrix, 
+                return {
+                    ...frame,
+                    matrix,
                     outerMatrix: undefined // Clear cached outer matrix
                 };
             });
@@ -189,9 +199,9 @@ function CurrentFrameToolBar(props) {
                 if (frame.key !== currentMatrixKey) return frame;
 
                 const matrix = [...frame.matrix].reverse();
-                return { 
-                    ...frame, 
-                    matrix, 
+                return {
+                    ...frame,
+                    matrix,
                     outerMatrix: undefined // Clear cached outer matrix
                 };
             });
@@ -212,7 +222,7 @@ function CurrentFrameToolBar(props) {
                 if (frame.key !== currentMatrixKey) return frame;
 
                 const newMatrix = frame.matrix.map(row => [...row]);
-                
+
                 for (let y = 0; y < newMatrix.length; y++) {
                     for (let x = 0; x < newMatrix[y].length - 1; x++) {
                         newMatrix[y][x] = newMatrix[y][x + 1];
@@ -238,7 +248,7 @@ function CurrentFrameToolBar(props) {
                 if (frame.key !== currentMatrixKey) return frame;
 
                 const newMatrix = frame.matrix.map(row => [...row]);
-                
+
                 for (let y = 0; y < newMatrix.length; y++) {
                     for (let x = newMatrix[y].length - 1; x > 0; x--) {
                         newMatrix[y][x] = newMatrix[y][x - 1];
@@ -264,7 +274,7 @@ function CurrentFrameToolBar(props) {
                 if (frame.key !== currentMatrixKey) return frame;
 
                 const newMatrix = frame.matrix.map(row => [...row]);
-                
+
                 for (let y = 0; y < newMatrix.length; y++) {
                     const firstPixel = newMatrix[y][0];
                     for (let x = 0; x < newMatrix[y].length - 1; x++) {
@@ -291,7 +301,7 @@ function CurrentFrameToolBar(props) {
                 if (frame.key !== currentMatrixKey) return frame;
 
                 const newMatrix = frame.matrix.map(row => [...row]);
-                
+
                 for (let y = 0; y < newMatrix.length; y++) {
                     const lastPixel = newMatrix[y][newMatrix[y].length - 1];
                     for (let x = newMatrix[y].length - 1; x > 0; x--) {
@@ -321,7 +331,22 @@ function CurrentFrameToolBar(props) {
         });
     }, []);
 
+
+    function toggleTools(toolToActivate) {
+        props.setStampSymbol(null);
+        dispatch(setToKeyboardKey("KeyNone"))
+        let table = activeToolsTable
+
+        let newTable = Object.fromEntries(
+            Object.keys(table).map(key => [key, false])
+        );
+        newTable[toolToActivate] = true
+        console.log(newTable)
+        setActiveToolsTable(newTable)
+    }
+
     function resetToDefaultBrush() {
+        toggleTools(activateToolEnum.pen)
         props.setStampSymbol(null);
     }
 
@@ -393,13 +418,31 @@ function CurrentFrameToolBar(props) {
                     />
                 </div>
                 <div className="flex items-center gap-3  max-420:w-full max-420:justify-center max-420:gap-7">
-                    <StampPicker onSelect={props.setStampSymbol} />
+                    <StampPicker onSelect={props.setStampSymbol}
 
-                    {currentKeyboardKey === "KeyD" ? (
+                        classes={
+                            
+                            activeToolsTable.stamb ?
+                                "size-5 scale-110 text-teal-200"
+                                :
+                                "size-5 "
+                               
+                        }
+                         toggleTools={toggleTools}
+                         activateToolEnum={activateToolEnum}
+                    />
+
+                    {currentKeyboardKey === "KeyD" || activeToolsTable.eraser ? (
                         <ToolMainFrame
                             Icon={BsFillEraserFill}
                             target="erase"
-                            onClick={() => dispatch(setToKeyboardKey("KeyNone"))}
+                            onClick={
+                                () => {
+
+                                    dispatch(setToKeyboardKey("KeyNone"))
+                                }
+
+                            }
                             tooltip={["Erase.", "ShortCut: D"]}
                             classes={
                                 "scale-125 text-teal-300 hover:cursor-pointer  outline-green-300 outline-solid outline-1 "
@@ -409,8 +452,14 @@ function CurrentFrameToolBar(props) {
                         <ToolMainFrame
                             Icon={BsFillEraserFill}
                             target="erase"
-                            onClick={() => dispatch(setToKeyboardKey("KeyD"))}
+                            onClick={
+                                () => {
+                                    toggleTools(activateToolEnum.eraser)
+                                    dispatch(setToKeyboardKey("KeyD"))
+                                }
+                            }
                             tooltip={["Erase.", "ShortCut: D"]}
+
                         />
                     )}
                     <Tool
@@ -418,7 +467,7 @@ function CurrentFrameToolBar(props) {
                         target="resetStamp"
                         onClick={resetToDefaultBrush}
                         tooltip={["Reset to Default Brush", "Clear stamp selection"]}
-                        classes={"size-5"}
+                        classes={activeToolsTable.pen ? "size-5 scale-125 text-teal-300" : "size-5"}
                     />
                     <div className="">
                         <ToolMainFrame
