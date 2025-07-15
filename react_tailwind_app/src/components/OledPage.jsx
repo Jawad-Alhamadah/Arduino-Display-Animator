@@ -93,7 +93,10 @@ function OledPage() {
   const [pinReset, setPinReset] = React.useState("none");
   const [pinCS, setPinCS] = React.useState("none");
   const [board, setBoard] = React.useState("nano");
-  const [oledType, setOledType] = React.useState("I2C");
+  const [oledType, setOledType] = React.useState(() => {
+    const saved = localStorage.getItem("oledType");
+    return saved || "I2C";
+  });
 
   const [display, setDisplay] = React.useState("");
   // const [frameDuration, setFrameDuration] = React.useState(200);
@@ -122,6 +125,14 @@ function OledPage() {
     console.log(event);
     setBoard(event.target.value);
   }
+
+  // Add this function to handle OLED type changes and save to localStorage
+  function handleOledTypeChange(e) {
+    const newType = e.target.value;
+    setOledType(newType);
+    localStorage.setItem("oledType", newType);
+  }
+
   let frameDuration = useSelector((state) => state.frameDuration.value);
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -163,10 +174,12 @@ function OledPage() {
     let cs = localStorage.getItem("CS");
     let dc = localStorage.getItem("DC");
     let reset = localStorage.getItem("Reset");
+    let savedOledType = localStorage.getItem("oledType");
 
     if (cs) setPinCS(cs);
     if (dc) setPinDC(dc);
     if (reset) setPinReset(reset);
+    if (savedOledType) setOledType(savedOledType);
   }, []);
 
   React.useEffect(() => {
@@ -217,61 +230,22 @@ function OledPage() {
     }
     setOledMatrix(filteredMatrix);
   }
-  // Updated history function to store complete frame state
-  function pushHistory(frameKey, matrix, outerMatrix = undefined) {
+  function pushHistory(frameKey, matrix) {
     setOledHistory((prev) => {
       const prevArr = prev[frameKey] || [];
-      const newEntry = {
-        matrix: structuredClone(matrix),
-        outerMatrix: outerMatrix ? structuredClone(outerMatrix) : undefined,
-        timestamp: Date.now()
-      };
-      
-      // Only push if different from last entry
-      if (prevArr.length > 0) {
-        const lastEntry = prevArr[prevArr.length - 1];
-        if (JSON.stringify(lastEntry.matrix) === JSON.stringify(matrix)) {
-          return prev;
-        }
+      // Only push if different from last
+      if (
+        prevArr.length &&
+        JSON.stringify(prevArr[prevArr.length - 1]) === JSON.stringify(matrix)
+      ) {
+        return prev;
       }
-      
       return {
         ...prev,
-        [frameKey]: [...prevArr, newEntry].slice(-50), // limit to 50
+        [frameKey]: [...prevArr, structuredClone(matrix)].slice(-50), // limit to 50
       };
     });
   }
-
-  // Updated undo function to restore complete frame state
-  React.useEffect(() => {
-    const handleUndo = (e) => {
-      if (e.ctrlKey && e.key === "z") {
-        setOledHistory((prev) => {
-          const arr = prev[currentMatrixKey] || [];
-          if (arr.length < 2) return prev;
-          
-          const newArr = arr.slice(0, -1);
-          const prevEntry = newArr[newArr.length - 1];
-          
-          setOledMatrix((matrices) =>
-            matrices.map((frame) => {
-              if (frame.key !== currentMatrixKey) return frame;
-              
-              return {
-                ...frame,
-                matrix: structuredClone(prevEntry.matrix),
-                outerMatrix: prevEntry.outerMatrix ? structuredClone(prevEntry.outerMatrix) : undefined
-              };
-            })
-          );
-          
-          return { ...prev, [currentMatrixKey]: newArr };
-        });
-      }
-    };
-    window.addEventListener("keydown", handleUndo);
-    return () => window.removeEventListener("keydown", handleUndo);
-  }, [currentMatrixKey]);
 
   const OUTER_SIZE = 128;
   const DISPLAY_WIDTH = 128;
@@ -293,18 +267,16 @@ function OledPage() {
           if (arr.length < 2) return prev; // nothing to undo
           const newArr = arr.slice(0, -1);
           const prevMatrix = newArr[newArr.length - 1];
-          
           setOledMatrix((matrices) =>
-            matrices.map((frame) => {
-              if (frame.key !== currentMatrixKey) return frame;
-              
-              return {
-                ...frame, 
-                matrix: structuredClone(prevMatrix),
-                // Keep outerMatrix on undo - this preserves rotation data
-                // outerMatrix: undefined // Remove this line
-              };
-            })
+            matrices.map((frame) =>
+              frame.key === currentMatrixKey
+                ? { 
+                    ...frame, 
+                    matrix: structuredClone(prevMatrix),
+                    outerMatrix: undefined  // Clear cached rotation data
+                  }
+                : frame
+            )
           );
           return { ...prev, [currentMatrixKey]: newArr };
         });
@@ -451,6 +423,12 @@ function OledPage() {
     return Math.random().toString(36).substr(2, 9);
   }
   function addFrame() {
+
+      if (oledMatrix.length >= 15) {
+      notifyUser("Maximum 15 frames allowed!", toast.warning);
+      return;
+    }
+
     const newMat = {
       // key: dotMatrixDivs.length + 1,
       key: generateId(),
@@ -583,7 +561,7 @@ void displayFrame(const bool matrix[8][8]) {
         >
           {(provided) => (
             <div
-              className=" shadow-2xl  py-3 max-500:w-[85%]  md:min-w-[80%]  lg:min-w-[70%] rounded-md  bg-gray-800 max-500:max-h-[200px] max-h-[170px] overflow-y-hidden gap-2 m-5 px-3  max-w-[90%]  scroll-content  relative"
+              className=" shadow-2xl  py-3 max-500:w-[85%]  md:min-w-[80%]  lg:min-w-[70%] rounded-md  bg-gray-800 max-500:max-h-[200px] max-h-[170px] overflow-y-hidden gap-2 m-5 px-3  max-w-[80%]  scroll-content  relative"
               ref={provided.innerRef}
               {...provided.droppableProps}
             >
@@ -702,12 +680,13 @@ void displayFrame(const bool matrix[8][8]) {
           >
 
             <CurrentFrameToolBar
-              setStampSymbol={setStampSymbol}
-              setOledMatrix={setOledMatrix}
-              oledMatrix={oledMatrix}
-              setBrushSize={setBrushSize}
-              pushHistory={pushHistory}  // Add this line
-            />
+              setStampSymbol = {setStampSymbol}
+              setOledMatrix = {setOledMatrix}
+              oledMatrix = {oledMatrix}
+              setBrushSize = {setBrushSize}
+              >
+
+            </CurrentFrameToolBar>
 
             <Oled128x64
               oledMatrix={oledMatrix}
@@ -719,7 +698,7 @@ void displayFrame(const bool matrix[8][8]) {
           </div>
         </div>
         <div className="flex flex-col ">
-          <form className="max-w-sm mx-auto  p-4 relative max-500:m-0">
+          <form className="h-full max-w-sm mx-auto  p-4 relative max-500:m-0 flex flex-col w-full">
             <div className="flex justify-end space-x-2 pb-2  items-center">
               <div
                 data-tooltip-id="tooltip_shortcuts"
@@ -761,7 +740,7 @@ void displayFrame(const bool matrix[8][8]) {
             <select
               className=" block w-full pl-2 border border-transparent px-2 py-1 rounded-md bg-slate-700 text-iconColor mb-3 
              outline-none focus:outline-none ring-0 focus:ring-0 focus:border-transparent focus:shadow-none"
-              onChange={(e) => setOledType(e.target.value)}
+              onChange={handleOledTypeChange}
               value={oledType}
             >
               <option value="I2C">Type: I2C</option>
@@ -809,8 +788,8 @@ void displayFrame(const bool matrix[8][8]) {
               type="button" //Needed to prevent form page refresh
               className={
                 isGenerateDisabled
-                  ? "bg-slate-900 text-gray-600 outline outline-gray-600 py-1 px-2 rounded-sm"
-                  : "hover:bg-[#33566bbe] hover:text-white bg-slate-900 text-accentText  py-1 px-2 rounded-sm cursor-pointer"
+                  ? "mt-auto  bg-slate-900 text-gray-600 outline outline-gray-600 py-1 px-2 rounded-sm"
+                  : "mt-auto hover:bg-[#33566bbe] hover:text-white bg-slate-900 text-accentText  py-1 px-2 rounded-sm cursor-pointer"
               }
               onClick={isGenerateDisabled ? () => { } : () => generateCode()}
             >

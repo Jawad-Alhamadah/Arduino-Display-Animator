@@ -6,7 +6,7 @@ import PIXEL_FONT_7x7 from "./pixelFont7x7";
 import UNICODE_SYMBOLS from "./unicodeSymbols";
 const WIDTH = 128;
 const HEIGHT = 64;
-
+import React from "react"
 function getPixelSize() {
   if (typeof window !== "undefined" && window.innerWidth < 450) {
     return 2;
