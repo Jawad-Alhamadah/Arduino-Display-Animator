@@ -60,6 +60,7 @@ import { TbPencilMinus } from "react-icons/tb";
 import { TbPencilPlus } from "react-icons/tb";
 import CurrentFrameToolBar from "./CurrentFrameToolBar";
 import CoffeeButton from "./CoffeeButton";
+import SEOHead from "./SEOHead";
 
 
 function OledPage() {
@@ -633,6 +634,13 @@ void displayFrame(const bool matrix[8][8]) {
   const [stampSymbol, setStampSymbol] = React.useState(null);
   return (
     <div className="theme-blue w-screen text-center flex justify-center flex-col items-center ">
+      <SEOHead 
+        title="OLED 128x64 Display Code Generator - Arduino Screen Converter"
+        description="Create Arduino animations for OLED 128x64 displays. Draw pixel art, generate C++ code, and wire your I2C/SPI OLED displays."
+        path="/oled"
+        keywords="Arduino OLED, 128x64 display, I2C, SPI, animation code"
+      />
+
       <VisitorCounter></VisitorCounter>
       <ToastContainer />
 

@@ -3,6 +3,7 @@ import './App.css';
 import Router from './Router/Router'
 import store from "./app/store"
 import { Provider } from 'react-redux'
+import { HelmetProvider } from 'react-helmet-async';
 // function App() {
 
 //   let pinCSRef = React.useRef(null)
@@ -793,7 +794,11 @@ function App() {
 
   return (
     <Provider store={store}>
-      <Router />
+      <HelmetProvider>
+
+        <Router />
+      </HelmetProvider>
+      
     </Provider>
 
 

@@ -28,6 +28,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import VisitorCounter from "./VisitorCounter"
 import CoffeeButton from './CoffeeButton';
+import SEOHead from './SEOHead';
 
 function Max7219Page() {
 
@@ -754,6 +755,13 @@ void displayFrame(const bool matrix[8][8]) {
   }
   return (
     <div className="theme-green w-screen text-center flex justify-center flex-col items-center">
+      <SEOHead 
+        title="MAX7219 8x8 LED Matrix Code Generator - Arduino Screen Converter"
+        description="Generate Arduino code for MAX7219 LED matrix displays. Create 8x8 animations and get instant C++ code."
+        path="/max7219"
+        keywords="Arduino MAX7219, LED matrix, 8x8 display, dot matrix"
+      />
+     
       <ToastContainer />
 
       <DragDropContext onDragEnd={onDragEnd}>

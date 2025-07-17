@@ -1,30 +1,55 @@
-import React from 'react'
+import React, { Suspense, lazy } from 'react'
 import * as ReactDOM from "react-dom/client";
-
-import Max7219ICPage from '../components/Max7219Page.jsx';
-import OledPage from "../components/OledPage.jsx"
-import UnderConstruction from "../components/UnderConstruction.jsx"
 import {
     createBrowserRouter,
     RouterProvider,
 } from "react-router-dom";
+import ArduinoAnimation from '../components/ArduinoAnimation.jsx';
 
+// Create delayed versions of components to ensure 1-second loading time
+const DelayedMax7219ICPage = lazy(() => 
+    Promise.all([
+        import('../components/Max7219Page.jsx'),
+        new Promise(resolve => setTimeout(resolve, 1000))
+    ]).then(([moduleExports]) => moduleExports)
+);
+
+const DelayedOledPage = lazy(() => 
+    Promise.all([
+        import('../components/OledPage.jsx'),
+        new Promise(resolve => setTimeout(resolve, 1000))
+    ]).then(([moduleExports]) => moduleExports)
+);
+
+const DelayedUnderConstruction = lazy(() => 
+    Promise.all([
+        import('../components/UnderConstruction.jsx'),
+        new Promise(resolve => setTimeout(resolve, 1000))
+    ]).then(([moduleExports]) => moduleExports)
+);
+
+// Use ArduinoAnimation as the loading spinner
+const LoadingSpinner = ArduinoAnimation;
+
+const LazyRoute = ({ Component }) => (
+    <Suspense fallback={<LoadingSpinner />}>
+        <Component />
+    </Suspense>
+);
 
 const router = createBrowserRouter([
     {
         path: "/",
-        element: <Max7219ICPage/>
+        element: <LazyRoute Component={DelayedMax7219ICPage} />
     },
     {
         path: "/max",
-        element: <Max7219ICPage/>
+        element: <LazyRoute Component={DelayedMax7219ICPage} />
     },
     {
-        path:"/oled",
-        element: <OledPage/>
-
+        path: "/oled",
+        element: <LazyRoute Component={DelayedOledPage} />
     },
-  
 ]);
 
 function Router() {
