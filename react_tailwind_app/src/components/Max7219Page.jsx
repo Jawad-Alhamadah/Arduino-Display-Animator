@@ -541,93 +541,88 @@ function Max7219Page() {
   // }, [test]);
 
   function generateCode() {
-
-    let rMatrices = flipAll(dotMatrixDivs);
-    // let stringMatrices = JSON.stringify(rMatrices.map(matrix=>matrix.dotmatrix))
-    let dotMatrixString = JSON.stringify(rMatrices.map(matrix => matrix.dotmatrix))
-    let dotMatrixFormatted = dotMatrixString.replace(/[\[\]]/g, match => match === "[" ? "{" : "}")
-
-    setCodeCopied(false)
-    setGeneratedCode(`
-    
-const int DIN = ${pinDIN};
-const int CS = ${pinCS};
-const int CLK = ${pinCLK};
-
-
-// Define the frame data (matrix list)
-const int numFrames = ${dotMatrixDivs.length}; // Number of frames in the list
-const bool frames[numFrames][8][8] = ${dotMatrixFormatted};
-
-void setup() {
-  // Set pin modes
-  pinMode(DIN, OUTPUT);
-  pinMode(CLK, OUTPUT);
-  pinMode(CS, OUTPUT);
-
-  // Initialize MAX7219
-  digitalWrite(CS, HIGH);
-  sendCommand(0x0F, 0x00); // Display test off
-  sendCommand(0x09, 0x00); // Decode mode off
-  sendCommand(0x0B, 0x07); // Scan limit = 8 LEDs
-  sendCommand(0x0A, 0x08); // Brightness = medium
-  sendCommand(0x0C, 0x01); // Shutdown register = normal operation
-  clearDisplay();
-}
-
-void loop() {
-  for (int frame = 0; frame < numFrames; frame++) {
-    displayFrame(frames[frame]);
-    delay(${frameDuration}); // Delay between frames (adjust as needed)
-  }
-}
-
-void sendCommand(byte command, byte data) {
-  digitalWrite(CS, LOW);
-  shiftOut(DIN, CLK, MSBFIRST, command);
-  shiftOut(DIN, CLK, MSBFIRST, data);
-  digitalWrite(CS, HIGH);
-}
-
-void clearDisplay() {
-  for (int i = 0; i < 8; i++) {
-    sendCommand(i + 1, 0);
-  }
-}
-
-void displayFrame(const bool matrix[8][8]) {
-  for (int row = 0; row < 8; row++) {
-    byte rowData = 0;
-    for (int col = 0; col < 8; col++) {
-      if (matrix[row][col]) {
-        rowData |= (1 << col);
-      }
+    if (!validatePins()) {
+      return; // Don't generate code if validation fails
     }
-    sendCommand(row + 1, rowData);
-  }
-}`)
-    setIsCodeGenerated(true)
-    notifyUser("Code Generation Sucessful!", toast.success)
+
+    let list_of_frames = dotMatrixDivs.map((frame, index) =>
+      generateMostEfficientCppArray(frame.dotmatrix, index)
+    );
+    setGeneratedCode(
+      generate_max7219_template(list_of_frames, frameDuration, pinDIN, pinCS, pinCLK)
+    );
+    setIsCodeGenerated(true);
+    setCodeCopied(false);
+    notifyUser("Code Generation Successful!", toast.success);
   }
 
+  // Add pin validation function for Max7219
+  function validatePins() {
+    const pins = [
+      { name: "DIN", value: pinDIN },
+      { name: "CS", value: pinCS },
+      { name: "CLK", value: pinCLK }
+    ];
+
+    // Check for required pins not selected (all pins are required for Max7219)
+    console.log(pins)
+    const missingPins = pins.filter(pin =>
+      !pin.value ||
+      pin.value === "Pick a Pin" ||
+      pin.value === "none" ||
+      pin.value === ""
+    );
+
+    if (missingPins.length > 0) {
+      const missingNames = missingPins.map(pin => pin.name).join(", ");
+      notifyUser(`Please select pins for: ${missingNames}`, toast.warning);
+      return false;
+    }
+
+    // Check for duplicate pins - exclude unselected pins
+    const selectedPins = pins.filter(pin =>
+      pin.value &&
+      pin.value !== "Pick a Pin" &&
+      pin.value !== "none" &&
+      pin.value !== ""
+    );
+
+    const pinValues = selectedPins.map(pin => pin.value);
+    const duplicates = pinValues.filter((value, index) => pinValues.indexOf(value) !== index);
+
+    if (duplicates.length > 0) {
+      const duplicateNames = selectedPins
+        .filter(pin => duplicates.includes(pin.value))
+        .map(pin => pin.name)
+        .join(", ");
+      notifyUser(`Duplicate pins detected: ${duplicateNames} cannot use the same pin`, toast.warning);
+      return false;
+    }
+
+    return true;
+  }
+
+  // Update the generateCodeOneFrame function to include validation
   function generateCodeOneFrame() {
+    if (!validatePins()) {
+      return; // Don't generate code if validation fails
+    }
 
     let rMatrices = flipAll(dotMatrixDivs);
-    // let stringMatrices = JSON.stringify(rMatrices.map(matrix=>matrix.dotmatrix))
-    let frame = rMatrices[rMatrices.findIndex(matrix => matrix.key === currentMatrixKey)].dotmatrix
-    let dotMatrixString = JSON.stringify(frame)
-    let dotMatrixFormatted = dotMatrixString.replace(/[\[\]]/g, match => match === "[" ? "{" : "}")
+    let frame = rMatrices[
+      rMatrices.findIndex((matrix) => matrix.key === currentMatrixKey)
+    ].dotmatrix;
+    let dotMatrixString = JSON.stringify(frame);
+    let dotMatrixFormatted = dotMatrixString.replace(/[\[\]]/g, (match) =>
+      match === "[" ? "{" : "}"
+    );
 
-    setCodeCopied(false)
     setGeneratedCode(`
-    
 const int DIN = ${pinDIN};
 const int CS = ${pinCS};
 const int CLK = ${pinCLK};
 
-
 // Define the frame data (matrix list)
-
 const bool frame[8][8] = ${dotMatrixFormatted};
 
 void setup() {
@@ -674,8 +669,88 @@ void displayFrame(const bool matrix[8][8]) {
     }
     sendCommand(row + 1, rowData);
   }
-}`)
-    setIsCodeGenerated(true)
+}`);
+    setIsCodeGenerated(true);
+    setCodeCopied(false);
+    notifyUser("Code Generation Successful!", toast.success);
+  }
+
+  // Fix 1: Add useEffect to restore pins from localStorage on component mount
+  React.useEffect(() => {
+    // Restore pins from localStorage
+    console.log("useEffect")
+    const savedDIN = localStorage.getItem("DIN");
+    const savedCS = localStorage.getItem("CS");
+    const savedCLK = localStorage.getItem("CLK");
+    console.log(savedDIN)
+    if (savedDIN) setPinDIN(savedDIN);
+    if (savedCS) setPinCS(savedCS);
+    if (savedCLK) setPinCLK(savedCLK);
+  }, []);
+
+  // Fix 2: Update the existing useEffect to properly check pin validity
+  React.useEffect(() => {
+    // Check if all pins are selected and not "none"
+    const allPinsSelected = pinCS !== "none" && pinCLK !== "none" && pinDIN !== "none" &&
+      pinCS !== "" && pinCLK !== "" && pinDIN !== "" &&
+      pinCS !== "Pick a Pin" && pinCLK !== "Pick a Pin" && pinDIN !== "Pick a Pin" &&
+      pinCS && pinCLK && pinDIN;
+
+    if (allPinsSelected) {
+      setIsGenerateDisabled(false);
+    } else {
+      setIsGenerateDisabled(true);
+    }
+  }, [pinDIN, pinCLK, pinCS]);
+
+  // Fix 3: Add the missing functions for code generation
+  function generateMostEfficientCppArray(matrix, frameIndex) {
+    // Convert boolean matrix to efficient C++ array representation
+    return matrix.map(row =>
+      row.map(cell => cell ? 1 : 0)
+    );
+  }
+
+  function generate_max7219_template(frames, duration, dinPin, csPin, clkPin) {
+    return `
+#include <LedControl.h>
+
+const int DIN = ${dinPin};
+const int CS = ${csPin};
+const int CLK = ${clkPin};
+
+LedControl lc = LedControl(DIN, CLK, CS, 1);
+
+// Frame data
+const bool frames[][8][8] = {
+  ${frames.map(frame => `{
+    ${frame.map(row => `{${row.map(cell => cell ? 'true' : 'false').join(', ')}}`).join(',\n    ')}
+  }`).join(',\n  ')}
+};
+
+const int numFrames = ${frames.length};
+const int frameDuration = ${duration};
+
+void setup() {
+  lc.shutdown(0, false);
+  lc.setIntensity(0, 8);
+  lc.clearDisplay(0);
+}
+
+void loop() {
+  for (int frame = 0; frame < numFrames; frame++) {
+    displayFrame(frames[frame]);
+    delay(frameDuration);
+  }
+}
+
+void displayFrame(const bool matrix[8][8]) {
+  for (int row = 0; row < 8; row++) {
+    for (int col = 0; col < 8; col++) {
+      lc.setLed(0, row, col, matrix[row][col]);
+    }
+  }
+}`;
   }
   return (
     <div className="theme-green w-screen text-center flex justify-center flex-col items-center">
@@ -685,12 +760,12 @@ void displayFrame(const bool matrix[8][8]) {
         <Droppable direction="horizontal" droppableId="dotMatrixDivs" type="MATRIX">
           {(provided) => (
             <div
-              className="md:min-w-[30em]  lg:min-w-[50em]  outline-green-800 rounded-md outline-2 outline bg-gray-800 max-h-[160px] overflow-y-hidden gap-2 m-5 p-3 max-w-[90%] overflow-x-auto scroll-content shadow-lg relative"
+              className="md:min-w-[30em]  lg:min-w-[50em]  outline-green-800 rounded-md outline-2 outline bg-gray-800 max-500:max-h-[260px] max-h-[160px] overflow-y-hidden gap-2 m-5 p-3 max-w-[90%] overflow-x-auto scroll-content shadow-lg relative"
               ref={provided.innerRef}
               {...provided.droppableProps}
             >
-              <div className='flex flex-wrap justify-between'>
-                <div className='flex space-x-4'>
+              <div className=" max-500:grid max-500:justify-center w-full flex flex-wrap justify-between max-sm:grid max-sm: ">
+                <div className="flex gap-x-4 max-500:justify-center  ">
 
                   <Tool
                     Icon={MdAdd}
@@ -774,7 +849,7 @@ void displayFrame(const bool matrix[8][8]) {
               </div>
 
 
-              <div className=' mt-3  bg-gray-900 rounded-md'>
+              <div className=' mt-3 bg-gray-900 rounded-md pb-3 overflow-x-auto pt-2 px-3 '>
                 {/* <div className='text-green-500 font-bold bg-gray-800 '>
                   <span>0</span>
                   <span>:</span>
@@ -1004,10 +1079,31 @@ void displayFrame(const bool matrix[8][8]) {
 
             </select>
             <div className='flex max-500:grid max-750:grid gap-1 w-full '>
-             
-              <PinSelector board={board} label="DIN" pinRef={pinDINRef} pinSetter={setPinDIN} pinhighlightSetter={setDinPinHighlight}></PinSelector>
-              <PinSelector board={board} label="CS" pinRef={pinCSRef} pinSetter={setPinCS} pinhighlightSetter={setCsPinHighlight}></PinSelector>
-              <PinSelector board={board} label="CLK" pinRef={pinCLKRef} pinSetter={setPinCLK} pinhighlightSetter={setClkPinHighlight}></PinSelector>
+
+              <PinSelector
+                label="DIN"
+                pinRef={pinDINRef}
+                pinSetter={setPinDIN}
+                pinhighlightSetter={setDinPinHighlight}
+                value={pinDIN}
+                board={board}
+              />
+              <PinSelector
+                label="CS"
+                pinRef={pinCSRef}
+                pinSetter={setPinCS}
+                pinhighlightSetter={setCsPinHighlight}
+                value={pinCS}
+                board={board}
+              />
+              <PinSelector
+                label="CLK"
+                pinRef={pinCLKRef}
+                pinSetter={setPinCLK}
+                pinhighlightSetter={setClkPinHighlight}
+                value={pinCLK}
+                board={board}
+              />
 
             </div>
 
@@ -1017,23 +1113,29 @@ void displayFrame(const bool matrix[8][8]) {
                 type="button" //Needed to prevent form page refresh
 
                 className={
-                  isGenerateDisabled ?
-                    ' bg-slate-900 text-gray-600   py-1 px-2 rounded-sm mt-auto'
-                    :
-                    ' bg-slate-900 text-green-600  py-1 px-2 rounded-sm  mt-auto cursor-pointer'
+                  //  isGenerateDisabled ?
+                  //  ' bg-slate-900 text-gray-600   py-1 px-2 rounded-sm mt-auto'
+                  //  :
+                  ' bg-slate-900 text-green-600  py-1 px-2 rounded-sm  mt-auto cursor-pointer'
                 }
-                onClick={isGenerateDisabled ? () => { } : () => generateCodeOneFrame()}>Generate frame
+                onClick={
+                  //isGenerateDisabled ? () => { } 
+                  // :
+                  () => generateCodeOneFrame()}>Generate frame
               </div>
               <div
                 type="button" //Needed to prevent form page refresh
 
                 className={
-                  isGenerateDisabled ?
-                    ' bg-slate-900 text-gray-600  py-1 px-2 rounded-sm flex justify-center align-middle items-center '
-                    :
-                    'bg-slate-900 text-green-600  py-1 px-2 rounded-sm cursor-pointer flex justify-center align-middle items-center'
+                  // isGenerateDisabled ?
+                  // ' bg-slate-900 text-gray-600  py-1 px-2 rounded-sm flex justify-center align-middle items-center '
+                  // :
+                  'bg-slate-900 text-green-600  py-1 px-2 rounded-sm cursor-pointer flex justify-center align-middle items-center'
                 }
-                onClick={isGenerateDisabled ? () => { } : () => generateCode()}>Generate animation
+                onClick={
+                  // isGenerateDisabled ? () => { } 
+                  //  : 
+                  () => generateCode()}>Generate animation
 
               </div>
 
@@ -1044,7 +1146,7 @@ void displayFrame(const bool matrix[8][8]) {
           </form>
         </div>
       </div>
-       <CoffeeButton></CoffeeButton>
+      <CoffeeButton></CoffeeButton>
       {isCodeGenerated ? <pre
         style={{
           backgroundColor: "#282c34",
@@ -1076,24 +1178,26 @@ void displayFrame(const bool matrix[8][8]) {
           }
 
         </button>
-       
-        {isCodeGenerated && (
-          <SyntaxHighlighter
-            language="cpp"
-            style={vscDarkPlus}
-            customStyle={{
-              backgroundColor: "#282c34",
-              borderRadius: "0.5rem",
-              fontSize: "0.9rem",
-              padding: "1rem",
-              marginTop: "2rem",
-              width: "95%",
-              textAlign: "left"
-            }}
-          >
-            {generatedCode}
-          </SyntaxHighlighter>
-        )}
+
+        {/* {isCodeGenerated && (
+          // <SyntaxHighlighter
+          //   language="cpp"
+          //   style={vscDarkPlus}
+          //   customStyle={{
+          //     backgroundColor: "#282c34",
+          //     borderRadius: "0.5rem",
+          //     fontSize: "0.9rem",
+          //     padding: "1rem",
+          //     marginTop: "2rem",
+          //     width: "95%",
+          //     textAlign: "left"
+          //   }}
+          // >
+          //   {generatedCode}
+          // </SyntaxHighlighter>
+          {generatedCode}
+        )} */}
+        {generatedCode}
       </pre> : <></>}
 
 

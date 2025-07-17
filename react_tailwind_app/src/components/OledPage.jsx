@@ -213,22 +213,23 @@ function OledPage() {
     document.addEventListener("mouseup", handleMouseUp);
     document.addEventListener("mousedown", handleMouseDown);
 
-    const handleKeyDown = (event) => {
-      dispatch(setToKeyboardKey(event.code));
-    };
+    // const handleKeyDown = (event) => {
+    //   dispatch(setToKeyboardKey(event.code));
+    // };
 
-    const handleKeyUp = (event) => {
-      dispatch(setToKeyboardKey("KeyNone"));
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keyup", handleKeyUp);
+    // const handleKeyUp = (event) => {
+      
+    //   dispatch(setToKeyboardKey("KeyNone"));
+    // };
+    // window.addEventListener("keydown", handleKeyDown);
+    // window.addEventListener("keyup", handleKeyUp);
 
     return () => {
       // Cleanup listener on unmount
-      window.removeEventListener("keydown", handleKeyDown);
+     // window.removeEventListener("keydown", handleKeyDown);
       document.removeEventListener("mouseup", handleMouseUp);
       document.removeEventListener("mousedown", handleMouseDown);
-      document.removeEventListener("mousedown", handleKeyUp);
+    //  document.removeEventListener("mousedown", handleKeyUp);
     };
   }, []);
 
@@ -411,7 +412,73 @@ function OledPage() {
 
 
 
+  // Update pin validation function
+  function validatePins() {
+    if (oledType !== "SPI") return true; // Only validate SPI pins
+    
+    const pins = [
+      { name: "CS", value: pinCS },
+      { name: "Reset", value: pinReset },
+      { name: "DC", value: pinDC }
+    ];
+    
+    // Check for required pins not selected - CS can be optional, Reset and DC are required
+    const requiredPins = pins.filter(pin => pin.name !== "CS"); // CS is optional
+    const missingPins = requiredPins.filter(pin => 
+      !pin.value || 
+      pin.value === "Pick a Pin" || 
+      pin.value === "none" || 
+      pin.value === ""
+    );
+    
+    if (missingPins.length > 0) {
+      const missingNames = missingPins.map(pin => pin.name).join(", ");
+      notifyUser(`Please select pins for: ${missingNames}`, toast.warning);
+      return false;
+    }
+    
+    // Check for duplicate pins - exclude unselected pins
+    const selectedPins = pins.filter(pin => 
+      pin.value && 
+      pin.value !== "Pick a Pin" && 
+      pin.value !== "Optional" &&
+      pin.value !== "none" &&
+      pin.value !== ""
+    );
+    
+    const pinValues = selectedPins.map(pin => pin.value);
+    const duplicates = pinValues.filter((value, index) => pinValues.indexOf(value) !== index);
+    
+    if (duplicates.length > 0) {
+      const duplicateNames = selectedPins
+        .filter(pin => duplicates.includes(pin.value))
+        .map(pin => pin.name)
+        .join(", ");
+      notifyUser(`Duplicate pins detected: ${duplicateNames} cannot use the same pin`, toast.warning);
+      return false;
+    }
+    
+    return true;
+  }
+
+  // Remove the automatic validation useEffect
+  // React.useEffect(() => {
+  //   if (oledType === "SPI") {
+  //     // Debounce validation to avoid too many warnings
+  //     const timer = setTimeout(() => {
+  //       validatePins();
+  //     }, 500);
+  //     
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [pinCS, pinReset, pinDC, oledType]);
+
+  // Update generateCode function to only validate when generating code
   function generateCode() {
+    if (!validatePins()) {
+      return; // Don't generate code if validation fails
+    }
+    
     let list_of_frames = oledMatrix.map((frame, index) =>
       generateMostEfficientCppArray(frame.matrix, index)
     );
@@ -700,6 +767,7 @@ void displayFrame(const bool matrix[8][8]) {
               setOledMatrix = {setOledMatrix}
               oledMatrix = {oledMatrix}
               setBrushSize = {setBrushSize}
+              
               >
 
             </CurrentFrameToolBar>
@@ -782,17 +850,23 @@ void displayFrame(const bool matrix[8][8]) {
                     board={board}
                     label="CS"
                     pinSetter={setPinCS}
-                  ></PinSelector>
+                    value={pinCS}
+                    isOptional={true}  // CS is optional
+                  />
                   <PinSelector
                     board={board}
                     label="Reset"
                     pinSetter={setPinReset}
-                  ></PinSelector>
+                    value={pinReset}
+                    isOptional={false}  // Reset is required
+                  />
                   <PinSelector
                     board={board}
                     label="DC"
                     pinSetter={setPinDC}
-                  ></PinSelector>
+                    value={pinDC}
+                    isOptional={false}  // DC is required
+                  />
                 </div>
               </>
             )}

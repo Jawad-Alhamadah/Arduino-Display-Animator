@@ -60,6 +60,41 @@ function CurrentFrameToolBar(props) {
         }
     };
 
+
+ React.useEffect(() => {
+    // Global mouseup listener to reset dragging state
+
+    const handleKeyDown = (event) => {
+      // If eraser is manually activated, don't let D key override it
+      if (event.code === "KeyD" && activeToolsTable.eraser) {
+        return; // Don't dispatch if eraser is already manually active
+      }
+      dispatch(setToKeyboardKey(event.code));
+    };
+
+    const handleKeyUp = (event) => {
+      console.log(activeToolsTable)
+      // Only reset KeyD if eraser is NOT manually activated
+      if (event.code === "KeyD" && activeToolsTable.eraser) {
+        return; // Don't reset if eraser is manually active
+      }
+      
+      if(activeToolsTable.eraser) return
+      dispatch(setToKeyboardKey("KeyNone"));
+    };
+    
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      // Cleanup listener on unmount
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp); // Fixed: was removeEventListener("mousedown", handleKeyUp)
+    };
+  }, [activeToolsTable]); // Added activeToolsTable as dependency
+
+
+
     // Helper functions for matrix operations
     function clipOuterMatrix(matrix) {
         const yOffset = Math.floor((OUTER_SIZE - DISPLAY_HEIGHT) / 2);
@@ -423,7 +458,7 @@ function CurrentFrameToolBar(props) {
                         classes={
                             
                             activeToolsTable.stamb ?
-                                "size-5 scale-110 text-teal-200"
+                                "size-5 scale-125 text-yellow-400"
                                 :
                                 "size-5 "
                                
@@ -438,14 +473,19 @@ function CurrentFrameToolBar(props) {
                             target="erase"
                             onClick={
                                 () => {
-
-                                    dispatch(setToKeyboardKey("KeyNone"))
+                                    // If manually activated, deactivate and reset
+                                    if (activeToolsTable.eraser) {
+                                        toggleTools(activateToolEnum.pen); // Switch back to pen
+                                        dispatch(setToKeyboardKey("KeyNone")); // Clear D key state
+                                    } else {
+                                        // If activated by D key, just clear the key
+                                        dispatch(setToKeyboardKey("KeyNone"));
+                                    }
                                 }
-
                             }
                             tooltip={["Erase.", "ShortCut: D"]}
                             classes={
-                                "scale-125 text-teal-300 hover:cursor-pointer  outline-green-300 outline-solid outline-1 "
+                                "scale-150 text-yellow-400 hover:cursor-pointer  outline-green-300 outline-solid outline-1 "
                             }
                         />
                     ) : (
