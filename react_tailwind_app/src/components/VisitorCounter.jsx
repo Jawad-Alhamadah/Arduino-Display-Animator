@@ -19,7 +19,6 @@ function VisitorCounter (){
         })
         .then(() => {
           localStorage.setItem(VISITOR_KEY, "true");
-          console.log('Visitor counted.');
         })
         .catch((err) => {
           console.error('Error updating visitor count:', err);

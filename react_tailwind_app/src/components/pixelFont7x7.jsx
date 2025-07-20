@@ -1,18 +1,11 @@
 import { FaHeart, FaBomb, FaGhost } from "react-icons/fa";
 import {
-  FaStar, FaCoffee, FaMusic, FaBell, FaRocket, FaFire, FaTree, FaSnowflake, FaSun, FaMoon, FaCloud, FaUmbrella, FaBolt, FaGift, FaCrown, FaGamepad, FaBug, FaKey, FaCamera, FaPlane,
+   FaCoffee, FaMusic, FaBell, FaTree,FaUmbrella, 
 } from "react-icons/fa";
 import { LiaBatteryThreeQuartersSolid } from "react-icons/lia";
 import { LiaBatteryQuarterSolid } from "react-icons/lia";
 import { LiaBatteryFullSolid } from "react-icons/lia";
 import { LiaBatteryEmptySolid } from "react-icons/lia";
-import { PiWifiMediumBold } from "react-icons/pi";
-
-import { BiWifi } from "react-icons/bi";
-
-import { PiWifiLowBold } from "react-icons/pi";
-
-import { SiArduino } from "react-icons/si";
 
 import { IoBatteryHalfSharp } from "react-icons/io5";
 // Create the font object with a consistent structure

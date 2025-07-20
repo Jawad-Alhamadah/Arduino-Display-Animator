@@ -4,7 +4,6 @@ import { toast } from 'react-toastify';
 import { setFrameDuration } from '../reducers/frameDurationSlice';
 import { useSelector, useDispatch } from 'react-redux';
 function FrameDurationInput() {
-    // const [frameDuration, setFrameDuration] = React.useState('200');
     let frameDuration = useSelector((state) => state.frameDuration.value)
     const dispatch = useDispatch()
     function frameDurationBlurHandle() {
@@ -22,7 +21,6 @@ function FrameDurationInput() {
             dispatch(setFrameDuration(val));
 
         }
-
 
     }
 

@@ -1,7 +1,5 @@
 import React from 'react'
-import { useEffect, useRef, useState } from "react";
 import { useSelector, useDispatch } from 'react-redux';
-import { setToKeyboardKey } from '../reducers/currentKeyboardKey';
 import { setCurrentMatrixByKey } from '../reducers/currentMatrixSlice';
 function OledFrame(props) {
 const currentMatrixKey = useSelector((state) => state.currentMatrixKey.value)
@@ -16,10 +14,6 @@ const dispatch = useDispatch()
         if (!canvas) return;
         const ctx = canvas.getContext("2d");
         ctx.clearRect(0, 0, WIDTH * PIXEL_SIZE, HEIGHT * PIXEL_SIZE);
-       // console.log( "current matrix: "+currentMatrixKey+" key: "+ props.matrix.key)
-        
-        // Draw pixels efficiently
-       
      
         props.oledMatrix.find(obj => obj.key ===  props.matrix.key).matrix.forEach((row, y) => {
           row.forEach((pixel, x) => {
@@ -35,7 +29,7 @@ const dispatch = useDispatch()
        
             drawCanvasinit();
        
-      }, []); // Redraw canvas when matrix changes
+      }, []); 
     
 
      React.useEffect(() => {
@@ -51,11 +45,6 @@ const dispatch = useDispatch()
         if (!canvas) return;
         const ctx = canvas.getContext("2d");
         ctx.clearRect(0, 0, WIDTH * PIXEL_SIZE, HEIGHT * PIXEL_SIZE);
-       // console.log( "current matrix: "+currentMatrixKey+" key: "+ props.matrix.key)
-        
-        // Draw pixels efficiently
-       
-     
         props.oledMatrix.find(obj => obj.key === currentMatrixKey).matrix.forEach((row, y) => {
           row.forEach((pixel, x) => {
             if (pixel) {
@@ -76,7 +65,7 @@ const dispatch = useDispatch()
             props.framesRef.current[props.index] = el; // Also add it to frameRefs
     
           }}
-          // ref={provided.innerRef}
+          
           {...props.provided.draggableProps}
           {...props.provided.dragHandleProps}
           className={props.currentMatrix === props.matrix.key ?
@@ -86,29 +75,13 @@ const dispatch = useDispatch()
           onClick={() => dispatch(setCurrentMatrixByKey(props.matrix.key))}
     
         >
-    
-    
-          {/* {props.matrix.dotmatrix.map((row, rowIndex) => (
-            <div key={rowIndex} className="flex gap-1 mt-[0.2rem]">
-              {row.map((e, colIndex) => (
-                <div
-                  key={colIndex}
-                  className={`rounded-full size-[0.3em] ${e ? 'bg-[#ff0000] shadow-ld shadow-[#ff0000]' : 'bg-gray-500'
-                    }`}
-                ></div>
-              ))}
-            </div>
-          ))} */}
 
             <canvas
-               // ref={props.canvasRef}
                ref={canvasRef}
                 width={props.width}
                 height={props.height}
                 className="border border-gray-500"
-                // onMouseDown={handleCanvasMouseDown}
-                // onMouseUp={handleCanvasMouseUp}
-                // onMouseMove={handleCanvasMouseMove}
+        
                 />
           
         </div>

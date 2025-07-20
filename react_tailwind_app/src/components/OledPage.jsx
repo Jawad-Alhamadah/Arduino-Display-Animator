@@ -1,24 +1,16 @@
 import React from "react";
 import FrameDurationInput from "./FrameDurationInput";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
-import { BsPlayFill, BsFillEraserFill } from "react-icons/bs";
+import { BsPlayFill } from "react-icons/bs";
 import { LuClipboardCopy, LuCopyPlus } from "react-icons/lu";
 import VisitorCounter from "./VisitorCounter"
 import { TiMediaStop } from "react-icons/ti";
 import {
   MdAdd,
-  MdKeyboardDoubleArrowRight,
-  MdKeyboardDoubleArrowLeft,
 } from "react-icons/md";
 
-import { PiFlipHorizontalFill, PiFlipVerticalFill } from "react-icons/pi";
-import { GrRotateLeft, GrRotateRight } from "react-icons/gr";
-import { FaHireAHelper } from "react-icons/fa6";
-import { TiArrowUpOutline } from "react-icons/ti";
-import { TiArrowDownOutline } from "react-icons/ti";
-
 import { MdDeleteForever } from "react-icons/md";
-import { GrHelpBook } from "react-icons/gr";
+
 import { BsExclamationCircle } from "react-icons/bs";
 
 import OledFrame from "./OledFrame";
@@ -35,29 +27,17 @@ import {
 } from "./generatedCodeTemplates";
 import { setToPlaying, setToStopped } from "../reducers/isAnimationPlaying";
 import { ToastContainer } from "react-toastify";
-import ToolMainFrame from "./ToolMainFrame";
-import { MdOutlineHelpCenter } from "react-icons/md";
+
 import { CgScreen } from "react-icons/cg";
 import WiringGuide from "./WiringGuide";
 import Tool from "./Tool";
 import { notifyUser } from "./toastifyFunctions";
-import { TbNavigationQuestion } from "react-icons/tb";
 import { BsPatchQuestion } from "react-icons/bs";
 import { toast } from "react-toastify";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
+
 import PinSelector from "./PinSelector";
 import { useLocation } from "react-router-dom";
 import { Tooltip as ReactTooltip } from "react-tooltip";
-import AnimateText from "./AnimateText";
-import { SiArduino } from "react-icons/si";
-import StampPicker from "./StampPicker";
-import { FaStamp } from "react-icons/fa6";
-import { FaRegPenToSquare } from "react-icons/fa6";
-
-import { TbPencilMinus } from "react-icons/tb";
-
-import { TbPencilPlus } from "react-icons/tb";
 import CurrentFrameToolBar from "./CurrentFrameToolBar";
 import CoffeeButton from "./CoffeeButton";
 import SEOHead from "./SEOHead";
@@ -100,13 +80,12 @@ function OledPage() {
   });
 
   const [display, setDisplay] = React.useState("");
-  // const [frameDuration, setFrameDuration] = React.useState(200);
+
   const [isGenerateDisabled, setIsGenerateDisabled] = React.useState(false);
   const [isCodeGenerated, setIsCodeGenerated] = React.useState(false);
   const [isDragging, setIsDragging] = React.useState(false);
 
   const [isWarningActive, setIsWarningActive] = React.useState(() => {
-    // getting stored value
     const saved = localStorage.getItem("warnActive");
     const initialValue = JSON.parse(saved);
     return initialValue || "";
@@ -123,11 +102,10 @@ function OledPage() {
   }, [isAnimationPlaying]);
 
   function handleBoardChange(event) {
-    console.log(event);
     setBoard(event.target.value);
   }
 
-  // Add this function to handle OLED type changes and save to localStorage
+ 
   function handleOledTypeChange(e) {
     const newType = e.target.value;
     setOledType(newType);
@@ -172,13 +150,13 @@ function OledPage() {
     function handleDrawingModeChange(mode) {
     setDrawingMode(mode);
     
-    // Handle mode-specific logic
+    
     if (mode === 'brush') {
       setStampSymbol(null);
       dispatch(setToKeyboardKey("KeyNone"));
     } else if (mode === 'stamp') {
       dispatch(setToKeyboardKey("KeyNone"));
-      // stampSymbol will be set by StampPicker
+    
     } else if (mode === 'eraser') {
       setStampSymbol(null);
       dispatch(setToKeyboardKey("KeyD"));
@@ -200,7 +178,7 @@ function OledPage() {
   }, []);
 
   React.useEffect(() => {
-    // Global mouseup listener to reset dragging state
+   
 
     currentKeyboardKeyRef.current = currentKeyboardKey;
     const handleMouseUp = () => {
@@ -214,23 +192,13 @@ function OledPage() {
     document.addEventListener("mouseup", handleMouseUp);
     document.addEventListener("mousedown", handleMouseDown);
 
-    // const handleKeyDown = (event) => {
-    //   dispatch(setToKeyboardKey(event.code));
-    // };
-
-    // const handleKeyUp = (event) => {
-      
-    //   dispatch(setToKeyboardKey("KeyNone"));
-    // };
-    // window.addEventListener("keydown", handleKeyDown);
-    // window.addEventListener("keyup", handleKeyUp);
+    
 
     return () => {
-      // Cleanup listener on unmount
-     // window.removeEventListener("keydown", handleKeyDown);
+     
       document.removeEventListener("mouseup", handleMouseUp);
       document.removeEventListener("mousedown", handleMouseDown);
-    //  document.removeEventListener("mousedown", handleKeyUp);
+   
     };
   }, []);
 
@@ -251,7 +219,7 @@ function OledPage() {
   function pushHistory(frameKey, matrix) {
     setOledHistory((prev) => {
       const prevArr = prev[frameKey] || [];
-      // Only push if different from last
+     
       if (
         prevArr.length &&
         JSON.stringify(prevArr[prevArr.length - 1]) === JSON.stringify(matrix)
@@ -265,18 +233,6 @@ function OledPage() {
     });
   }
 
-  const OUTER_SIZE = 128;
-  const DISPLAY_WIDTH = 128;
-  const DISPLAY_HEIGHT = 64;
-
-  /**
-   * Ensures a 128x128 outer matrix with the original content centered.
-   */
-
-
-  /**
-   * Clips a 128x128 matrix back to the central 128x64 area.
-   */
   React.useEffect(() => {
     const handleUndo = (e) => {
       if (e.ctrlKey && e.key === "z") {
@@ -313,6 +269,7 @@ function OledPage() {
           setCopiedFrame(structuredClone(frame.matrix));
         }
       }
+
       // Ctrl+V: Paste as new frame
       if (e.ctrlKey && e.key.toLowerCase() === "v") {
         if (copiedFrame) {
@@ -335,7 +292,7 @@ function OledPage() {
   function Duplicate(matrixToDuplicate) {
     let currMatrixIndex = matrixToDuplicate.findIndex(
       (matrix) => matrix.key == currentMatrixKey
-    ); //dotMatrixDivs
+    ); 
     if (currMatrixIndex === -1) {
       console.error("Matrix not found!");
       return;
@@ -367,9 +324,6 @@ function OledPage() {
   }
   function repeatFunction(func, delay, repeat) {
     const oled = oledMatrixCurrentRef.current;
-    console.log(oled);
-    console.log(repeat);
-    console.log(delay);
     func(oled[0].key); //dotMatrixDivs
     let counter = 1;
 
@@ -462,22 +416,10 @@ function OledPage() {
     return true;
   }
 
-  // Remove the automatic validation useEffect
-  // React.useEffect(() => {
-  //   if (oledType === "SPI") {
-  //     // Debounce validation to avoid too many warnings
-  //     const timer = setTimeout(() => {
-  //       validatePins();
-  //     }, 500);
-  //     
-  //     return () => clearTimeout(timer);
-  //   }
-  // }, [pinCS, pinReset, pinDC, oledType]);
-
-  // Update generateCode function to only validate when generating code
+  
   function generateCode() {
     if (!validatePins()) {
-      return; // Don't generate code if validation fails
+      return; 
     }
     
     let list_of_frames = oledMatrix.map((frame, index) =>
@@ -498,7 +440,7 @@ function OledPage() {
         )
       );
     }
-    //setGeneratedCode(generate_oled_template(list_of_frames, frameDuration))
+    
     setIsCodeGenerated(true);
     setCodeCopied(false);
     notifyUser("Code Generation Sucessful!", toast.success);
@@ -514,18 +456,18 @@ function OledPage() {
     }
 
     const newMat = {
-      // key: dotMatrixDivs.length + 1,
+     
       key: generateId(),
       matrix: Array.from({ length: 64 }, () => Array(128).fill(false)),
     };
     setOledMatrix((prev) => [...prev, newMat]);
 
-    // setCurrentMatrix(newMat.key)
+   
     dispatch(setCurrentMatrixByKey(newMat.key));
   }
 
   React.useEffect(() => {
-    // Ensure every frame has at least one history entry
+    
     oledMatrix.forEach((frame) => {
       setOledHistory((prev) => {
         const arr = prev[frame.key] || [];
@@ -559,78 +501,7 @@ function OledPage() {
     });
   }
 
-  function generateCodeOneFrame() {
-    let rMatrices = flipAll(oledMatrix);
-    //console.log(rMatrices.map(matrix=>matrix.dotmatrix))
-    // let stringMatrices = JSON.stringify(rMatrices.map(matrix=>matrix.dotmatrix))
-    let frame =
-      rMatrices[
-        rMatrices.findIndex((matrix) => matrix.key === currentMatrixKey)
-      ].dotmatrix;
-    let dotMatrixString = JSON.stringify(frame);
-    let dotMatrixFormatted = dotMatrixString.replace(/[\[\]]/g, (match) =>
-      match === "[" ? "{" : "}"
-    );
-    console.log(`const bool frame[8][8] = ${dotMatrixFormatted}`);
-
-    setGeneratedCode(`
-    
-const int DIN = ${pinDIN};
-const int CS = ${pinCS};
-const int CLK = ${pinCLK};
-
-
-// Define the frame data (matrix list)
-
-const bool frame[8][8] = ${dotMatrixFormatted};
-
-void setup() {
-  // Set pin modes
-  pinMode(DIN, OUTPUT);
-  pinMode(CLK, OUTPUT);
-  pinMode(CS, OUTPUT);
-
-  // Initialize MAX7219
-  digitalWrite(CS, HIGH);
-  sendCommand(0x0F, 0x00); // Display test off
-  sendCommand(0x09, 0x00); // Decode mode off
-  sendCommand(0x0B, 0x07); // Scan limit = 8 LEDs
-  sendCommand(0x0A, 0x08); // Brightness = medium
-  sendCommand(0x0C, 0x01); // Shutdown register = normal operation
-  clearDisplay();
-  displayFrame(frame);
-}
-
-void loop() {
-   
-}
-
-void sendCommand(byte command, byte data) {
-  digitalWrite(CS, LOW);
-  shiftOut(DIN, CLK, MSBFIRST, command);
-  shiftOut(DIN, CLK, MSBFIRST, data);
-  digitalWrite(CS, HIGH);
-}
-
-void clearDisplay() {
-  for (int i = 0; i < 8; i++) {
-    sendCommand(i + 1, 0);
-  }
-}
-
-void displayFrame(const bool matrix[8][8]) {
-  for (int row = 0; row < 8; row++) {
-    byte rowData = 0;
-    for (int col = 0; col < 8; col++) {
-      if (matrix[row][col]) {
-        rowData |= (1 << col);
-      }
-    }
-    sendCommand(row + 1, rowData);
-  }
-}`);
-    setIsCodeGenerated(true);
-  }
+ 
   const [stampSymbol, setStampSymbol] = React.useState(null);
   return (
     <div className="theme-blue w-screen text-center flex justify-center flex-col items-center ">
@@ -878,9 +749,7 @@ void displayFrame(const bool matrix[8][8]) {
                 </div>
               </>
             )}
-            {/* <PinSelector label="DIN Pin : " pinRef={pinDINRef} pinSetter={setPinDIN} pinhighlightSetter={setDinPinHighlight}></PinSelector>
-            <PinSelector label="CS Pin : " pinRef={pinCSRef} pinSetter={setPinCS} pinhighlightSetter={setCsPinHighlight}></PinSelector>
-            <PinSelector label="CLK Pin : " pinRef={pinCLKRef} pinSetter={setPinCLK} pinhighlightSetter={setClkPinHighlight}></PinSelector> */}
+            
 
             <div
               type="button" //Needed to prevent form page refresh
@@ -985,7 +854,7 @@ void displayFrame(const bool matrix[8][8]) {
     </div>
   );
 
-  //return (<Router/>)
+ 
 }
 
 export default OledPage;

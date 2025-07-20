@@ -1,5 +1,5 @@
 import { BsFillEraserFill } from "react-icons/bs";
-import React, { act, useRef } from "react";
+import React, { useRef } from "react";
 import {
     MdKeyboardDoubleArrowRight,
     MdKeyboardDoubleArrowLeft,
@@ -14,11 +14,8 @@ import StampPicker from "./StampPicker";
 import { FaRegPenToSquare } from "react-icons/fa6";
 import { TbPencilMinus } from "react-icons/tb";
 import { TbPencilPlus } from "react-icons/tb";
-
 import { setToKeyboardKey } from "../reducers/currentKeyboardKey";
-import { setCurrentMatrixByKey } from "../reducers/currentMatrixSlice";
-
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useSelector, useDispatch } from "react-redux"
 
 
@@ -61,37 +58,36 @@ function CurrentFrameToolBar(props) {
     };
 
 
- React.useEffect(() => {
-    // Global mouseup listener to reset dragging state
+    React.useEffect(() => {
+        // Global mouseup listener to reset dragging state
 
-    const handleKeyDown = (event) => {
-      // If eraser is manually activated, don't let D key override it
-      if (event.code === "KeyD" && activeToolsTable.eraser) {
-        return; // Don't dispatch if eraser is already manually active
-      }
-      dispatch(setToKeyboardKey(event.code));
-    };
+        const handleKeyDown = (event) => {
+            // If eraser is manually activated, don't let D key override it
+            if (event.code === "KeyD" && activeToolsTable.eraser) {
+                return; // Don't dispatch if eraser is already manually active
+            }
+            dispatch(setToKeyboardKey(event.code));
+        };
 
-    const handleKeyUp = (event) => {
-      console.log(activeToolsTable)
-      // Only reset KeyD if eraser is NOT manually activated
-      if (event.code === "KeyD" && activeToolsTable.eraser) {
-        return; // Don't reset if eraser is manually active
-      }
-      
-      if(activeToolsTable.eraser) return
-      dispatch(setToKeyboardKey("KeyNone"));
-    };
-    
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keyup", handleKeyUp);
+        const handleKeyUp = (event) => {
+            // Only reset KeyD if eraser is NOT manually activated
+            if (event.code === "KeyD" && activeToolsTable.eraser) {
+                return; // Don't reset if eraser is manually active
+            }
 
-    return () => {
-      // Cleanup listener on unmount
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("keyup", handleKeyUp); // Fixed: was removeEventListener("mousedown", handleKeyUp)
-    };
-  }, [activeToolsTable]); // Added activeToolsTable as dependency
+            if (activeToolsTable.eraser) return
+            dispatch(setToKeyboardKey("KeyNone"));
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        window.addEventListener("keyup", handleKeyUp);
+
+        return () => {
+            // Cleanup listener on unmount
+            window.removeEventListener("keydown", handleKeyDown);
+            window.removeEventListener("keyup", handleKeyUp); // Fixed: was removeEventListener("mousedown", handleKeyUp)
+        };
+    }, [activeToolsTable]); // Added activeToolsTable as dependency
 
 
 
@@ -376,7 +372,6 @@ function CurrentFrameToolBar(props) {
             Object.keys(table).map(key => [key, false])
         );
         newTable[toolToActivate] = true
-        console.log(newTable)
         setActiveToolsTable(newTable)
     }
 
@@ -456,15 +451,15 @@ function CurrentFrameToolBar(props) {
                     <StampPicker onSelect={props.setStampSymbol}
 
                         classes={
-                            
+
                             activeToolsTable.stamb ?
                                 "size-5 scale-125 text-yellow-400"
                                 :
                                 "size-5 "
-                               
+
                         }
-                         toggleTools={toggleTools}
-                         activateToolEnum={activateToolEnum}
+                        toggleTools={toggleTools}
+                        activateToolEnum={activateToolEnum}
                     />
 
                     {currentKeyboardKey === "KeyD" || activeToolsTable.eraser ? (

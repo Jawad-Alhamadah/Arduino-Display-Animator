@@ -1,19 +1,16 @@
 import React, { useEffect, useRef } from 'react';
 import { twMerge } from 'tailwind-merge';
-import { setToPlaying, setToStopped } from '../reducers/isAnimationPlaying';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { Tooltip as ReactTooltip } from "react-tooltip";
 
 function ToolMainFrame({ Icon, onClick, target, tooltip = [""], classes = '', onHold, interval = 10, shortCutKey }) {
     const buttonRef = useRef(null);
     const intervalRef = useRef(null);
-    let currentKeyboardKey = useSelector((state) => state.currentKeyboardKey.value);
 
     React.useEffect(() => {
         const handleKeyDown = (e) => {
             // Find the shortcut key and onClick for this Tool instance
             if (shortCutKey && isClickable && e.code === shortCutKey) {
-                console.log("Shortcut triggered", { shortCutKey, val: e.code });
                 onClick && onClick();
             }
         };

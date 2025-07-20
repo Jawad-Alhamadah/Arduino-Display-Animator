@@ -1,7 +1,6 @@
 import React from 'react';
 import { twMerge } from 'tailwind-merge';
-import { setToPlaying, setToStopped } from '../reducers/isAnimationPlaying'
-import { useSelector, useDispatch } from 'react-redux'
+import { useSelector } from 'react-redux'
 import { Tooltip as ReactTooltip } from "react-tooltip";
 
 
@@ -12,7 +11,6 @@ function Tool({ Icon, onClick, target, tooltip = [""], classes = '', interval=30
     const handleKeyDown = (e) => {
         // Find the shortcut key and onClick for this Tool instance
         if (shortCutKey && isClickable && e.code === shortCutKey) {
-            console.log("Shortcut triggered", { shortCutKey, val:e.code });
             onClick && onClick();
         }
     };

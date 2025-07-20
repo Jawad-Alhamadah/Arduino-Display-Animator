@@ -8,7 +8,7 @@ function Test() {
     
         eventSource.onmessage = (event) => {
             const { progress } = JSON.parse(event.data);
-            console.log(progress)
+          
             setProgress(progress);
         };
     

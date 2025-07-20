@@ -137,10 +137,9 @@ function App() {
                     key={colIndex}
                     className={` rounded-full size-[1em] ${e ? 'bg-[#ff0000] shadow-ld shadow-[#ff0000]' : 'bg-gray-500'}`}
                     onClick={async () => {
-                      console.log("fd")
+                     
                       let old_state = await structuredClone(dotMatrixDivs)
-                      console.log(old_state)
-                      console.log("4")
+                   
                      old_state.find(obj => obj.key === currentMatrix).dotmatrix[rowIndex][colIndex] = !old_state.find(obj => obj.key === currentMatrix).dotmatrix[rowIndex][colIndex]
                    
                       setDotMatrixDivs(old_state)

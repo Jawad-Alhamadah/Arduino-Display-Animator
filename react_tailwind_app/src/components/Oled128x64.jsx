@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { useSelector, useDispatch } from 'react-redux';
-import { setToKeyboardKey } from '../reducers/currentKeyboardKey';
-import { generate_oled_code_RLE } from "./generatedCodeTemplates";
+import { useSelector } from 'react-redux';
+
 import PIXEL_FONT_7x7 from "./pixelFont7x7";
-import UNICODE_SYMBOLS from "./unicodeSymbols";
+
 const WIDTH = 128;
 const HEIGHT = 64;
 import React from "react"
@@ -36,30 +35,12 @@ export default function Oled128x64(props) {
   const [isErasing, setIsErasing] = useState(false);
   const brushSize = props.brushSize || 1;
   const didDragRef = useRef(false);
-  const [prevClickPoint, setPrevClickPoint] = useState(null);
   const [lastReleasePoint, setLastReleasePoint] = useState(null);
 
   const [cursorPos, setCursorPos] = useState({ x: null, y: null });
   const [isCursorOver, setIsCursorOver] = useState(false);
 
-  function constrainLine(x0, y0, x1, y1) {
-    const dx = Math.abs(x1 - x0);
-    const dy = Math.abs(y1 - y0);
-    if (dx === 0 || dy === 0) {
-      // vertical or horizontal
-      return [x1, y1];
-    }
-    if (Math.abs(dx - dy) < 2) {
-      // 45 degree diagonal
-      const signX = x1 > x0 ? 1 : -1;
-      const signY = y1 > y0 ? 1 : -1;
-      const len = Math.min(dx, dy);
-      return [x0 + signX * len, y0 + signY * len];
-    }
-    // Snap to closest axis
-    if (dx > dy) return [x1, y0];
-    return [x0, y1];
-  }
+
 
   useEffect(() => {
     drawCanvas();
@@ -75,18 +56,17 @@ export default function Oled128x64(props) {
 
   useEffect(() => {
     const handleGlobalMouseUp = (event) => {
-      // Don't set lastReleasePoint in the global handler when we've already set it during Shift+Ctrl drawing
+
       if (isShiftPressed) {
         setIsDrawing(false);
         prevMousePosRef.current = { x: null, y: null };
         return;
       }
-      
-      // Normal release point handling for non-shift drawing
+
+
       setIsDrawing(false);
       prevMousePosRef.current = { x: null, y: null };
 
-      // Get mouse position at release
       if (canvasRef.current && event) {
         const rect = canvasRef.current.getBoundingClientRect();
         const x = Math.floor((event.clientX - rect.left) / pixelSize);
@@ -96,7 +76,7 @@ export default function Oled128x64(props) {
         }
       }
 
-      // Call stroke end callback to record history after a complete draw operation
+
       if (props.onStrokeEnd && didDragRef.current) {
         const matrixObj = props.oledMatrix.find(obj => obj.key === currentMatrixKey);
         if (matrixObj) {
@@ -117,8 +97,6 @@ export default function Oled128x64(props) {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, WIDTH * pixelSize, HEIGHT * pixelSize);
-    console.log(props.oledMatrix)
-    console.log(currentMatrixKey)
     props.oledMatrix.find(obj => obj.key === currentMatrixKey).matrix.forEach((row, y) => {
       row.forEach((pixel, x) => {
         if (pixel) {
@@ -129,34 +107,34 @@ export default function Oled128x64(props) {
     });
   };
 
-  // Modify the handleCanvasMouseDown function to fix stamp history tracking
+
   const handleCanvasMouseDown = (event) => {
     const { x, y } = getMousePosition(event);
-    
-    // Handle stamp drawing first
+
+
     if (props.stampSymbol && x !== null && y !== null) {
-      // Get current matrix before modification
+
       const currentMatrix = props.oledMatrix.find(obj => obj.key === currentMatrixKey);
       if (!currentMatrix) return;
-      
-      // Save current state for history ONLY ONCE before making changes
+
+
       if (props.onStrokeEnd) {
         props.onStrokeEnd(structuredClone(currentMatrix.matrix));
       }
-      
-      // Then apply the stamp
+
+
       props.setOledMatrix((prev) => {
         const newMatrix = structuredClone(prev);
         const matrixObj = newMatrix.find(obj => obj.key === currentMatrixKey);
         if (!matrixObj) return prev;
-        
-        // Get the stamp pattern
+
+
         let stampMatrix = null;
-        
+
         // If it's a key in PIXEL_FONT_7x7 (including our icon stamps)
         if (props.stampSymbol && PIXEL_FONT_7x7[props.stampSymbol] && PIXEL_FONT_7x7[props.stampSymbol].matrix) {
           stampMatrix = PIXEL_FONT_7x7[props.stampSymbol].matrix;
-        } 
+        }
         // If it's an array directly (matrix passed directly)
         else if (Array.isArray(props.stampSymbol) && props.stampSymbol.length > 0) {
           stampMatrix = props.stampSymbol;
@@ -185,29 +163,29 @@ export default function Oled128x64(props) {
             }
             stampMatrix.push(row);
           }
-        } 
+        }
         // Default fallback - single pixel
         else {
           stampMatrix = Array(7).fill().map(() => Array(7).fill(0));
           stampMatrix[3][3] = 1;
         }
-        
+
         // Safety check
         if (!stampMatrix || !Array.isArray(stampMatrix)) {
           stampMatrix = Array(7).fill().map(() => Array(7).fill(0));
           stampMatrix[3][3] = 1;
           return prev;
         }
-        
+
         // Apply the stamp to the matrix
         const rows = stampMatrix.length;
         const cols = stampMatrix[0].length;
-        
+
         for (let sy = 0; sy < rows; sy++) {
           for (let sx = 0; sx < cols; sx++) {
             const targetX = x - Math.floor(cols / 2) + sx;
             const targetY = y - Math.floor(rows / 2) + sy;
-            
+
             if (targetX >= 0 && targetX < WIDTH && targetY >= 0 && targetY < HEIGHT) {
               if (stampMatrix[sy][sx]) {
                 matrixObj.matrix[targetY][targetX] = !isErasing;
@@ -215,30 +193,30 @@ export default function Oled128x64(props) {
             }
           }
         }
-        
+
         return newMatrix;
       });
-      
+
       // Update last release point for next operation
       setLastReleasePoint({ x, y });
       return;
     }
-    
+
     // Handle shift + mouse down to draw a line from last position
     if (isShiftPressed && x !== null && y !== null) {
       // Get the starting point - either last release point or current position
       const startPoint = lastReleasePoint || { x, y };
       let endX = x;
       let endY = y;
-      
+
       // Check if Ctrl key is pressed
       const isCtrlPressed = event.ctrlKey || currentKeyboardKey === "ControlLeft";
-      
+
       // If Ctrl is pressed, constrain the line direction
       if (isCtrlPressed) {
         const dx = Math.abs(endX - startPoint.x);
         const dy = Math.abs(endY - startPoint.y);
-        
+
         // Constrain to horizontal, vertical, or 45° diagonal
         if (dx > dy) {
           // Horizontal line
@@ -255,54 +233,54 @@ export default function Oled128x64(props) {
           endY = startPoint.y + signY * min;
         }
       }
-      
+
       // Get current matrix before modification
       const currentMatrix = props.oledMatrix.find(obj => obj.key === currentMatrixKey);
       if (!currentMatrix) return;
-      
+
       // Save current state for history ONLY ONCE before making changes
       if (props.onStrokeEnd) {
         props.onStrokeEnd(structuredClone(currentMatrix.matrix));
       }
-      
+
       // Draw the line (rest of the existing code)
       props.setOledMatrix((prev) => {
         const newMatrix = structuredClone(prev);
         const matrixObj = newMatrix.find(obj => obj.key === currentMatrixKey);
         if (!matrixObj) return prev;
-        
+
         // Draw the line
         drawInterpolatedLine(
-          matrixObj.matrix, 
-          startPoint.x, 
-          startPoint.y, 
-          endX, 
-          endY, 
+          matrixObj.matrix,
+          startPoint.x,
+          startPoint.y,
+          endX,
+          endY,
           !isErasing
         );
-        
+
         return newMatrix;
       });
-      
+
       // Update for next line segment
       setLastReleasePoint({ x: endX, y: endY });
       return;
     }
-    
+
     // Normal drawing mode - no changes needed here
     setIsDrawing(true);
-    
+
     // Initial point for normal drawing
     if (x !== null && y !== null) {
       props.setOledMatrix((prev) => {
         const newMatrix = structuredClone(prev);
         const matrixObj = newMatrix.find(obj => obj.key === currentMatrixKey);
         if (!matrixObj) return prev;
-        
+
         drawBrush(matrixObj.matrix, x, y, !isErasing);
         return newMatrix;
       });
-      
+
       prevMousePosRef.current = { x, y };
     }
   };
@@ -407,82 +385,28 @@ export default function Oled128x64(props) {
     setIsErasing(false);
   }, [currentKeyboardKey])
 
-  const handleCanvasClick = (event) => {
-    if (didDragRef.current) {
-      // Ignore click if it was a drag
-      didDragRef.current = false;
-      return;
-    }
-
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = Math.floor((event.clientX - rect.left) / pixelSize);
-    const y = Math.floor((event.clientY - rect.top) / pixelSize);
-
-    if (x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT) {
-      props.setOledMatrix((prev) => {
-        const newMatrix = structuredClone(prev);
-        const matrixObj = newMatrix.find(obj => obj.key === currentMatrixKey);
-        matrixObj.matrix[y][x] = !matrixObj.matrix[y][x];
-        return newMatrix;
-      });
-    }
-  };
-
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Shift') {
         setIsShiftPressed(true);
       }
     };
-    
+
     const handleKeyUp = (e) => {
       if (e.key === 'Shift') {
         setIsShiftPressed(false);
         setLineStartPoint(null);
       }
     };
-    
+
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
-    
+
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
   }, []);
-
-  // Look for the drawStamp function or similar and update it:
-
-  const drawStamp = (x, y, symbol) => {
-    if (!symbol) return;
-    
-    let matrix;
-    
-    // If it's a key in PIXEL_FONT_7x7 (including our icon stamps)
-    if (PIXEL_FONT_7x7[symbol] && PIXEL_FONT_7x7[symbol].matrix) {
-      matrix = PIXEL_FONT_7x7[symbol].matrix;
-    } 
-    // If it's an array directly (matrix passed directly)
-    else if (Array.isArray(symbol) && symbol.length > 0) {
-      matrix = symbol;
-    }
-    // If nothing worked, exit early
-    if (!matrix || !Array.isArray(matrix) || !matrix.length) {
-      return;
-    }
-
-    // Now draw the matrix
-    const h = matrix.length;
-    const w = matrix[0].length;
-    
-    for (let i = 0; i < h; i++) {
-      for (let j = 0; j < w; j++) {
-        if (matrix[i][j]) {
-          drawPixel(x + j, y + i);
-        }
-      }
-    }
-  };
 
   return (
     <>
@@ -498,7 +422,7 @@ export default function Oled128x64(props) {
           onMouseEnter={handleCanvasMouseEnter}
           onMouseDown={handleCanvasMouseDown}
         />
-        {/* Cursor indicator */}
+
         {isCursorOver && cursorPos.x !== null && cursorPos.y !== null && (
           props.stampSymbol ? (
             (() => {
@@ -507,7 +431,7 @@ export default function Oled128x64(props) {
               // If it's a key in PIXEL_FONT_7x7 (including our icon stamps)
               if (props.stampSymbol && PIXEL_FONT_7x7[props.stampSymbol] && PIXEL_FONT_7x7[props.stampSymbol].matrix) {
                 matrix = PIXEL_FONT_7x7[props.stampSymbol].matrix;
-              } 
+              }
               // If it's an array directly (matrix passed directly)
               else if (Array.isArray(props.stampSymbol) && props.stampSymbol.length > 0) {
                 matrix = props.stampSymbol;
@@ -536,7 +460,7 @@ export default function Oled128x64(props) {
                   }
                   matrix.push(row);
                 }
-              } 
+              }
               // Default fallback - single pixel
               else {
                 matrix = Array(7).fill(0).map(() => Array(7).fill(0));

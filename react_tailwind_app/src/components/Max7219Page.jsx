@@ -3,7 +3,6 @@ import { useSelector, useDispatch } from 'react-redux';
 import { setCurrentMatrixByKey } from '../reducers/currentMatrixSlice';
 import { setToKeyboardKey } from '../reducers/currentKeyboardKey';
 import { setToPlaying, setToStopped } from '../reducers/isAnimationPlaying';
-import { setFrameDuration } from '../reducers/frameDurationSlice';
 import EightByEightFrame from './EightByEightFrame';
 import EightByEightMain from './EightByEightMain';
 import Max7219IC from './Max7219IC';
@@ -17,15 +16,12 @@ import { MdAdd, MdKeyboardDoubleArrowRight, MdKeyboardDoubleArrowLeft, MdOutline
 import { GrRotateLeft, GrRotateRight } from "react-icons/gr";
 import { MdDeleteForever } from "react-icons/md";
 import { FaClipboardCheck } from "react-icons/fa6";
-import { TbFileDownload } from "react-icons/tb";
 import { ToastContainer, toast } from 'react-toastify';
 import { notifyUser } from "./toastifyFunctions"
 import ToolMainFrame from './ToolMainFrame';
 import { useNavigate } from 'react-router-dom'
 import Tool from "./Tool"
 import FrameDurationInput from './FrameDurationInput';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import VisitorCounter from "./VisitorCounter"
 import CoffeeButton from './CoffeeButton';
 import SEOHead from './SEOHead';
@@ -39,7 +35,6 @@ function Max7219Page() {
   const timelineRef = React.useRef(null);
 
   const [isMouseDown, setIsMouseDown] = React.useState(false);
-  const [downKey, setDownKey] = React.useState("l");
   const [generatedCode, setGeneratedCode] = React.useState("");
   const repeatInterval = React.useRef(null);
   const [csPinHighlight, setCsPinHighlight] = React.useState(false);
@@ -56,8 +51,7 @@ function Max7219Page() {
   const [isDragging, setIsDragging] = React.useState(false);
   //const [isAnimating, setIsAnimating] = React.useState(false);
   const [codeCopied, setCodeCopied] = React.useState(false)
-  const WIDTH = 128;
-  const HEIGHT = 64;
+
   // const [currentMatrix, setCurrentMatrix] = React.useState(1);
 
   const currentMatrixKey = useSelector((state) => state.currentMatrixKey.value)
@@ -91,17 +85,7 @@ function Max7219Page() {
   )
 
 
-  // const [oledMatrix, setOledMatrix] = React.useState(
-  //   [
-  //     {
-  //       key: 1, oledmatrix: Array.from({ length: 64 }, () => Array(128).fill(false))
-  //     },
-
-  //   ]
-  // )
-
   function handleBoardChange(event) {
-    console.log(event)
     setBoard(event.target.value)
 
   }
@@ -163,19 +147,7 @@ function Max7219Page() {
     );
   }
 
-  // function notifyUser(message, notificationFunction) {
-  //   notificationFunction(message, {
-  //     position: "top-right",
-  //     autoClose: 5000,
-  //     hideProgressBar: false,
-  //     closeOnClick: false,
-  //     pauseOnHover: true,
-  //     draggable: true,
-  //     progress: undefined,
-  //     theme: "dark",
-  //     transition: Flip,
-  //   });
-  // }
+
 
   React.useEffect(() => {
     // Global mouseup listener to reset dragging state
@@ -240,31 +212,14 @@ function Max7219Page() {
     navigate(value)
 
   }
-  // function frameDurationBlurHandle() {
 
-  //   const num = Number(frameDuration);
-  //   if (num < 10) {
-  //     notifyUser("Duration can't be lower than 10", toast.warning)
-  //     setFrameDuration(10)
-  //   }
-
-  // }
-  // function frameDurationChangeHandle(e) {
-  //   let val = e.target.value
-  //   if (/^\d*$/.test(val)) {
-  //     setFrameDuration(val);
-
-  //   }
-
-
-  // }
   function flipAll() {
     let reversedMatrix = [[], [], [], [], [], [], [], []];
     let rMatrices = [];
     for (let i = 0; i < dotMatrixDivs.length; i++) {
       for (let j = 0; j < dotMatrixDivs[i].dotmatrix.length; j++) {
         for (let k = 0; k < dotMatrixDivs[i].dotmatrix[j].length; k++) {
-          // console.log(dotMatrixDivs[i].dotmatrix[j])
+
           reversedMatrix[k].push(dotMatrixDivs[i].dotmatrix[j][k]);
         }
 
@@ -274,7 +229,7 @@ function Max7219Page() {
       reversedMatrix = [[], [], [], [], [], [], [], []];
 
     }
-    //setDotMatrixDivs(rMatrices)
+
     return rMatrices;
   }
 
@@ -369,28 +324,6 @@ function Max7219Page() {
     );
   }
 
-  // function Duplicate() {
-  //   let currMatrixIndex = oledMatrix.findIndex((matrix) => matrix.key == currentMatrix) //dotMatrixDivs
-  //   if (currMatrixIndex === -1) {
-  //     console.error("Matrix not found!");
-  //     return;
-  //   }
-
-  //   console.log(currMatrixIndex)
-  //   let newMatrix = {
-  //     key: oledMatrix.length + 1,
-  //     oledmatrix: oledMatrix[currMatrixIndex].oledmatrix.map(row => [...row])
-  //   }
-  //   setOledMatrix(prev => {
-  //     let newState = [...prev];
-  //     newState.splice(currMatrixIndex + 1, 0, newMatrix)
-  //     console.log(newState)
-  //     return newState
-  //   })
-  //   setCurrentMatrix(newMatrix.key)
-
-  // }
-
   function Duplicate() {
     let currMatrixIndex = dotMatrixDivs.findIndex((matrix) => matrix.key == currentMatrixKey) //dotMatrixDivs
     if (currMatrixIndex === -1) {
@@ -438,24 +371,6 @@ function Max7219Page() {
 
   }
 
-
-  // function repeatFunction(func, delay, repeat) {
-  //   func(oledMatrix[0].key); //dotMatrixDivs
-  //   let counter = 1;
-
-  //   repeatInterval.current = setInterval(() => {
-
-  //     if (repeat !== counter) {
-  //       func(dotMatrixDivs[counter].key);//dotMatrixDivs
-  //       counter++;
-  //     } else {
-  //       clearInterval(repeatInterval.current)
-  //     }
-  //   }, delay);
-
-  // }
-
-
   function startAnimation() {
     //setIsAnimating(true);
     dispatch(setToPlaying())
@@ -502,45 +417,6 @@ function Max7219Page() {
   };
 
 
-  // React.useEffect(() => {
-
-
-  //   if (!timelineRef.current) return;
-
-  //   const observerCallback = (entries) => {
-  //     entries.forEach((entry) => {
-  //       if (entry.isIntersecting) {
-
-  //         // When intersecting, update the active frame state
-  //         // setActiveFrame(entry.target.getAttribute('data-frame'));
-  //         // console.log("jh")
-  //         // Check if the intersecting frame also intersects with timelineRef
-  //         const frameRect = entry.target.getBoundingClientRect();
-  //         const timelineRect = timelineRef.current.getBoundingClientRect();
-
-  //         if (
-  //           frameRect.left < timelineRect.right &&
-  //           frameRect.right > timelineRect.left &&
-  //           frameRect.top < timelineRect.bottom &&
-  //           frameRect.bottom > timelineRect.top
-  //         ) {
-  //           // console.log("Timeline is touching frame:", entry.target.getAttribute('data-frame'));
-  //         }
-  //       }
-  //     });
-  //   };
-
-  //   const observer = new IntersectionObserver(observerCallback, {
-  //     root: null,
-  //     threshold: 0.01,
-  //   });
-
-  //   // Observe each frame element
-  //   framesRef.current.forEach((frame) => observer.observe(frame));
-
-  //   return () => observer.disconnect(); // Cleanup on component unmount
-  // }, [test]);
-
   function generateCode() {
     if (!validatePins()) {
       return; // Don't generate code if validation fails
@@ -566,7 +442,6 @@ function Max7219Page() {
     ];
 
     // Check for required pins not selected (all pins are required for Max7219)
-    console.log(pins)
     const missingPins = pins.filter(pin =>
       !pin.value ||
       pin.value === "Pick a Pin" ||
@@ -676,20 +551,20 @@ void displayFrame(const bool matrix[8][8]) {
     notifyUser("Code Generation Successful!", toast.success);
   }
 
-  // Fix 1: Add useEffect to restore pins from localStorage on component mount
+
   React.useEffect(() => {
     // Restore pins from localStorage
-    console.log("useEffect")
+    
     const savedDIN = localStorage.getItem("DIN");
     const savedCS = localStorage.getItem("CS");
     const savedCLK = localStorage.getItem("CLK");
-    console.log(savedDIN)
+
     if (savedDIN) setPinDIN(savedDIN);
     if (savedCS) setPinCS(savedCS);
     if (savedCLK) setPinCLK(savedCLK);
   }, []);
 
-  // Fix 2: Update the existing useEffect to properly check pin validity
+
   React.useEffect(() => {
     // Check if all pins are selected and not "none"
     const allPinsSelected = pinCS !== "none" && pinCLK !== "none" && pinDIN !== "none" &&
@@ -704,7 +579,7 @@ void displayFrame(const bool matrix[8][8]) {
     }
   }, [pinDIN, pinCLK, pinCS]);
 
-  // Fix 3: Add the missing functions for code generation
+
   function generateMostEfficientCppArray(matrix, frameIndex) {
     // Convert boolean matrix to efficient C++ array representation
     return matrix.map(row =>
@@ -755,15 +630,16 @@ void displayFrame(const bool matrix[8][8]) {
   }
   return (
     <div className="theme-green w-screen text-center flex justify-center flex-col items-center">
-      <SEOHead 
+      <SEOHead
         title="MAX7219 8x8 LED Matrix Code Generator - Arduino Screen Converter"
         description="Generate Arduino code for MAX7219 LED matrix displays. Create 8x8 animations and get instant C++ code."
         path="/max7219"
         keywords="Arduino MAX7219, LED matrix, 8x8 display, dot matrix"
       />
-     
+      <VisitorCounter></VisitorCounter>
       <ToastContainer />
 
+    
       <DragDropContext onDragEnd={onDragEnd}>
         <Droppable direction="horizontal" droppableId="dotMatrixDivs" type="MATRIX">
           {(provided) => (
@@ -830,39 +706,15 @@ void displayFrame(const bool matrix[8][8]) {
 
 
                 <div className='flex flex-wrap'>
-                  {/* <RxRotateCounterClockwise className='hover:text-teal-200 hover:cursor-pointer mx-2 size-5 rounded-full  text-green-500' onClick={() => flipOneLeft(currentMatrix)}>Flip left</RxRotateCounterClockwise>
-                  <RxRotateCounterClockwise className='hover:text-teal-200 hover:cursor-pointer mx-2 transform scale-x-[-1] size-5 rounded-full  text-green-400' onClick={() => flipOneRight(currentMatrix)}>Flip right</RxRotateCounterClockwise>
-                  <PiFlipHorizontalFill className='hover:text-teal-200 hover:cursor-pointer mx-2  size-5 rounded-full  text-green-500' onClick={() => flipHorizontal(currentMatrix)}>Flip vert</PiFlipHorizontalFill>
-                  <PiFlipVerticalFill className='hover:text-teal-200 hover:cursor-pointer mx-2  size-5 rounded-full  text-green-500' onClick={() => flipVertical(currentMatrix)}>Flip horx</PiFlipVerticalFill   > */}
-                  {/* <div className='flex w-[15em] bg-slate-800 rounded-sm text-green-500 '>
 
-                    <span className='text-[0.8em] px-1'>Frame duration </span>
-                    <input
 
-                      type="text"
-                      min="10"
-                      inputMode="numeric"
-                      onChange={frameDurationChangeHandle}
-
-                      onBlur={frameDurationBlurHandle}
-                      maxLength={8}
-                      value={frameDuration}
-                      className="no-spinner pl-2 text-blue-400 rounded-md  outline outline-1 outline-green-700 w-[35%] bg-slate-900  "></input>
-
-                    <span className='text-[0.8em] px-1'>ms </span>
-
-                  </div> */}
                   <FrameDurationInput></FrameDurationInput>
                 </div>
               </div>
 
 
               <div className=' mt-3 bg-gray-900 rounded-md pb-3 overflow-x-auto pt-2 px-3 '>
-                {/* <div className='text-green-500 font-bold bg-gray-800 '>
-                  <span>0</span>
-                  <span>:</span>
-                  <span>0</span>
-                </div> */}
+
 
                 <div className='flex'
                   onMouseDown={e => e.preventDefault()}
@@ -880,23 +732,11 @@ void displayFrame(const bool matrix[8][8]) {
                             matrix={matrix}
                             provided={provided}
                             framesRef={framesRef}
-                            // currentMatrix={currentMatrix}
-                            //setCurrentMatrix={setCurrentMatrix}
+
                             index={index}
 
                           ></EightByEightFrame>
-                          {/* <OledFrame
-                        currentMatrix={currentMatrix}
-                        setCurrentMatrix={setCurrentMatrix}
-                        oledMatrix={oledMatrix}
-                        setOledMatrix={setOledMatrix}
-                        width={WIDTH}
-                        height={HEIGHT}
-                        matrix={matrix}
-                        provided={provided}
-                        framesRef={framesRef}
-                        index={index}
-                        ></OledFrame> */}
+
 
                         </>
                         )
@@ -917,7 +757,6 @@ void displayFrame(const bool matrix[8][8]) {
 
       </DragDropContext>
 
-      {/* Other parts of your app */}
       <div className='flex shadow-xl shadow-[#1a1a1a] bg-[#093710] max-500:w-[95%] max-750:w-[85%] md:w-[80%] lg:w-[35em] justify-between'>
 
         <div className=' relative 
@@ -933,7 +772,6 @@ void displayFrame(const bool matrix[8][8]) {
             onMouseUp={() => setIsMouseDown(false)}
 
           >
-
 
             <div className='flex justify-between mb-2'>
 
@@ -1021,17 +859,11 @@ void displayFrame(const bool matrix[8][8]) {
 
             </div>
 
-            {/* <Oled128x64 currentMatrix={currentMatrix}
-            oledMatrix={oledMatrix}
-            setOledMatrix={setOledMatrix}
-            
-            ></Oled128x64> */}
-            {/* <ExampleMatrix></ExampleMatrix> */}
             <EightByEightMain
 
 
               dotMatrixDivs={dotMatrixDivs}
-              // currentMatrix={currentMatrix}
+             
               isDragging={isDragging}
               setDotMatrixDivs={setDotMatrixDivs}
 
@@ -1121,28 +953,22 @@ void displayFrame(const bool matrix[8][8]) {
                 type="button" //Needed to prevent form page refresh
 
                 className={
-                  //  isGenerateDisabled ?
-                  //  ' bg-slate-900 text-gray-600   py-1 px-2 rounded-sm mt-auto'
-                  //  :
+              
                   ' bg-slate-900 text-green-600  py-1 px-2 rounded-sm  mt-auto cursor-pointer'
                 }
                 onClick={
-                  //isGenerateDisabled ? () => { } 
-                  // :
+                  
                   () => generateCodeOneFrame()}>Generate frame
               </div>
               <div
-                type="button" //Needed to prevent form page refresh
+                type="button" 
 
                 className={
-                  // isGenerateDisabled ?
-                  // ' bg-slate-900 text-gray-600  py-1 px-2 rounded-sm flex justify-center align-middle items-center '
-                  // :
+                 
                   'bg-slate-900 text-green-600  py-1 px-2 rounded-sm cursor-pointer flex justify-center align-middle items-center'
                 }
                 onClick={
-                  // isGenerateDisabled ? () => { } 
-                  //  : 
+                 
                   () => generateCode()}>Generate animation
 
               </div>
@@ -1213,7 +1039,7 @@ void displayFrame(const bool matrix[8][8]) {
 
   );
 
-  //return (<Router/>)
+  
 }
 
 

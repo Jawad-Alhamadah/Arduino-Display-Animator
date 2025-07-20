@@ -6,7 +6,6 @@ import {MdKeyboardDoubleArrowLeft} from "react-icons/md"
   const intervalRef = useRef(null);
 
   const startHold = () => {
-    console.log("sdf")
     if (intervalRef.current) return; // Prevent multiple intervals
     onHold(); // Trigger once immediately
     intervalRef.current = setInterval(onHold, interval);
