@@ -589,42 +589,63 @@ void displayFrame(const bool matrix[8][8]) {
 
   function generate_max7219_template(frames, duration, dinPin, csPin, clkPin) {
     return `
-#include <LedControl.h>
-
 const int DIN = ${dinPin};
 const int CS = ${csPin};
 const int CLK = ${clkPin};
 
-LedControl lc = LedControl(DIN, CLK, CS, 1);
-
-// Frame data
-const bool frames[][8][8] = {
+// Define the frame data (matrix list)
+const int numFrames = ${frames.length}; // Number of frames in the list
+const bool frames[numFrames][8][8] = {
   ${frames.map(frame => `{
     ${frame.map(row => `{${row.map(cell => cell ? 'true' : 'false').join(', ')}}`).join(',\n    ')}
   }`).join(',\n  ')}
 };
 
-const int numFrames = ${frames.length};
-const int frameDuration = ${duration};
-
 void setup() {
-  lc.shutdown(0, false);
-  lc.setIntensity(0, 8);
-  lc.clearDisplay(0);
+  // Set pin modes
+  pinMode(DIN, OUTPUT);
+  pinMode(CLK, OUTPUT);
+  pinMode(CS, OUTPUT);
+
+  // Initialize MAX7219
+  digitalWrite(CS, HIGH);
+  sendCommand(0x0F, 0x00); // Display test off
+  sendCommand(0x09, 0x00); // Decode mode off
+  sendCommand(0x0B, 0x07); // Scan limit = 8 LEDs
+  sendCommand(0x0A, 0x08); // Brightness = medium
+  sendCommand(0x0C, 0x01); // Shutdown register = normal operation
+  clearDisplay();
 }
 
 void loop() {
   for (int frame = 0; frame < numFrames; frame++) {
     displayFrame(frames[frame]);
-    delay(frameDuration);
+    delay(${duration}); // Delay between frames (adjust as needed)
+  }
+}
+
+void sendCommand(byte command, byte data) {
+  digitalWrite(CS, LOW);
+  shiftOut(DIN, CLK, MSBFIRST, command);
+  shiftOut(DIN, CLK, MSBFIRST, data);
+  digitalWrite(CS, HIGH);
+}
+
+void clearDisplay() {
+  for (int i = 0; i < 8; i++) {
+    sendCommand(i + 1, 0);
   }
 }
 
 void displayFrame(const bool matrix[8][8]) {
   for (int row = 0; row < 8; row++) {
+    byte rowData = 0;
     for (int col = 0; col < 8; col++) {
-      lc.setLed(0, row, col, matrix[row][col]);
+      if (matrix[row][col]) {
+        rowData |= (1 << col);
+      }
     }
+    sendCommand(row + 1, rowData);
   }
 }`;
   }
