@@ -324,15 +324,15 @@ function OledPage() {
   }
   function repeatFunction(func, delay, repeat) {
     const oled = oledMatrixCurrentRef.current;
-    func(oled[0].key); //dotMatrixDivs
+    func(oled[0].key); 
     let counter = 1;
 
     repeatInterval.current = setInterval(() => {
       if (repeat !== counter) {
-        func(oled[counter].key); //dotMatrixDivs
+        func(oled[counter].key); 
         counter++;
       } else {
-        // setIsAnimating(false);
+       
         dispatch(setToStopped());
         clearInterval(repeatInterval.current);
       }
@@ -350,7 +350,7 @@ function OledPage() {
       clearInterval(repeatInterval.current);
       repeatInterval.current = null;
       dispatch(setCurrentMatrixByKey(oledMatrixCurrentRef.current[0].key));
-      // setIsAnimating(false);
+    
       dispatch(setToStopped());
     }
   }
@@ -359,17 +359,17 @@ function OledPage() {
     const { source, destination } = result;
     if (!destination) return;
 
-    const reorderedDivs = Array.from(oledMatrix); //or dotMatrixDivs
+    const reorderedDivs = Array.from(oledMatrix); 
     const [removed] = reorderedDivs.splice(source.index, 1);
     reorderedDivs.splice(destination.index, 0, removed);
-    setOledMatrix(reorderedDivs); // or setDotMatrixDivs
+    setOledMatrix(reorderedDivs); 
   };
 
 
 
-  // Update pin validation function
+  
   function validatePins() {
-    if (oledType !== "SPI") return true; // Only validate SPI pins
+    if (oledType !== "SPI") return true; 
     
     const pins = [
       { name: "CS", value: pinCS },
@@ -377,8 +377,8 @@ function OledPage() {
       { name: "DC", value: pinDC }
     ];
     
-    // Check for required pins not selected - CS can be optional, Reset and DC are required
-    const requiredPins = pins.filter(pin => pin.name !== "CS"); // CS is optional
+   
+    const requiredPins = pins.filter(pin => pin.name !== "CS");
     const missingPins = requiredPins.filter(pin => 
       !pin.value || 
       pin.value === "Pick a Pin" || 
@@ -392,7 +392,7 @@ function OledPage() {
       return false;
     }
     
-    // Check for duplicate pins - exclude unselected pins
+    
     const selectedPins = pins.filter(pin => 
       pin.value && 
       pin.value !== "Pick a Pin" && 
@@ -545,7 +545,6 @@ function OledPage() {
                       classes={
                         "scale-110 hover:bg-red-600 hover:text-red-200 ring-2 ring-offset-2 ring-[#ff0000] text-[#ff0000]"
                       }
-                    // shortCutKey="Space"
                     ></Tool>
                   ) : (
                     <Tool
@@ -730,21 +729,21 @@ function OledPage() {
                     label="CS"
                     pinSetter={setPinCS}
                     value={pinCS}
-                    isOptional={true}  // CS is optional
+                    isOptional={true}  
                   />
                   <PinSelector
                     board={board}
                     label="Reset"
                     pinSetter={setPinReset}
                     value={pinReset}
-                    isOptional={false}  // Reset is required
+                    isOptional={false}  
                   />
                   <PinSelector
                     board={board}
                     label="DC"
                     pinSetter={setPinDC}
                     value={pinDC}
-                    isOptional={false}  // DC is required
+                    isOptional={false} 
                   />
                 </div>
               </>
@@ -752,7 +751,7 @@ function OledPage() {
             
 
             <div
-              type="button" //Needed to prevent form page refresh
+              type="button" 
               className={
                 isGenerateDisabled
                   ? "mt-auto  bg-slate-900 text-gray-600 outline outline-gray-600 py-1 px-2 rounded-sm"

@@ -6,7 +6,7 @@ const currentMatrixKey = useSelector((state) => state.currentMatrixKey.value)
 const dispatch = useDispatch()
     const WIDTH = 128;
     const HEIGHT = 64;
-    const PIXEL_SIZE = 1; // Controls how large each pixel appears
+    const PIXEL_SIZE = 1; 
     
 
       const drawCanvasinit = () => {
@@ -18,7 +18,7 @@ const dispatch = useDispatch()
         props.oledMatrix.find(obj => obj.key ===  props.matrix.key).matrix.forEach((row, y) => {
           row.forEach((pixel, x) => {
             if (pixel) {
-              ctx.fillStyle = "#06b6d4"; // cyan-300 in Tailwind
+              ctx.fillStyle = "#06b6d4"; 
               ctx.fillRect(x * PIXEL_SIZE, y * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
             }
           });
@@ -37,7 +37,7 @@ const dispatch = useDispatch()
             drawCanvas();
         }
         
-      }, [props.oledMatrix]); // Redraw canvas when matrix changes
+      }, [props.oledMatrix]);
     
  const canvasRef = React.useRef(null);
     const drawCanvas = () => {
@@ -48,7 +48,7 @@ const dispatch = useDispatch()
         props.oledMatrix.find(obj => obj.key === currentMatrixKey).matrix.forEach((row, y) => {
           row.forEach((pixel, x) => {
             if (pixel) {
-              ctx.fillStyle = "#06b6d4"; // cyan-300 in Tailwind
+              ctx.fillStyle = "#06b6d4"; 
               ctx.fillRect(x * PIXEL_SIZE, y * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
             }
           });
@@ -61,8 +61,8 @@ const dispatch = useDispatch()
         <div
           data-frame={props.matrix.key}
           ref={(el) => {
-            props.provided.innerRef(el); // Attach the draggable's ref
-            props.framesRef.current[props.index] = el; // Also add it to frameRefs
+            props.provided.innerRef(el);
+            props.framesRef.current[props.index] = el; 
     
           }}
           

@@ -197,7 +197,6 @@ export default function Oled128x64(props) {
         return newMatrix;
       });
 
-      // Update last release point for next operation
       setLastReleasePoint({ x, y });
       return;
     }
@@ -262,15 +261,15 @@ export default function Oled128x64(props) {
         return newMatrix;
       });
 
-      // Update for next line segment
+      
       setLastReleasePoint({ x: endX, y: endY });
       return;
     }
 
-    // Normal drawing mode - no changes needed here
+   
     setIsDrawing(true);
 
-    // Initial point for normal drawing
+   
     if (x !== null && y !== null) {
       props.setOledMatrix((prev) => {
         const newMatrix = structuredClone(prev);
@@ -328,9 +327,8 @@ export default function Oled128x64(props) {
     const { x, y } = getMousePosition(event);
     setCursorPos({ x, y });
 
-    // If shift is pressed, we'll draw a line from last release point or last drawn point
+    
     if (isShiftPressed && (lastReleasePoint || prevMousePosRef.current.x !== null)) {
-      // We're just updating the cursor - actual drawing happens on mouse down or up
       return;
     }
 

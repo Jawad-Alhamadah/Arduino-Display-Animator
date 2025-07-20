@@ -9,29 +9,24 @@ function ToolMainFrame({ Icon, onClick, target, tooltip = [""], classes = '', on
 
     React.useEffect(() => {
         const handleKeyDown = (e) => {
-            // Find the shortcut key and onClick for this Tool instance
             if (shortCutKey && isClickable && e.code === shortCutKey) {
                 onClick && onClick();
             }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-        // Only run once on mount/unmount
     }, []);
 
-    // Functions to handle continuous action on hold
+
     const startHold = () => {
         if (!onHold) return;
         
-        // Execute immediately
         onHold();
         
-        // Clear any existing interval first to prevent duplicates
         if (intervalRef.current) {
             clearInterval(intervalRef.current);
         }
         
-        // Set up interval for continuous action
         intervalRef.current = setInterval(() => {
             onHold();
         }, interval);
@@ -44,7 +39,6 @@ function ToolMainFrame({ Icon, onClick, target, tooltip = [""], classes = '', on
         }
     };
 
-    // Clean up on unmount
     useEffect(() => {
         return () => {
             if (intervalRef.current) {

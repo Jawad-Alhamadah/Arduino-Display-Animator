@@ -10,19 +10,17 @@ function EightByEightFrame(props) {
     <div
       data-frame={props.matrix.key}
       ref={(el) => {
-        props.provided.innerRef(el); // Attach the draggable's ref
-        props.framesRef.current[props.index] = el; // Also add it to frameRefs
+        props.provided.innerRef(el); 
+        props.framesRef.current[props.index] = el; 
 
       }}
-      // ref={provided.innerRef}
+    
       {...props.provided.draggableProps}
       {...props.provided.dragHandleProps}
-      // className={props.currentMatrix === props.matrix.key ?
        className={currentMatrixKey === props.matrix.key ?
         "outline-red-700 outline-2 outline-dashed relative p-2" :
         "outline-slate-700 hover:outline-2 hover:outline-dashed relative p-2"
       }
-      // onClick={() => props.setCurrentMatrix(props.matrix.key)}
       onClick={() => dispatch(setCurrentMatrixByKey(props.matrix.key))}
       
 

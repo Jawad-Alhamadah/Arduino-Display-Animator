@@ -271,7 +271,6 @@ void loop() {
 }
 
   `
-  // ${frame_calls_strings.reduce((prev, curr) => prev + "\n \n" + curr)}
 }
 
 export function generate_oled_template_SPI(cpp_data_objects, frameDuration, cs = "none", reset = 11, dc = 12, isSingleFrame = false) {

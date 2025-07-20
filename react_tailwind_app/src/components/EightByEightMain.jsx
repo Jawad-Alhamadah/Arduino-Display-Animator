@@ -22,10 +22,8 @@ function EightByEightMain(props) {
                             props.setDotMatrixDivs(old_state)
                         }}
 
-                       
                         onMouseEnter={(e) => {
 
-                           
                             if (props.isDragging) {
                                 let old_state = structuredClone(props.dotMatrixDivs)
                                 old_state.find(obj => obj.key === currentMatrixKey).dotmatrix[rowIndex][colIndex] = currentKeyboardKey === "KeyD" ? false : true
@@ -44,7 +42,6 @@ function EightByEightMain(props) {
                         }}
 
                     >
-
                     </div>
                 ))}
             </div>

@@ -50,7 +50,6 @@ function CurrentFrameToolBar(props) {
         currentOledRef.current = props.oledMatrix;
     }, [props.oledMatrix]);
 
-    // Helper function to push to history before operations
     const pushToHistory = (frameKey, matrix) => {
         if (props.pushHistory) {
             props.pushHistory(frameKey, matrix);
@@ -59,7 +58,6 @@ function CurrentFrameToolBar(props) {
 
 
     React.useEffect(() => {
-        // Global mouseup listener to reset dragging state
 
         const handleKeyDown = (event) => {
             // If eraser is manually activated, don't let D key override it
@@ -83,15 +81,12 @@ function CurrentFrameToolBar(props) {
         window.addEventListener("keyup", handleKeyUp);
 
         return () => {
-            // Cleanup listener on unmount
+          
             window.removeEventListener("keydown", handleKeyDown);
-            window.removeEventListener("keyup", handleKeyUp); // Fixed: was removeEventListener("mousedown", handleKeyUp)
+            window.removeEventListener("keyup", handleKeyUp);
         };
-    }, [activeToolsTable]); // Added activeToolsTable as dependency
+    }, [activeToolsTable]); 
 
-
-
-    // Helper functions for matrix operations
     function clipOuterMatrix(matrix) {
         const yOffset = Math.floor((OUTER_SIZE - DISPLAY_HEIGHT) / 2);
         return matrix.slice(yOffset, yOffset + DISPLAY_HEIGHT);
@@ -144,20 +139,16 @@ function CurrentFrameToolBar(props) {
         return outer;
     }
 
-    // USE REFS TO ENSURE WE GET CURRENT STATE
     const handleRotateRight = React.useCallback(() => {
-        // Use ref to get the most current state
         const currentFrame = currentOledRef.current.find(f => f.key === currentMatrixKey);
         if (!currentFrame) return;
 
-        // Push to history using current ref state
         pushToHistory(currentMatrixKey, currentFrame.matrix);
 
         props.setOledMatrix(prevMatrix => {
             return prevMatrix.map(frame => {
                 if (frame.key !== currentMatrixKey) return frame;
 
-                // Use existing outerMatrix if available, otherwise expand current matrix
                 const baseMatrix = frame.outerMatrix || expandToOuterMatrix(frame.matrix);
                 const rotated = rotateMatrixRight(baseMatrix);
 
@@ -171,18 +162,15 @@ function CurrentFrameToolBar(props) {
     }, [currentMatrixKey]);
 
     const handleRotateLeft = React.useCallback(() => {
-        // Use ref to get the most current state
         const currentFrame = currentOledRef.current.find(f => f.key === currentMatrixKey);
         if (!currentFrame) return;
 
-        // Push to history using current ref state
         pushToHistory(currentMatrixKey, currentFrame.matrix);
 
         props.setOledMatrix(prevMatrix => {
             return prevMatrix.map(frame => {
                 if (frame.key !== currentMatrixKey) return frame;
 
-                // Use existing outerMatrix if available, otherwise expand current matrix
                 const baseMatrix = frame.outerMatrix || expandToOuterMatrix(frame.matrix);
                 const rotated = rotateMatrixLeft(baseMatrix);
 
@@ -196,11 +184,8 @@ function CurrentFrameToolBar(props) {
     }, [currentMatrixKey]);
 
     const handleFlipHorizontal = React.useCallback(() => {
-        // Use ref to get the most current state
         const currentFrame = currentOledRef.current.find(f => f.key === currentMatrixKey);
         if (!currentFrame) return;
-
-        // Push to history using current ref state
         pushToHistory(currentMatrixKey, currentFrame.matrix);
 
         props.setOledMatrix(prevMatrix => {
@@ -211,18 +196,16 @@ function CurrentFrameToolBar(props) {
                 return {
                     ...frame,
                     matrix,
-                    outerMatrix: undefined // Clear cached outer matrix
+                    outerMatrix: undefined 
                 };
             });
         });
     }, [currentMatrixKey]);
 
     const handleFlipVertical = React.useCallback(() => {
-        // Use ref to get the most current state
         const currentFrame = currentOledRef.current.find(f => f.key === currentMatrixKey);
         if (!currentFrame) return;
 
-        // Push to history using current ref state
         pushToHistory(currentMatrixKey, currentFrame.matrix);
 
         props.setOledMatrix(prevMatrix => {
@@ -233,19 +216,16 @@ function CurrentFrameToolBar(props) {
                 return {
                     ...frame,
                     matrix,
-                    outerMatrix: undefined // Clear cached outer matrix
+                    outerMatrix: undefined 
                 };
             });
         });
     }, [currentMatrixKey]);
 
-    // SHIFT FUNCTIONS ALSO USING REFS
     const shiftLeft = React.useCallback(() => {
-        // Use ref to get the most current state
         const currentFrame = currentOledRef.current.find(f => f.key === currentMatrixKey);
         if (!currentFrame) return;
 
-        // Push to history using current ref state
         pushToHistory(currentMatrixKey, currentFrame.matrix);
 
         props.setOledMatrix(prevMatrix => {
@@ -267,11 +247,9 @@ function CurrentFrameToolBar(props) {
     }, [currentMatrixKey]);
 
     const shiftRight = React.useCallback(() => {
-        // Use ref to get the most current state
         const currentFrame = currentOledRef.current.find(f => f.key === currentMatrixKey);
         if (!currentFrame) return;
 
-        // Push to history using current ref state
         pushToHistory(currentMatrixKey, currentFrame.matrix);
 
         props.setOledMatrix(prevMatrix => {
@@ -293,11 +271,9 @@ function CurrentFrameToolBar(props) {
     }, [currentMatrixKey]);
 
     const shiftLeftWrapped = React.useCallback(() => {
-        // Use ref to get the most current state
         const currentFrame = currentOledRef.current.find(f => f.key === currentMatrixKey);
         if (!currentFrame) return;
 
-        // Push to history using current ref state
         pushToHistory(currentMatrixKey, currentFrame.matrix);
 
         props.setOledMatrix(prevMatrix => {
@@ -320,11 +296,9 @@ function CurrentFrameToolBar(props) {
     }, [currentMatrixKey]);
 
     const shiftRightWrapped = React.useCallback(() => {
-        // Use ref to get the most current state
         const currentFrame = currentOledRef.current.find(f => f.key === currentMatrixKey);
         if (!currentFrame) return;
 
-        // Push to history using current ref state
         pushToHistory(currentMatrixKey, currentFrame.matrix);
 
         props.setOledMatrix(prevMatrix => {
@@ -468,12 +442,12 @@ function CurrentFrameToolBar(props) {
                             target="erase"
                             onClick={
                                 () => {
-                                    // If manually activated, deactivate and reset
+                  
                                     if (activeToolsTable.eraser) {
-                                        toggleTools(activateToolEnum.pen); // Switch back to pen
-                                        dispatch(setToKeyboardKey("KeyNone")); // Clear D key state
+                                        toggleTools(activateToolEnum.pen); 
+                                        dispatch(setToKeyboardKey("KeyNone")); 
                                     } else {
-                                        // If activated by D key, just clear the key
+                                    
                                         dispatch(setToKeyboardKey("KeyNone"));
                                     }
                                 }

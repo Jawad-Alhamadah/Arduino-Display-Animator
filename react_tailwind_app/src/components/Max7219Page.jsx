@@ -45,14 +45,11 @@ function Max7219Page() {
   const [pinDIN, setPinDIN] = React.useState('none');
   let [board, setBoard] = React.useState("")
 
-  // const [frameDuration, setFrameDuration] = React.useState('200');
   const [isGenerateDisabled, setIsGenerateDisabled] = React.useState(true);
   const [isCodeGenerated, setIsCodeGenerated] = React.useState(false);
   const [isDragging, setIsDragging] = React.useState(false);
-  //const [isAnimating, setIsAnimating] = React.useState(false);
   const [codeCopied, setCodeCopied] = React.useState(false)
 
-  // const [currentMatrix, setCurrentMatrix] = React.useState(1);
 
   const currentMatrixKey = useSelector((state) => state.currentMatrixKey.value)
   let currentKeyboardKey = useSelector((state) => state.currentKeyboardKey.value)
@@ -150,7 +147,6 @@ function Max7219Page() {
 
 
   React.useEffect(() => {
-    // Global mouseup listener to reset dragging state
     const handleMouseUp = () => {
       setIsDragging(false);
     };
@@ -178,7 +174,6 @@ function Max7219Page() {
     window.addEventListener('keyup', handleKeyUp);
 
     return () => {
-      // Cleanup listener on unmount
       window.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener("mouseup", handleMouseUp);
       document.removeEventListener("mousedown", handleMouseDown);
@@ -277,7 +272,7 @@ function Max7219Page() {
         matrix.key === key
           ? {
             ...matrix,
-            dotmatrix: [...matrix.dotmatrix].reverse(), // Reverse row order (top ↔ bottom)
+            dotmatrix: [...matrix.dotmatrix].reverse(), 
           }
           : matrix
       )
@@ -317,7 +312,7 @@ function Max7219Page() {
         matrix.key === key
           ? {
             ...matrix,
-            dotmatrix: matrix.dotmatrix.map((row) => [...row].reverse()), // Reverse each row (left ↔ right)
+            dotmatrix: matrix.dotmatrix.map((row) => [...row].reverse()), 
           }
           : matrix
       )
@@ -325,7 +320,7 @@ function Max7219Page() {
   }
 
   function Duplicate() {
-    let currMatrixIndex = dotMatrixDivs.findIndex((matrix) => matrix.key == currentMatrixKey) //dotMatrixDivs
+    let currMatrixIndex = dotMatrixDivs.findIndex((matrix) => matrix.key == currentMatrixKey) 
     if (currMatrixIndex === -1) {
       return;
     }
@@ -339,20 +334,16 @@ function Max7219Page() {
       newState.splice(currMatrixIndex + 1, 0, newMatrix)
       return newState
     })
-    //setCurrentMatrix(newMatrix.key)
     dispatch(setCurrentMatrixByKey(newMatrix.key))
   }
 
   function addFrame() {
 
     const newMat = {
-      // key: dotMatrixDivs.length + 1,
       key: generateId(),
       dotmatrix: newMatrix.dotmatrix.map(row => [...row])
     };
     setDotMatrixDivs(prev => [...prev, newMat])
-
-    // setCurrentMatrix(newMat.key)
     dispatch(setCurrentMatrixByKey(newMat.key))
 
   }
@@ -372,22 +363,20 @@ function Max7219Page() {
   }
 
   function startAnimation() {
-    //setIsAnimating(true);
     dispatch(setToPlaying())
     repeatFunction((key) => dispatch(setCurrentMatrixByKey(key)), frameDuration, dotMatrixDivs.length)
   }
   function repeatFunction(func, delay, repeat,) {
 
-    func(dotMatrixDivs[0].key); //dotMatrixDivs
+    func(dotMatrixDivs[0].key); 
     let counter = 1;
 
     repeatInterval.current = setInterval(() => {
 
       if (repeat !== counter) {
-        func(dotMatrixDivs[counter].key);//dotMatrixDivs
+        func(dotMatrixDivs[counter].key);
         counter++;
       } else {
-        // setIsAnimating(false);
         dispatch(setToStopped())
         clearInterval(repeatInterval.current)
       }
@@ -400,7 +389,6 @@ function Max7219Page() {
       clearInterval(repeatInterval.current);
       repeatInterval.current = null;
       dispatch(setCurrentMatrixByKey(dotMatrixDivs[0].key))
-      // setIsAnimating(false);
       dispatch(setToStopped())
     }
   }
@@ -410,30 +398,84 @@ function Max7219Page() {
     const { source, destination } = result;
     if (!destination) return;
 
-    const reorderedDivs = Array.from(dotMatrixDivs); //or dotMatrixDivs
+    const reorderedDivs = Array.from(dotMatrixDivs); 
     const [removed] = reorderedDivs.splice(source.index, 1);
     reorderedDivs.splice(destination.index, 0, removed);
-    setDotMatrixDivs(reorderedDivs); // or setDotMatrixDivs
+    setDotMatrixDivs(reorderedDivs);
   };
 
 
   function generateCode() {
     if (!validatePins()) {
-      return; // Don't generate code if validation fails
+      return; 
     }
 
-    let list_of_frames = dotMatrixDivs.map((frame, index) =>
-      generateMostEfficientCppArray(frame.dotmatrix, index)
-    );
-    setGeneratedCode(
-      generate_max7219_template(list_of_frames, frameDuration, pinDIN, pinCS, pinCLK)
-    );
+    let rMatrices = flipAll(dotMatrixDivs);
+    let dotMatrixString = JSON.stringify(rMatrices.map(matrix => matrix.dotmatrix))
+    let dotMatrixFormatted = dotMatrixString.replace(/[\[\]]/g, match => match === "[" ? "{" : "}")
+
+    setGeneratedCode(`
+const int DIN = ${pinDIN};
+const int CS = ${pinCS};
+const int CLK = ${pinCLK};
+
+// Define the frame data (matrix list)
+const int numFrames = ${dotMatrixDivs.length}; // Number of frames in the list
+const bool frames[numFrames][8][8] = ${dotMatrixFormatted};
+
+void setup() {
+  // Set pin modes
+  pinMode(DIN, OUTPUT);
+  pinMode(CLK, OUTPUT);
+  pinMode(CS, OUTPUT);
+
+  // Initialize MAX7219
+  digitalWrite(CS, HIGH);
+  sendCommand(0x0F, 0x00); // Display test off
+  sendCommand(0x09, 0x00); // Decode mode off
+  sendCommand(0x0B, 0x07); // Scan limit = 8 LEDs
+  sendCommand(0x0A, 0x08); // Brightness = medium
+  sendCommand(0x0C, 0x01); // Shutdown register = normal operation
+  clearDisplay();
+}
+
+void loop() {
+  for (int frame = 0; frame < numFrames; frame++) {
+    displayFrame(frames[frame]);
+    delay(${frameDuration}); // Delay between frames (adjust as needed)
+  }
+}
+
+void sendCommand(byte command, byte data) {
+  digitalWrite(CS, LOW);
+  shiftOut(DIN, CLK, MSBFIRST, command);
+  shiftOut(DIN, CLK, MSBFIRST, data);
+  digitalWrite(CS, HIGH);
+}
+
+void clearDisplay() {
+  for (int i = 0; i < 8; i++) {
+    sendCommand(i + 1, 0);
+  }
+}
+
+void displayFrame(const bool matrix[8][8]) {
+  for (int row = 0; row < 8; row++) {
+    byte rowData = 0;
+    for (int col = 0; col < 8; col++) {
+      if (matrix[row][col]) {
+        rowData |= (1 << col);
+      }
+    }
+    sendCommand(row + 1, rowData);
+  }
+}`);
     setIsCodeGenerated(true);
     setCodeCopied(false);
     notifyUser("Code Generation Successful!", toast.success);
   }
 
-  // Add pin validation function for Max7219
+  
   function validatePins() {
     const pins = [
       { name: "DIN", value: pinDIN },
@@ -455,7 +497,7 @@ function Max7219Page() {
       return false;
     }
 
-    // Check for duplicate pins - exclude unselected pins
+ 
     const selectedPins = pins.filter(pin =>
       pin.value &&
       pin.value !== "Pick a Pin" &&
@@ -478,10 +520,10 @@ function Max7219Page() {
     return true;
   }
 
-  // Update the generateCodeOneFrame function to include validation
+ 
   function generateCodeOneFrame() {
     if (!validatePins()) {
-      return; // Don't generate code if validation fails
+      return; 
     }
 
     let rMatrices = flipAll(dotMatrixDivs);
@@ -553,8 +595,7 @@ void displayFrame(const bool matrix[8][8]) {
 
 
   React.useEffect(() => {
-    // Restore pins from localStorage
-    
+
     const savedDIN = localStorage.getItem("DIN");
     const savedCS = localStorage.getItem("CS");
     const savedCLK = localStorage.getItem("CLK");
@@ -566,7 +607,6 @@ void displayFrame(const bool matrix[8][8]) {
 
 
   React.useEffect(() => {
-    // Check if all pins are selected and not "none"
     const allPinsSelected = pinCS !== "none" && pinCLK !== "none" && pinDIN !== "none" &&
       pinCS !== "" && pinCLK !== "" && pinDIN !== "" &&
       pinCS !== "Pick a Pin" && pinCLK !== "Pick a Pin" && pinDIN !== "Pick a Pin" &&
@@ -578,77 +618,6 @@ void displayFrame(const bool matrix[8][8]) {
       setIsGenerateDisabled(true);
     }
   }, [pinDIN, pinCLK, pinCS]);
-
-
-  function generateMostEfficientCppArray(matrix, frameIndex) {
-    // Convert boolean matrix to efficient C++ array representation
-    return matrix.map(row =>
-      row.map(cell => cell ? 1 : 0)
-    );
-  }
-
-  function generate_max7219_template(frames, duration, dinPin, csPin, clkPin) {
-    return `
-const int DIN = ${dinPin};
-const int CS = ${csPin};
-const int CLK = ${clkPin};
-
-// Define the frame data (matrix list)
-const int numFrames = ${frames.length}; // Number of frames in the list
-const bool frames[numFrames][8][8] = {
-  ${frames.map(frame => `{
-    ${frame.map(row => `{${row.map(cell => cell ? 'true' : 'false').join(', ')}}`).join(',\n    ')}
-  }`).join(',\n  ')}
-};
-
-void setup() {
-  // Set pin modes
-  pinMode(DIN, OUTPUT);
-  pinMode(CLK, OUTPUT);
-  pinMode(CS, OUTPUT);
-
-  // Initialize MAX7219
-  digitalWrite(CS, HIGH);
-  sendCommand(0x0F, 0x00); // Display test off
-  sendCommand(0x09, 0x00); // Decode mode off
-  sendCommand(0x0B, 0x07); // Scan limit = 8 LEDs
-  sendCommand(0x0A, 0x08); // Brightness = medium
-  sendCommand(0x0C, 0x01); // Shutdown register = normal operation
-  clearDisplay();
-}
-
-void loop() {
-  for (int frame = 0; frame < numFrames; frame++) {
-    displayFrame(frames[frame]);
-    delay(${duration}); // Delay between frames (adjust as needed)
-  }
-}
-
-void sendCommand(byte command, byte data) {
-  digitalWrite(CS, LOW);
-  shiftOut(DIN, CLK, MSBFIRST, command);
-  shiftOut(DIN, CLK, MSBFIRST, data);
-  digitalWrite(CS, HIGH);
-}
-
-void clearDisplay() {
-  for (int i = 0; i < 8; i++) {
-    sendCommand(i + 1, 0);
-  }
-}
-
-void displayFrame(const bool matrix[8][8]) {
-  for (int row = 0; row < 8; row++) {
-    byte rowData = 0;
-    for (int col = 0; col < 8; col++) {
-      if (matrix[row][col]) {
-        rowData |= (1 << col);
-      }
-    }
-    sendCommand(row + 1, rowData);
-  }
-}`;
-  }
   return (
     <div className="theme-green w-screen text-center flex justify-center flex-col items-center">
       <SEOHead
@@ -660,7 +629,7 @@ void displayFrame(const bool matrix[8][8]) {
       <VisitorCounter></VisitorCounter>
       <ToastContainer />
 
-    
+
       <DragDropContext onDragEnd={onDragEnd}>
         <Droppable direction="horizontal" droppableId="dotMatrixDivs" type="MATRIX">
           {(provided) => (
@@ -743,7 +712,7 @@ void displayFrame(const bool matrix[8][8]) {
                 >
 
                   {
-                    //8x8 frames
+                   
                     dotMatrixDivs.map((matrix, index) => (
                       <Draggable key={matrix.key} draggableId={String(matrix.key)} index={index}>
                         {(provided) => (<>
@@ -884,7 +853,7 @@ void displayFrame(const bool matrix[8][8]) {
 
 
               dotMatrixDivs={dotMatrixDivs}
-             
+
               isDragging={isDragging}
               setDotMatrixDivs={setDotMatrixDivs}
 
@@ -969,27 +938,15 @@ void displayFrame(const bool matrix[8][8]) {
             </div>
 
             <div className='flex flex-col mt-auto space-y-1'>
-
               <div
-                type="button" //Needed to prevent form page refresh
+                type="button"
 
                 className={
-              
-                  ' bg-slate-900 text-green-600  py-1 px-2 rounded-sm  mt-auto cursor-pointer'
-                }
-                onClick={
-                  
-                  () => generateCodeOneFrame()}>Generate frame
-              </div>
-              <div
-                type="button" 
 
-                className={
-                 
                   'bg-slate-900 text-green-600  py-1 px-2 rounded-sm cursor-pointer flex justify-center align-middle items-center'
                 }
                 onClick={
-                 
+
                   () => generateCode()}>Generate animation
 
               </div>
@@ -1060,7 +1017,7 @@ void displayFrame(const bool matrix[8][8]) {
 
   );
 
-  
+
 }
 
 
