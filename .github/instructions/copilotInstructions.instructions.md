@@ -12,4 +12,6 @@ Coding standards, domain knowledge, and preferences that AI should follow.
 
     C:\Users\moon2\Desktop\Arduino_Screens\Converter\react_tailwind_app\src\components\OledPage.jsx
 
-    
+    C:\Users\moon2\Desktop\Arduino_Screens\Converter\react_tailwind_app\src\components\CurrentFrameToolBar.jsx
+
+    C:\Users\moon2\Desktop\Arduino_Screens\Converter\react_tailwind_app\src\components\Adafruit_SSD1306\
