@@ -5,7 +5,7 @@ function CoffeeButton() {
         <div className='w-full mt-10 flex justify-center '>
 
 
-            {/* <a
+          /*  <a
                 href="https://www.buymeacoffee.com/vienspark"
                 className="block min-w-[200px] outline outline-1 outline-[#FFDD00] rounded-xl"
             >
@@ -16,14 +16,12 @@ function CoffeeButton() {
                     className="w-full h-auto"
                 />
             </a>
-			 */}
-
-             <a href="https://www.buymeacoffee.com/vienspark" target="_blank">
-             <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" / >
-             </a>
-			
+			*/
+			<a href="https://www.buymeacoffee.com/vienspark" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
         </div>
     )
 }
 
 export default CoffeeButton
+
+
