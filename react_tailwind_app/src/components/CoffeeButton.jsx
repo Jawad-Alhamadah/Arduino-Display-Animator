@@ -5,7 +5,7 @@ function CoffeeButton() {
         <div className='w-full mt-10 flex justify-center '>
 
 
-            <a
+          /*  <a
                 href="https://www.buymeacoffee.com/vienspark"
                 className="block min-w-[200px] outline outline-1 outline-[#FFDD00] rounded-xl"
             >
@@ -16,6 +16,8 @@ function CoffeeButton() {
                     className="w-full h-auto"
                 />
             </a>
+			*/
+			<script type="text/javascript" src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js" data-name="bmc-button" data-slug="vienspark" data-color="#FFDD00" data-emoji="☕"  data-font="Cookie" data-text="Buy me a coffee" data-outline-color="#000000" data-font-color="#000000" data-coffee-color="#ffffff" ></script>
         </div>
     )
 }
