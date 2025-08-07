@@ -406,6 +406,60 @@ export default function Oled128x64(props) {
     };
   }, []);
 
+  // --- TOUCH SUPPORT FOR MOBILE DRAWING ---
+  // Convert touch events to mouse-like events for drawing
+  const getTouchPosition = (touchEvent) => {
+    const rect = canvasRef.current.getBoundingClientRect();
+    const scaleX = canvasRef.current.width / rect.width;
+    const scaleY = canvasRef.current.height / rect.height;
+    const touch = touchEvent.touches[0] || touchEvent.changedTouches[0];
+    const x = Math.floor((touch.clientX - rect.left) * scaleX / pixelSize);
+    const y = Math.floor((touch.clientY - rect.top) * scaleY / pixelSize);
+    if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return { x: null, y: null };
+    return { x, y };
+  };
+
+  const handleCanvasTouchStart = (e) => {
+    e.preventDefault();
+    // Simulate mouse down
+    const fakeEvent = {
+      ...e,
+      clientX: e.touches[0].clientX,
+      clientY: e.touches[0].clientY,
+      // For getMousePosition compatibility
+      nativeEvent: e.touches[0],
+    };
+    handleCanvasMouseDown(fakeEvent);
+    setIsDrawing(true);
+  };
+
+  const handleCanvasTouchMove = (e) => {
+    e.preventDefault();
+    if (!isDrawing) return;
+    // Simulate mouse move
+    const fakeEvent = {
+      ...e,
+      clientX: e.touches[0].clientX,
+      clientY: e.touches[0].clientY,
+      nativeEvent: e.touches[0],
+    };
+    handleCanvasMouseMove(fakeEvent);
+  };
+
+  const handleCanvasTouchEnd = (e) => {
+    e.preventDefault();
+    setIsDrawing(false);
+    prevMousePosRef.current = { x: null, y: null };
+    // Simulate mouse up for stroke end logic
+    if (props.onStrokeEnd && didDragRef.current) {
+      const matrixObj = props.oledMatrix.find(obj => obj.key === currentMatrixKey);
+      if (matrixObj) {
+        props.onStrokeEnd(structuredClone(matrixObj.matrix));
+      }
+      didDragRef.current = false;
+    }
+  };
+
   return (
     <>
       <div style={{ position: "relative", width: WIDTH * pixelSize, height: HEIGHT * pixelSize }}>
@@ -419,6 +473,10 @@ export default function Oled128x64(props) {
           onMouseLeave={handleCanvasMouseLeave}
           onMouseEnter={handleCanvasMouseEnter}
           onMouseDown={handleCanvasMouseDown}
+          // --- Add touch event handlers for mobile drawing ---
+          onTouchStart={handleCanvasTouchStart}
+          onTouchMove={handleCanvasTouchMove}
+          onTouchEnd={handleCanvasTouchEnd}
         />
 
         {isCursorOver && cursorPos.x !== null && cursorPos.y !== null && (
