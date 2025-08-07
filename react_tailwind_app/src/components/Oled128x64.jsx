@@ -467,13 +467,12 @@ export default function Oled128x64(props) {
           ref={canvasRef}
           width={WIDTH * pixelSize}
           height={HEIGHT * pixelSize}
-          style={{ display: "block" }}
+          style={{ display: "block", touchAction: "none" }}
           className="border border-slate-700 cursor-none"
           onMouseMove={handleCanvasMouseMove}
           onMouseLeave={handleCanvasMouseLeave}
           onMouseEnter={handleCanvasMouseEnter}
           onMouseDown={handleCanvasMouseDown}
-          // --- Add touch event handlers for mobile drawing ---
           onTouchStart={handleCanvasTouchStart}
           onTouchMove={handleCanvasTouchMove}
           onTouchEnd={handleCanvasTouchEnd}
